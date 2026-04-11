@@ -1,0 +1,131 @@
+export enum RideType {
+    ONE_WAY = 'ONE_WAY',
+    ROUND_TRIP = 'ROUND_TRIP',
+    OUTSTATION = 'OUTSTATION',
+    SCHEDULED = 'SCHEDULED',
+    // DAILY = 'DAILY',
+}
+
+export enum ServiceType {
+    DRIVER_ONLY = 'DRIVER_ONLY',
+    CAB_WITH_DRIVER = 'CAB_WITH_DRIVER',
+}
+
+export enum TripStatus {
+    REQUESTED = 'REQUESTED',
+    ACCEPTED = 'ACCEPTED',
+    ARRIVING = 'ARRIVING',
+    ARRIVED = 'ARRIVED',
+    LIVE = 'LIVE',
+    DESTINATION_REACHED = 'DESTINATION_REACHED',
+    COMPLETED = 'COMPLETED',
+    CANCELLED = 'CANCELLED',
+    MID_CANCELLED = 'MID_CANCELLED',
+}
+
+export enum PaymentStatus {
+    PENDING = 'PENDING',
+    PAID = 'PAID',
+    FAILED = 'FAILED',
+    REFUNDED = 'REFUNDED',
+}
+
+export enum CancelReason {
+    //Admin reasons
+    USER_CANCELLED = 'USER_CANCELLED',
+    DRIVER_CANCELLED = 'DRIVER_CANCELLED',
+    ADMIN_CANCELLED = 'ADMIN_CANCELLED',
+    ACCIDENT = 'ACCIDENT',
+    NO_SHOW = 'NO_SHOW',
+    PAYMENT_ISSUE = 'PAYMENT_ISSUE',
+    TECHNICAL_ISSUE = 'TECHNICAL_ISSUE',
+    //User reasons
+    DRIVER_TOO_FAR = 'DRIVER_TOO_FAR',
+    WAIT_TIME_TOO_LONG = 'WAIT_TIME_TOO_LONG',
+    MISTAKE_IN_ADDRESS = 'MISTAKE_IN_ADDRESS',
+    FOUND_ANOTHER_RIDE = 'FOUND_ANOTHER_RIDE',
+    CHANGED_MY_MIND = 'CHANGED_MY_MIND',
+    UNSAFE_DRIVING = 'UNSAFE_DRIVING',
+    DRIVER_BEHAVIOR = 'DRIVER_BEHAVIOR',
+    VEHICLE_CONDITION = 'VEHICLE_CONDITION',
+    WRONG_ROUTE = 'WRONG_ROUTE',
+    FEELING_UNWELL = 'FEELING_UNWELL',
+    CHANGE_PLANS = 'CHANGE_PLANS',
+    TAKING_TOO_LONG = 'TAKING_TOO_LONG',
+    VEHICLE_MISMATCH = 'VEHICLE_MISMATCH',
+    FARE_CONCERN = 'FARE_CONCERN',
+    FOUND_ALTERNATIVE = 'FOUND_ALTERNATIVE',
+    //Driver reasons
+    PICKUP_TOO_FAR = 'PICKUP_TOO_FAR',
+    RIDER_NOT_RESPONDING = 'RIDER_NOT_RESPONDING',
+    RIDER_ASKED_TO_CANCEL = 'RIDER_ASKED_TO_CANCEL',
+    CAR_BREAKDOWN = 'CAR_BREAKDOWN',
+    PERSONAL_EMERGENCY = 'PERSONAL_EMERGENCY',
+    VEHICLE_PROBLEM = 'VEHICLE_PROBLEM',
+
+    OTHER = 'OTHER',
+}
+
+
+export enum CancelBy {
+    USER = 'USER',
+    DRIVER = 'DRIVER',
+    ADMIN = 'ADMIN',
+    SYSTEM = 'SYSTEM',
+}
+
+export enum ChangeType {
+    SCHEDULE_TIME = 'SCHEDULE_TIME',
+    PICKUP_LOCATION = 'PICKUP_LOCATION',
+    DROP_LOCATION = 'DROP_LOCATION',
+    RIDE_TYPE = 'RIDE_TYPE',
+    SERVICE_TYPE = 'SERVICE_TYPE',
+    CANCELLED = 'CANCELLED',
+    RESCHEDULED = 'RESCHEDULED',
+}
+
+export enum ChangeBy {
+    USER = 'USER',
+    DRIVER = 'DRIVER',
+    ADMIN = 'ADMIN',
+    SYSTEM = 'SYSTEM',
+}
+
+
+export enum BookingType {
+    LIVE = 'LIVE',
+    SCHEDULED = 'SCHEDULED'
+}
+
+export enum TransmissionType {
+    MANUAL = 'MANUAL',
+    AUTOMATIC = 'AUTOMATIC',
+    SEMI_AUTOMATIC = 'SEMI_AUTOMATIC'
+}
+
+// export enum VehicleType {
+//     HATCHBACK = 'Hatchback',
+//     SEDAN = 'Sedan',
+//     SUV = 'SUV',
+//     AUTO = 'auto',
+//     BIKE = 'bike',
+//     TRUCK = 'truck',
+//     CAR = 'car',
+//     VAN = 'van',
+// }
+
+
+export enum VehicleType {
+    HATCHBACK = 'Hatchback',
+    SEDAN = 'Sedan',
+    SUV = 'SUV',
+    AUTO = 'auto',
+    BIKE = 'bike',
+    TRUCK = 'truck',
+    CAR = 'car',
+    VAN = 'van',
+    MUV = 'MUV',
+    LUXURY = 'LUXURY',
+    TEMPO_TRAVELLER = 'TEMPO_TRAVELLER',
+    // BUS = 'BUS'
+}
