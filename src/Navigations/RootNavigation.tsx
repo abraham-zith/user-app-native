@@ -18,6 +18,7 @@ import {
   RideCompletedScreen_Nav,
   FareSummaryScreen_Nav,
   CheckoutScreen_Nav,
+  PaymentSuccessScreen_Nav,
   FAQDetailsScreen_Nav,
   HelpContactScreen_Nav,
   FavouritelocationScreens_Nav,
@@ -30,7 +31,8 @@ import {
   userMapTest_nav,
   ChatScreen_Nav,
   OngoingTripsList_Nav,
-  ScheduledTripsList_Nav
+  ScheduledTripsList_Nav,
+  OffersScreen_Nav
 } from './navigations';
 import AuthNavigation from './AuthNavigation';
 import DashBoardScreen from '../Screens/Dashboard';
@@ -71,6 +73,8 @@ import { UserAppUI } from '../Screens/MapTrackingScreen/UserMapScreen';
 import ChatScreen from '../Screens/ChatScreen';
 import OngoingTripsList from '../Screens/TripScreen/TripComponents/LiveRideBadge/OngoingTripsList';
 import ScheduledTripCard from '../Screens/TripScreen/TripComponents/ScheduledRideBadge/ScheduledTripList';
+import PaymentSuccessScreen from '../Screens/PaymentScreen/PaymentSuccessScreen';
+import OffersScreen from '../Screens/Offers/OffersScreen';
 
 
 
@@ -96,13 +100,13 @@ const RootNavigation = () => {
         headerTitleAllowFontScaling: true,
         headerBackgroundContainerStyle: { backgroundColor: appColors.background },
         headerStyle: {
-            backgroundColor: appColors.background,
-            elevation: 0,
-            shadowOpacity: 0,
+          backgroundColor: appColors.background,
+          elevation: 0,
+          shadowOpacity: 0,
         },
         headerTitleStyle: {
-            color: appColors.text,
-            fontWeight: 'bold',
+          color: appColors.text,
+          fontWeight: 'bold',
         },
         headerTintColor: appColors.text,
       })}>
@@ -193,6 +197,13 @@ const RootNavigation = () => {
         component={CheckoutScreen}
         options={{
           headerTitle: 'Checkout',
+        }}
+      />
+      <Stack.Screen
+        name={PaymentSuccessScreen_Nav}
+        component={PaymentSuccessScreen}
+        options={{
+          headerShown: false,
         }}
       />
       <Stack.Screen
@@ -310,6 +321,14 @@ const RootNavigation = () => {
         options={{
           presentation: 'modal',
           headerShown: false
+        }}
+      />
+
+      <Stack.Screen
+        name={OffersScreen_Nav}
+        component={OffersScreen}
+        options={{
+          headerTitle: 'Offers & Promotions',
         }}
       />
 

@@ -11,6 +11,9 @@ import { userApi } from '../service/userApi';
 import { authApi } from '../service/authApi';
 import { tripApi } from '../service/tripApi';
 import notificationSliceReducer from './notificationSlice';
+import { sosApi } from '../service/sosApi';
+import { referralApi } from '../service/referralApi';
+import { couponApi } from '../service/couponApi';
 
 const persistConfig = {
   key: 'root',
@@ -26,6 +29,10 @@ const rootReducer = combineReducers({
   [userApi.reducerPath]: userApi.reducer, // RTK Query reducer
   [authApi.reducerPath]: authApi.reducer,
   [tripApi.reducerPath]: tripApi.reducer,
+  [sosApi.reducerPath]: sosApi.reducer,
+  [referralApi.reducerPath]: referralApi.reducer,
+  [couponApi.reducerPath]: couponApi.reducer,
+
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
@@ -35,7 +42,7 @@ export const store = configureStore({
   middleware: getDefaultMiddleware =>
     getDefaultMiddleware({
       serializableCheck: false, // Important for redux-persist
-    }).concat(userApi.middleware, authApi.middleware, tripApi.middleware),
+    }).concat(userApi.middleware, authApi.middleware, tripApi.middleware, sosApi.middleware, referralApi.middleware, couponApi.middleware),
 });
 
 export const persistor = persistStore(store);

@@ -10,7 +10,6 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import Contacts from 'react-native-contacts';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useContactPicker } from '../../../../../hooks/useContacts';
 import colors from '../../../../../constant/colors';
@@ -22,17 +21,39 @@ import { updateUserStore } from '../../../../../redux/userSlice';
 import { hS, mS, vS } from '../../../../../lib/responsive';
 import { ContactScreen_Nav } from '../../../../../Navigations/navigations';
 import { useAppTheme } from "../../../../../hooks/useAppTheme";
+import RelationshipSelectionModal from '../../../../../Components/RelationshipSelectionModal';
+import { useAddTrustedContactMutation } from '../../../../../service/sosApi';
+
+export interface EmergencyContact {
+    name: string;
+    phone: string;
+    relationship: string;
+}
+
+const RELATIONSHIP_SUGGESTIONS = [
+    'Mother',
+    'Father',
+    'Sister',
+    'Brother',
+    'Spouse',
+    'Friend',
+    'Colleague',
+    'Guardian',
+];
 
 const SafetyScreen = ({ navigation }: any) => {
     const { pickContact, loading } = useContactPicker();
     const localuser = useSelector((state: RootState) => state?.userSlice?.user);
     const dispatch = useDispatch()
     const [updateUser] = useUpdateUserMutation();
+    const [addTrustedContact] = useAddTrustedContactMutation();
     const insets = useSafeAreaInsets()
     const { colors: appColors, isDark } = useAppTheme();
 
-    const [emergencyContacts, setEmergencyContacts] = useState<{ name: string, phone: string }[]>([]);
+    const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([]);
     const [pickerloading, setpickerLoading] = useState(false);
+    const [relationshipModalVisible, setRelationshipModalVisible] = useState(false);
+    const [selectedContact, setSelectedContact] = useState<{ name: string; phone: string } | null>(null);
 
     useEffect(() => {
         loadSavedContacts();
@@ -56,95 +77,75 @@ const SafetyScreen = ({ navigation }: any) => {
         navigation.navigate(ContactScreen_Nav, {
             onSelectContact: async (SelectedContact: any) => {
                 if (SelectedContact) {
-
-                    const incomingPhone = SelectedContact.phone?.replace(/[^0-9]/g, '') || '';
                     const cleanphone = SelectedContact.phone?.replace(/\+91|\s/g, '');
 
                     const isDuplicate = emergencyContacts.some(contact => {
                         const existingPhone = contact.phone?.replace(/[^0-9]/g, '');
-                        return existingPhone === cleanphone;
+                        const incomingPhone = cleanphone?.replace(/[^0-9]/g, '');
+                        return existingPhone === incomingPhone;
                     });
 
                     if (isDuplicate) {
                         Alert.alert("Already Added", `${SelectedContact.name} is already in your emergency list.`);
+                        setpickerLoading(false);
+                        navigation.goBack();
                         return;
                     }
 
-                    const newContact = {
+                    // Store contact and show relationship modal
+                    setSelectedContact({
                         name: SelectedContact.name,
                         phone: cleanphone || 'No Number',
-                    };
-
-
-                    const updatedList = [...emergencyContacts, newContact].slice(0, 3);
-                    try {
-                        const payload = {
-                            id: localuser.id,
-                            emergency_contacts: updatedList
-                        };
-
-                        const response = await updateUser(payload).unwrap();
-                        if (response.success) {
-                            dispatch(updateUserStore({ emergency_contacts: response.data.emergency_contacts }));
-                            ToastAndroid.show("Emergency contact updated successfully", ToastAndroid.SHORT);
-                        }
-
-                        setEmergencyContacts(updatedList);
-                        await AsyncStorage.setItem('@emergency_contacts', JSON.stringify(updatedList));
-                        // Alert.alert("Success", `${newContact.name} saved to your Emergency Contacts.`);
-                    } catch (error) {
-                        // console.error("Update failed:", error);
-                        ToastAndroid.show("Something Went Wrong!!! Try Later...", ToastAndroid.SHORT);
-                        // Alert.alert("Error", "Failed to sync contacts with the server.");
-                    }
+                    });
+                    setRelationshipModalVisible(true);
                     navigation.goBack();
                 }
+                setpickerLoading(false);
             },
         });
-        // const selection = await pickContact();
+    };
 
-        // if (selection) {
-        //     const incomingPhone = selection.phone?.replace(/[^0-9]/g, '') || '';
+    const handleRelationshipSelect = async (relationship: string) => {
+        if (!selectedContact) return;
 
-        //     const isDuplicate = emergencyContacts.some(contact => {
-        //         const existingPhone = contact.phone?.replace(/[^0-9]/g, '');
-        //         return existingPhone === incomingPhone;
-        //     });
+        const newContact: EmergencyContact = {
+            name: selectedContact.name,
+            phone: selectedContact.phone,
+            relationship: relationship,
+        };
 
-        //     if (isDuplicate) {
-        //         Alert.alert("Already Added", `${selection.name} is already in your emergency list.`);
-        //         return;
-        //     }
+        const updatedList = [...emergencyContacts, newContact];
 
-        //     const newContact = {
-        //         name: selection.name,
-        //         phone: selection.phone || 'No Number',
-        //     };
+        try {
+            const payload = {
+                id: localuser.id,
+                emergency_contacts: updatedList
+            };
 
+            const response = await updateUser(payload).unwrap();
+            if (response.success) {
+                dispatch(updateUserStore({ emergency_contacts: response.data.emergency_contacts }));
+                ToastAndroid.show("Emergency contact updated successfully", ToastAndroid.SHORT);
+            }
 
-        //     const updatedList = [...emergencyContacts, newContact].slice(0, 3);
-        //     try {
-        //         const payload = {
-        //             id: localuser.id,
-        //             emergency_contacts: updatedList
-        //         };
+            const trustedcontacts = {
+                id: localuser.id,
+                name: newContact.name,
+                phone: newContact.phone,
+                relationship: newContact.relationship,
+                user_type: 'customer'
+            }
 
-        //         const response = await updateUser(payload).unwrap();
-        //         if (response.success) {
-        //             dispatch(updateUserStore({ emergency_contacts: response.data.favourite_places }));
-        //             ToastAndroid.show("Emergency contact updated successfully", ToastAndroid.SHORT);
-        //         }
-
-        //         setEmergencyContacts(updatedList);
-        //         await AsyncStorage.setItem('@emergency_contacts', JSON.stringify(updatedList));
-        //         Alert.alert("Success", `${newContact.name} saved to your Emergency Contacts.`);
-        //     } catch (error) {
-        //         console.error("Update failed:", error);
-        //         Alert.alert("Error", "Failed to sync contacts with the server.");
-        //     }
-        // }
-        setpickerLoading(false);
-
+            const res = await addTrustedContact(trustedcontacts).unwrap();
+            console.log(res, "res")
+            setEmergencyContacts(updatedList);
+            await AsyncStorage.setItem('@emergency_contacts', JSON.stringify(updatedList));
+        } catch (error) {
+            ToastAndroid.show("Something Went Wrong!!! Try Later...", ToastAndroid.SHORT);
+        } finally {
+            setRelationshipModalVisible(false);
+            setSelectedContact(null);
+        }
     };
 
     const handleRemoveContact = (index: number) => {
@@ -160,7 +161,7 @@ const SafetyScreen = ({ navigation }: any) => {
                 },
                 {
                     text: "Remove",
-                    style: "destructive", // Red text on iOS
+                    style: "destructive",
                     onPress: () => performDelete(index),
                 },
             ]
@@ -168,8 +169,6 @@ const SafetyScreen = ({ navigation }: any) => {
     };
 
     const performDelete = async (index: number) => {
-
-        const contactName = emergencyContacts[index]?.name || "Contact";
         const updatedList = emergencyContacts.filter((_, i) => i !== index);
 
         try {
@@ -179,7 +178,6 @@ const SafetyScreen = ({ navigation }: any) => {
             };
 
             const response = await updateUser(payload).unwrap();
-
             const serverContacts = response.data?.emergency_contacts || response.emergency_contacts;
 
             if (serverContacts) {
@@ -189,13 +187,8 @@ const SafetyScreen = ({ navigation }: any) => {
 
             setEmergencyContacts(updatedList);
             await AsyncStorage.setItem('@emergency_contacts', JSON.stringify(updatedList));
-
-            // Alert.alert("Deleted", `${contactName} has been removed.`);
         } catch (error) {
-            // console.error("Remove failed:", error);
-            // Alert.alert('Something Went Wrong!!!', 'Try Again Later');
             ToastAndroid.show("Something Went Wrong!!! Try Later...", ToastAndroid.SHORT);
-            // Alert.alert("Error", "Failed to remove contact from the server.");
         }
     };
 
@@ -236,16 +229,16 @@ const SafetyScreen = ({ navigation }: any) => {
                     <View style={styles.sectionHeaderRow}>
                         <View>
                             <Text style={[styles.sectionTitle, { color: appColors.text }]}>Emergency Contacts</Text>
-                            <Text style={[styles.sectionSubtitle, { color: appColors.secondaryText }]}>Select up to 3 trusted contacts</Text>
+                            <Text style={[styles.sectionSubtitle, { color: appColors.secondaryText }]}>Select up to 5 trusted contacts</Text>
                         </View>
                         <TouchableOpacity
-                            disabled={emergencyContacts.length >= 3 || pickerloading}
+                            disabled={emergencyContacts.length >= 5 || pickerloading}
                             onPress={openContactPicker}
                             activeOpacity={0.7}
                             style={[
                                 styles.addIconButton,
                                 { backgroundColor: appColors.card, shadowColor: appColors.text },
-                                (emergencyContacts.length >= 3 || pickerloading) && { backgroundColor: isDark ? '#1E293B' : '#F1F5F9' }
+                                (emergencyContacts.length >= 5 || pickerloading) && { backgroundColor: isDark ? '#1E293B' : '#F1F5F9' }
                             ]}
                         >
                             {pickerloading ? (
@@ -254,7 +247,7 @@ const SafetyScreen = ({ navigation }: any) => {
                                 <MaterialCommunityIcons
                                     name="plus"
                                     size={mS(24)}
-                                    color={emergencyContacts.length >= 3 ? "#CBD5E1" : isDark ? colors.primary : colors.button}
+                                    color={emergencyContacts.length >= 5 ? "#CBD5E1" : isDark ? colors.primary : colors.button}
                                 />
                             )}
                         </TouchableOpacity>
@@ -285,6 +278,9 @@ const SafetyScreen = ({ navigation }: any) => {
                                     <View style={styles.contactInfo}>
                                         <Text style={[styles.contactNameText, { color: appColors.text }]}>{item.name}</Text>
                                         <Text style={[styles.contactPhoneText, { color: appColors.secondaryText }]}>{item.phone}</Text>
+                                        <Text style={[styles.contactRelationshipText, { color: appColors.secondaryText }]}>
+                                            <MaterialCommunityIcons name="family-tree" size={mS(12)} /> {item.relationship}
+                                        </Text>
                                     </View>
                                     <TouchableOpacity
                                         activeOpacity={0.5}
@@ -298,10 +294,10 @@ const SafetyScreen = ({ navigation }: any) => {
                         )}
                     </View>
 
-                    {emergencyContacts.length >= 3 && (
+                    {emergencyContacts.length >= 5 && (
                         <View style={styles.limitBanner}>
                             <MaterialCommunityIcons name="information" size={mS(16)} color={isDark ? '#F59E0B' : '#B45309'} />
-                            <Text style={[styles.limitText, isDark && { color: '#F59E0B' }]}>Maximum limit reached (3 contacts)</Text>
+                            <Text style={[styles.limitText, isDark && { color: '#F59E0B' }]}>Maximum limit reached (5 contacts)</Text>
                         </View>
                     )}
                 </View>
@@ -342,6 +338,18 @@ const SafetyScreen = ({ navigation }: any) => {
                     </View>
                 </View>
             </ScrollView>
+
+            {/* --- RELATIONSHIP SELECTION MODAL --- */}
+            <RelationshipSelectionModal
+                visible={relationshipModalVisible}
+                contact={selectedContact}
+                onSelectRelationship={handleRelationshipSelect}
+                onClose={() => {
+                    setRelationshipModalVisible(false);
+                    setSelectedContact(null);
+                }}
+                suggestions={RELATIONSHIP_SUGGESTIONS}
+            />
         </View>
     );
 };
@@ -477,6 +485,13 @@ const styles = StyleSheet.create({
         color: '#64748B',
         marginTop: vS(1),
         fontWeight: '500',
+    },
+    contactRelationshipText: {
+        fontSize: mS(12),
+        color: '#94A3B8',
+        marginTop: vS(2),
+        fontWeight: '500',
+        fontStyle: 'italic',
     },
     deleteAction: {
         padding: mS(8),

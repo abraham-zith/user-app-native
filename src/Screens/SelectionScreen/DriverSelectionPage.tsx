@@ -13,6 +13,10 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigation, NavigationProp } from "@react-navigation/native";
 import { BookedTripScreen_Nav, userMapTest_nav } from "../../Navigations/navigations";
 import { hS, mS, vS } from "../../lib/responsive";
+// import PaymentModal from '../../Components/PaymentModal';
+import CouponModal from "../../Components/CouponModal";
+import CouponSuccessModal from '../../Components/CouponSuccessModal';
+// import { useGetActiveTripQuery } from '../../store/Api/tripApi';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSocket } from "../../Socket/SocketContext";
 import { useLocation } from "../../hooks/useLocation";
@@ -47,6 +51,12 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
     const [getPricing] = useGetPricingMutation();
     const [visible, setVisible] = useState(false);
     const [selectedDriver, setSelectedDriver] = useState<string>("");
+    const localuser = useSelector((state: RootState) => state.userSlice.user);
+
+    // Coupon State
+    const [isCouponModalVisible, setIsCouponModalVisible] = useState(false);
+    const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
+    const [appliedCoupon, setAppliedCoupon] = useState<{ id: string, code: string, discount: number } | null>(null);
     const doptions = {
         "prices": [
             {
@@ -122,7 +132,14 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
 
     const handleBookRide = async () => {
         try {
-            const result = await createTrip(TripPayload).unwrap();
+            const finalPayload = {
+                ...TripPayload,
+                coupon_code: appliedCoupon?.code,
+                discount: appliedCoupon?.discount || 0,
+                applied_coupon_id: appliedCoupon?.id
+            };
+            console.log(finalPayload, "finalPayload");
+            const result = await createTrip(finalPayload).unwrap();
             if (result.success) {
                 if (Platform.OS === 'android') {
                     ToastAndroid.show(result.message, ToastAndroid.SHORT);
@@ -137,6 +154,50 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
             }
         } catch (error) {
             Alert.alert('Booking Failed!!!')
+        }
+    };
+
+    const handleApplyCoupon = (coupon: any, discountAmount: number) => {
+        setAppliedCoupon({
+            id: coupon.id,
+            code: coupon.code,
+            discount: discountAmount
+        });
+
+        if (selectedDriver) {
+            const currentOption = options.find(o => o.id === selectedDriver);
+            if (currentOption) {
+                const totalFare = currentOption.Price + currentOption.allowance + (updatedTip || 0) - discountAmount;
+                setTripPayload((prev: any) => ({
+                    ...prev,
+                    discount: discountAmount,
+                    total_fare: Math.max(0, totalFare),
+                    applied_coupon_id: coupon.id
+                }));
+            }
+        }
+
+        // Close selection modal and show success modal
+        setIsCouponModalVisible(false);
+        setTimeout(() => {
+            setIsSuccessModalVisible(true);
+        }, 500); // Small delay for smooth transition
+    };
+
+    const handleRemoveCoupon = () => {
+        setAppliedCoupon(null);
+        if (selectedDriver) {
+            const currentOption = options.find(o => o.id === selectedDriver);
+            if (currentOption) {
+                const totalFare = currentOption.Price + currentOption.allowance + (updatedTip || 0);
+                setTripPayload((prev: any) => ({
+                    ...prev,
+                    discount: 0,
+                    total_fare: totalFare,
+                    applied_coupon_id: undefined,
+                    coupon_code: undefined
+                }));
+            }
         }
     };
     // const parseScheduledDate = (dateString: any) => {
@@ -247,11 +308,15 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
                                 ]}
                                 onPress={() => {
                                     setSelectedDriver(item.id);
+                                    const discount = appliedCoupon?.discount || 0;
+                                    const totalFare = item.Price + item.allowance + (updatedTip || 0) - discount;
                                     setTripPayload((prev) => ({
                                         ...prev,
                                         driver_allowance: item.allowance,
                                         base_fare: item.Price,
-                                        total_fare: item.Price + item.allowance
+                                        discount: discount,
+                                        total_fare: Math.max(0, totalFare),
+                                        applied_coupon_id: appliedCoupon?.id
                                     }));
                                 }}
                             >
@@ -267,9 +332,15 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
                                         <Text style={[styles.priceLabel, { color: appColors.text }]}>₹{(
                                             item.Price +
                                             item.allowance +
-                                            (selectedDriver === item.id ? (updatedTip || 0) : 0)
+                                            (selectedDriver === item.id ? (updatedTip || 0) : 0) -
+                                            (selectedDriver === item.id ? (appliedCoupon?.discount || 0) : 0)
                                         ).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
                                     </View>
+                                    {selectedDriver === item.id && appliedCoupon && (
+                                        <Text style={{ fontSize: mS(12), color: colors.primary, fontWeight: '700', textAlign: 'right' }}>
+                                            Coupon Applied: -₹{appliedCoupon.discount.toFixed(2)}
+                                        </Text>
+                                    )}
 
                                     <View style={styles.rowBetween}>
                                         <Text style={[styles.descText, { color: appColors.secondaryText }]} numberOfLines={2}>{item.Description}</Text>
@@ -306,9 +377,33 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
                 {/* Payment Methods */}
                 <View style={styles.footerRow}>
                     {CashOffer.map((item, index) => (
-                        <TouchableOpacity key={index} style={[styles.paymentMethod, { backgroundColor: isDark ? appColors.background : '#F8FAFC' }]}>
-                            <Text style={[styles.methodLabel, { color: appColors.text }]}>{item.name}</Text>
-                            <MaterialCommunityIcons name={item.iconName} size={mS(18)} color={appColors.secondaryText} />
+                        <TouchableOpacity
+                            key={index}
+                            style={[
+                                styles.paymentMethod,
+                                {
+                                    backgroundColor: isDark ? appColors.background : '#F8FAFC',
+                                    borderColor: item.name === 'Offers' && appliedCoupon ? colors.primary : 'transparent',
+                                    borderWidth: item.name === 'Offers' && appliedCoupon ? 1 : 0
+                                }
+                            ]}
+                            onPress={() => {
+                                if (item.name === 'Offers') {
+                                    setIsCouponModalVisible(true);
+                                }
+                            }}
+                        >
+                            <Text style={[
+                                styles.methodLabel,
+                                { color: item.name === 'Offers' && appliedCoupon ? colors.primary : appColors.text }
+                            ]}>
+                                {item.name === 'Offers' && appliedCoupon ? appliedCoupon.code : item.name}
+                            </Text>
+                            <MaterialCommunityIcons
+                                name={item.name === 'Offers' && appliedCoupon ? "tag-text" : item.iconName}
+                                size={mS(18)}
+                                color={item.name === 'Offers' && appliedCoupon ? colors.primary : appColors.secondaryText}
+                            />
                         </TouchableOpacity>
                     ))}
                 </View>
@@ -338,6 +433,23 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
                     </View>
                 </View>
             </Modal>
+
+            <CouponModal
+                visible={isCouponModalVisible}
+                onClose={() => setIsCouponModalVisible(false)}
+                onApply={handleApplyCoupon}
+                onRemove={handleRemoveCoupon}
+                rideAmount={TripPayload.total_fare || 0}
+                currentCouponId={appliedCoupon?.id}
+                userId={TripPayload.user_id || localuser?.id}
+            />
+
+            <CouponSuccessModal
+                visible={isSuccessModalVisible}
+                onClose={() => setIsSuccessModalVisible(false)}
+                couponCode={appliedCoupon?.code || ""}
+                discountAmount={appliedCoupon?.discount || 0}
+            />
         </View>
     );
 }

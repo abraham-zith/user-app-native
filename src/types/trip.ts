@@ -63,6 +63,10 @@ export interface Trip {
     vehicle_model?: string;
     vehicle_type?: VehicleType;
     transmission_type?: TransmissionType;
+    coupon_code?: string;
+    applied_coupon_id?: string;
+    discount?: number;
+    otp?: string;
 }
 
 export interface TripChangesPayload {

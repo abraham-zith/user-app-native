@@ -4,6 +4,7 @@ import {
     StyleSheet,
     TouchableOpacity,
 } from 'react-native';
+import { useCheckReferralEligibilityQuery } from '../../../service/referralApi';
 import { Text } from '../../../Components';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -27,6 +28,8 @@ const RideClosurePreview: React.FC<RideClosurePreviewProps> = ({
     navigation,
 }) => {
     const { colors: appColors, isDark } = useAppTheme();
+    const { data: eligibilityRes } = useCheckReferralEligibilityQuery();
+    const isEligible = eligibilityRes?.data?.isEligible;
 
     const handleProceedToPayment = () => {
         navigation.navigate(CheckoutScreen_Nav, tripData);
@@ -37,16 +40,22 @@ const RideClosurePreview: React.FC<RideClosurePreviewProps> = ({
             {/* ARRIVED STATUS */}
             <View style={styles.headerSection}>
                 <View style={[styles.iconCircle, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.1)' : '#ECFDF5' }]}>
-                    <MaterialCommunityIcons 
-                        name="map-marker-check" 
-                        size={mS(40)} 
-                        color="#10B981" 
+                    <MaterialCommunityIcons
+                        name="map-marker-check"
+                        size={mS(40)}
+                        color="#10B981"
                     />
                 </View>
                 <Text style={[styles.title, { color: appColors.text }]}>Destination Reached</Text>
                 <Text style={[styles.subtitle, { color: appColors.secondaryText }]}>
                     You have arrived safely. Please complete the payment to finish the trip.
                 </Text>
+                {isEligible && (
+                    <View style={[styles.hintContainer, { backgroundColor: isDark ? 'rgba(37, 99, 235, 0.1)' : '#EFF6FF' }]}>
+                        <MaterialCommunityIcons name="information" size={mS(16)} color="#3B82F6" />
+                        <Text style={styles.hintText}>💡 Your first ride discount will be applied at checkout</Text>
+                    </View>
+                )}
             </View>
 
             {/* FARE SUMMARY */}
@@ -60,6 +69,16 @@ const RideClosurePreview: React.FC<RideClosurePreviewProps> = ({
                         <Text style={[styles.paymentText, { color: '#F59E0B' }]}>Payment Pending</Text>
                     </View>
                 </View>
+
+                {tripData?.discount > 0 && (
+                    <View style={[styles.couponRow, { borderTopColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#F1F5F9' }]}>
+                        <View style={styles.couponInfo}>
+                            <MaterialCommunityIcons name="tag-text" size={mS(16)} color="#10B981" />
+                            <Text style={styles.couponMessage}>Coupon Applied ({tripData.coupon_code})</Text>
+                        </View>
+                        <Text style={styles.discountAmount}>- ₹{tripData.discount}</Text>
+                    </View>
+                )}
             </View>
 
             {/* ACTION BUTTON */}
@@ -154,6 +173,43 @@ const styles = StyleSheet.create({
         fontSize: mS(18),
         fontWeight: '800',
     },
+    hintContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: vS(10),
+        paddingHorizontal: hS(16),
+        borderRadius: mS(12),
+        marginTop: vS(16),
+        gap: hS(8),
+    },
+    hintText: {
+        fontSize: mS(13),
+        fontWeight: '600',
+        color: '#3B82F6',
+    },
+    couponRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingTop: vS(15),
+        marginTop: vS(15),
+        borderTopWidth: 1,
+    },
+    couponInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: hS(8),
+    },
+    couponMessage: {
+        fontSize: mS(14),
+        fontWeight: '700',
+        color: '#10B981',
+    },
+    discountAmount: {
+        fontSize: mS(16),
+        fontWeight: '800',
+        color: '#10B981',
+    }
 });
 
 export default RideClosurePreview;

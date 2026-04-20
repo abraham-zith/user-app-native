@@ -52,6 +52,8 @@ const RideCompletedScreen = ({ navigation }: any) => {
         Bprice: trip?.base_fare || 0,
         allowances: trip?.driver_allowance || 0,
         Tprice: trip?.total_fare || 0,
+        coupon_code: trip?.coupon_code,
+        discount: trip?.discount || 0,
         pickupaddress: trip?.pickup_address,
         dropaddress: trip?.drop_address,
         currency: 'INR',
@@ -222,6 +224,14 @@ const RideCompletedScreen = ({ navigation }: any) => {
                         <Text style={[styles.fareLabel, { color: appColors.secondaryText }]}>Taxes & Fees</Text>
                         <Text style={[styles.fareValue, { color: appColors.text }]}>₹0.00</Text>
                     </View>
+                    {Ridedata.discount > 0 && (
+                        <View style={styles.fareRow}>
+                            <Text style={[styles.fareLabel, { color: '#10B981', fontWeight: '700' }]}>
+                                Coupon ({Ridedata.coupon_code})
+                            </Text>
+                            <Text style={[styles.fareValue, { color: '#10B981' }]}>- ₹{Ridedata.discount}</Text>
+                        </View>
+                    )}
 
                     <View style={[styles.divider, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9' }]} />
 

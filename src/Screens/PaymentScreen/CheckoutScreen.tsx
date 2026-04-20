@@ -11,7 +11,7 @@ import RazorpayCheckout from 'react-native-razorpay';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
-import { RideCompletedScreen_Nav } from '../../Navigations/navigations';
+import { RideCompletedScreen_Nav, PaymentSuccessScreen_Nav } from '../../Navigations/navigations';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '../../hooks/useAppTheme';
 
@@ -20,7 +20,8 @@ import { hS, mS, vS } from '../../lib/responsive';
 import { useCreatePaymentOrderMutation, useVerifyPaymentMutation } from '../../service/userApi';
 import { useSocket } from '../../Socket/SocketContext';
 import { TripStatus } from '../../enums/trip.enum';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
+import { useApplyReferralDiscountMutation } from '../../service/referralApi';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -33,12 +34,34 @@ const CheckoutScreen = () => {
     const { colors: appColors, isDark } = useAppTheme();
     const [createPaymentOrder] = useCreatePaymentOrderMutation();
     const [verifyPayment] = useVerifyPaymentMutation();
+    const [applyDiscount] = useApplyReferralDiscountMutation();
     const [paymentStatus, setPaymentStatus] = useState('idle');
+    const [paymentMethod, setPaymentMethod] = useState<'ONLINE' | 'CASH'>('ONLINE');
+    const [discountData, setDiscountData] = useState<any>(null);
     const { onTripStatusChanged, joinTripRoom } = useSocket();
+
+    // ✅ Fetch Referral Discount on Mount
+    useEffect(() => {
+        const fetchDiscount = async () => {
+            try {
+                const res = await applyDiscount({
+                    minRideAmount: 0,
+                    tripId: trip?.trip_id
+                }).unwrap();
+                if (res.success && res.data?.applied) {
+                    setDiscountData(res.data);
+                }
+            } catch (err) {
+                // Ignore silent failure
+            }
+        };
+        fetchDiscount();
+    }, [trip?.trip_id]);
 
     // ✅ Sync Status: If driver marks as COMPLETED (manual cash pay) while on this screen
     useEffect(() => {
         if (!trip?.trip_id) return;
+        // ... (existing logic)
 
         // Ensure we are in the room to receive updates
         joinTripRoom(trip.trip_id, trip.user_id || 'USER', 'USER');
@@ -56,10 +79,13 @@ const CheckoutScreen = () => {
                         {
                             text: "OK",
                             onPress: () => {
-                                navigation.navigate(RideCompletedScreen_Nav, { 
-                                    ...trip, 
-                                    payment_status: 'PAID', 
-                                    isHandCash: true 
+                                navigation.navigate(PaymentSuccessScreen_Nav, {
+                                    targetScreen: RideCompletedScreen_Nav,
+                                    tripData: {
+                                        ...trip,
+                                        payment_status: 'PAID',
+                                        isHandCash: true
+                                    }
                                 });
                             }
                         }
@@ -72,18 +98,57 @@ const CheckoutScreen = () => {
         return () => unsub();
     }, [trip?.trip_id]);
 
+    const calculatedPayable = useMemo(() => {
+        const total = trip?.total_fare || 0;
+        if (!discountData) return total;
+
+        console.log(discountData, "discountData");
+        const { discountType, discountValue } = discountData;
+
+        if (discountType === 'PERCENTAGE') {
+            const discountAmount = (total * discountValue) / 100;
+            return Math.max(0, total - discountAmount);
+        } else {
+            // Assume fixed amount if not percentage
+            return Math.max(0, total - (discountValue || 0));
+        }
+    }, [trip?.total_fare, discountData]);
+
+    const discountAmount = useMemo(() => {
+        // If the trip already has a discount from a coupon, use that
+        if (trip?.discount > 0) return trip.discount;
+        
+        // Otherwise use the re-calculated referral discount
+        return (trip?.total_fare || 0) - calculatedPayable;
+    }, [trip?.discount, trip?.total_fare, calculatedPayable]);
+
     const product = {
         name: 'VDrive Premium',
         description: `${trip?.ride_type?.replace(/[-_]/g, ' ').toUpperCase()} Trip`,
         Bprice: trip?.base_fare || 0,
-        allowances: trip?.driver_allowance || 0,
-        Tprice: trip?.total_fare || 0,
+        allowances: trip?.driver_allowance || (trip?.total_fare || 0) - (trip?.base_fare || 0) + (trip?.discount || 0),
+        Tprice: (Number(trip?.base_fare) || 0) + (Number(trip?.driver_allowance) || 0),
+        payable: trip?.discount > 0 ? (trip?.total_fare || 0) : calculatedPayable,
+        discount: discountAmount,
         pickupaddress: trip?.pickup_address,
         dropaddress: trip?.drop_address,
         currency: 'INR'
     };
 
+    const handleConfirmPayment = async () => {
+        if (paymentMethod === 'CASH') {
+            Alert.alert(
+                "Cash Payment",
+                "Please pay directly to the driver. Once the driver confirms the payment, your trip will be finalized.",
+                [{ text: "OK" }]
+            );
+            return;
+        }
+        await handlePayment(product.payable);
+    };
+
     const handlePayment = async (price: number) => {
+        // ... existing handlePayment logic (remains same)
         setIsProcessing(true);
         setPaymentStatus('processing');
         try {
@@ -115,7 +180,10 @@ const CheckoutScreen = () => {
 
                     if (result.success) {
                         setIsProcessing(false);
-                        navigation.navigate(RideCompletedScreen_Nav, { ...trip, payment_status: 'PAID' });
+                        navigation.navigate(PaymentSuccessScreen_Nav, { 
+                            targetScreen: RideCompletedScreen_Nav,
+                            tripData: { ...trip, payment_status: 'PAID' }
+                        });
                         ToastAndroid.show('Payment Verified Successfully', ToastAndroid.SHORT)
                     } else {
                         setPaymentStatus('failed');
@@ -181,19 +249,50 @@ const CheckoutScreen = () => {
 
                     <View style={[styles.divider, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9' }]} />
 
+                    {/* PAYMENT METHOD SELECTION */}
+                    <View style={styles.methodSection}>
+                        <Text style={[styles.sectionHeader, { color: appColors.secondaryText }]}>PAYMENT METHOD</Text>
+                        <View style={styles.methodRow}>
+                            <TouchableOpacity
+                                style={[styles.methodButton, paymentMethod === 'ONLINE' && { borderColor: colors.button, backgroundColor: isDark ? 'rgba(59, 130, 246, 0.1)' : 'rgba(30, 64, 175, 0.05)' }]}
+                                onPress={() => setPaymentMethod('ONLINE')}
+                            >
+                                <MaterialCommunityIcons name="credit-card" size={mS(20)} color={paymentMethod === 'ONLINE' ? colors.button : appColors.secondaryText} />
+                                <Text style={[styles.methodText, { color: paymentMethod === 'ONLINE' ? colors.button : appColors.text }]}>Online</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.methodButton, paymentMethod === 'CASH' && { borderColor: '#10B981', backgroundColor: isDark ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.05)' }]}
+                                onPress={() => setPaymentMethod('CASH')}
+                            >
+                                <MaterialCommunityIcons name="cash" size={mS(20)} color={paymentMethod === 'CASH' ? '#10B981' : appColors.secondaryText} />
+                                <Text style={[styles.methodText, { color: paymentMethod === 'CASH' ? '#10B981' : appColors.text }]}>Cash</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
+                    <View style={[styles.divider, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9' }]} />
+
                     {/* FARE BREAKDOWN */}
                     <View style={styles.fareSection}>
                         <View style={styles.fareRow}>
-                            <Text style={[styles.fareLabel, { color: appColors.secondaryText }]}>Base Fare</Text>
-                            <Text style={[styles.fareValue, { color: appColors.text }]}>₹{product.Bprice}</Text>
+                            <Text style={[styles.fareLabel, { color: appColors.secondaryText }]}>Ride Fare</Text>
+                            <Text style={[styles.fareValue, { color: appColors.text }]}>₹{Number(product.Bprice).toFixed(2)}</Text>
                         </View>
                         <View style={styles.fareRow}>
                             <Text style={[styles.fareLabel, { color: appColors.secondaryText }]}>Driver Allowance</Text>
-                            <Text style={[styles.fareValue, { color: appColors.text }]}>₹{product.allowances}</Text>
+                            <Text style={[styles.fareValue, { color: appColors.text }]}>₹{Number(product.allowances).toFixed(2)}</Text>
                         </View>
+                        {product.discount > 0 && (
+                            <View style={styles.fareRow}>
+                                <Text style={[styles.fareLabel, { color: '#10B981', fontWeight: '700' }]}>
+                                    {trip?.coupon_code ? `Coupon (${trip.coupon_code})` : 'Referral Discount'}
+                                </Text>
+                                <Text style={[styles.fareValue, { color: '#10B981' }]}>- ₹{Number(product.discount).toFixed(2)}</Text>
+                            </View>
+                        )}
                         <View style={[styles.fareRow, styles.totalRow, { borderTopColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9' }]}>
-                            <Text style={[styles.totalLabel, { color: appColors.text }]}>Grand Total</Text>
-                            <Text style={[styles.totalValue, { color: isDark ? '#60A5FA' : colors.button }]}>₹{product.Tprice}</Text>
+                            <Text style={[styles.totalLabel, { color: appColors.text }]}>Total Payable</Text>
+                            <Text style={[styles.totalValue, { color: isDark ? '#60A5FA' : colors.button }]}>₹{Number(product.payable).toFixed(2)}</Text>
                         </View>
                     </View>
 
@@ -207,21 +306,27 @@ const CheckoutScreen = () => {
             {/* STICKY FOOTER */}
             <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, vS(20)), backgroundColor: appColors.card, borderTopColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9' }]}>
                 <TouchableOpacity
+                    onPress={handleConfirmPayment}
+                    disabled={paymentStatus === 'processing'}
                     style={[
                         styles.payButton,
+                        paymentMethod === 'CASH' && { backgroundColor: '#10B981', shadowColor: '#10B981' },
                         paymentStatus === 'processing' && { opacity: 0.8 },
-                        paymentStatus === 'failed' && { backgroundColor: '#EF4444' }
+                        paymentStatus === 'failed' && { backgroundColor: '#EF4444', shadowColor: '#EF4444' }
                     ]}
-                    onPress={() => handlePayment(product.Tprice)}
-                    disabled={paymentStatus === 'processing'}
                 >
                     <View style={styles.btnContent}>
                         <Text style={styles.payButtonText}>
                             {paymentStatus === 'processing' ? 'Processing...' :
-                                paymentStatus === 'failed' ? 'Retry Payment' : `Confirm & Pay ₹${product.Tprice}`}
+                                paymentStatus === 'failed' ? 'Retry Payment' :
+                                    paymentMethod === 'CASH' ? 'Confirm Payment (Cash)' : `Confirm & Pay ₹${Number(product.payable).toFixed(2)}`}
                         </Text>
                         {paymentStatus !== 'processing' && (
-                            <MaterialCommunityIcons name="check-circle" size={mS(20)} color="#FFF" />
+                            <MaterialCommunityIcons
+                                name={paymentMethod === 'CASH' ? "hand-coin-outline" : "check-circle"}
+                                size={mS(20)}
+                                color="#FFF"
+                            />
                         )}
                     </View>
                 </TouchableOpacity>
@@ -241,6 +346,14 @@ const styles = StyleSheet.create({
     },
     contentHeader: {
         marginBottom: vS(24),
+    },
+    sectionHeader: {
+        fontSize: mS(12),
+        fontWeight: '800',
+        color: '#94A3B8',
+        letterSpacing: 1,
+        marginBottom: vS(16),
+        textTransform: 'uppercase'
     },
     title: {
         fontSize: mS(24),
@@ -323,6 +436,28 @@ const styles = StyleSheet.create({
         height: 1,
         backgroundColor: '#F1F5F9',
         marginVertical: vS(24),
+    },
+    methodSection: {
+        marginBottom: vS(8),
+    },
+    methodRow: {
+        flexDirection: 'row',
+        gap: hS(12),
+    },
+    methodButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: vS(12),
+        borderRadius: mS(12),
+        borderWidth: 1.5,
+        borderColor: '#E2E8F0',
+        gap: hS(8),
+    },
+    methodText: {
+        fontSize: mS(14),
+        fontWeight: '700',
     },
     fareSection: {
         gap: vS(16),

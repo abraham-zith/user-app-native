@@ -6,7 +6,7 @@ import { useDispatch } from 'react-redux';
 import { setUser } from '../../redux/userSlice';
 import { showConfirmDialog } from '../utils/showConfirmDialog';
 import { storage } from '../utils/storage';
-import { SignUpScreen_Nav, TabNavigation_Nav } from '../../Navigations/navigations';
+import { OTPSuccessScreen_Nav, SignUpScreen_Nav, TabNavigation_Nav } from '../../Navigations/navigations';
 import { getFcmToken } from '../../notifications';
 import { OnboardingStatus } from '../../enums/user.enum';
 
@@ -60,16 +60,17 @@ export const useVerifyOtp = (navigation: any) => {
 
             // Navigate based on onboarding status
             const status = userData?.onboarding_status;
+            let targetScreen = TabNavigation_Nav;
 
             if (status === OnboardingStatus.COMPLETED || status === OnboardingStatus.PROFILE_COMPLETED) {
-                // PROFILE_COMPLETED + successful OTP verification = COMPLETED
-                navigation.replace(TabNavigation_Nav);
+                targetScreen = TabNavigation_Nav;
             } else if (status === OnboardingStatus.PHONE_VERIFIED || status === OnboardingStatus.PENDING) {
-                navigation.replace(SignUpScreen_Nav);
+                targetScreen = SignUpScreen_Nav;
             } else {
-                // Fallback for safety
-                navigation.replace(isNewUser ? SignUpScreen_Nav : TabNavigation_Nav);
+                targetScreen = isNewUser ? SignUpScreen_Nav : TabNavigation_Nav;
             }
+
+            navigation.replace(OTPSuccessScreen_Nav, { targetScreen });
 
         } catch (error: any) {
             const err = error?.data?.data || error?.data?.error || error;

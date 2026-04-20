@@ -50,6 +50,10 @@ const NotificationHandler: React.FC = () => {
                     navigation.navigate(BookedTripScreen_Nav, { trip_id: tripId });
                 }
                 break;
+            
+            case NotificationType.COUPON_EXPIRY:
+                navigation.navigate("OffersScreen");
+                break;
 
             default:
                 break;
@@ -89,6 +93,10 @@ const NotificationHandler: React.FC = () => {
                     { cancelable: false }
                 );
                 return;
+            }
+
+            if (remoteMessage.data?.coupon_code) {
+                navigation.navigate("OffersScreen");
             }
 
             await displayBanner(remoteMessage);

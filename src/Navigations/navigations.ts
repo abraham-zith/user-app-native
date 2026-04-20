@@ -22,6 +22,8 @@ export const ActivityScreen_Nav: string = 'ActivityScreen';
 export const ReferAndEarnScreen_Nav: string = 'ReferAndEarnScreen';
 export const SettingsScreen_Nav: string = 'SettingsScreen';
 export const ProfileUpdateScreen_Nav: string = 'ProfileUpdateScreen';
+export const OTPSuccessScreen_Nav: string = 'OTPSuccessScreen';
+export const PaymentSuccessScreen_Nav: string = 'PaymentSuccessScreen';
 
 export const TripNavigation_Nav: string = 'TripNavigation';
 // export const LocationSelectionScreen_Nav: string = 'LocationSelection';
@@ -51,6 +53,8 @@ export const userMapTest_nav: string = 'usermaptest';
 
 export const OngoingTripsList_Nav: string = 'OngoingTripsList';
 export const ScheduledTripsList_Nav: string = 'ScheduledTripsList';
+
+export const OffersScreen_Nav: string = 'OffersScreen';
 
 
 
