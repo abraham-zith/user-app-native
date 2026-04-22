@@ -152,7 +152,7 @@ const TrackingView: React.FC<TrackingViewProps> = ({
             {/* 2. DRIVER VERIFICATION (OTP) SECTION */}
             <View style={styles.otpSection}>
                 <View style={[styles.otpGlassCard, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255, 255, 255, 0.8)', borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.5)' }]}>
-                    <Text style={[styles.otpCode, { color: appColors.text }]}>{driver?.driverOTP || '1234'}</Text>
+                    <Text style={[styles.otpCode, { color: appColors.text }]}>{trip?.otp || driver?.driverOTP || '1234'}</Text>
                     <Text style={[styles.otpLabel, { color: appColors.secondaryText }]}>OTP FOR DRIVER</Text>
                 </View>
             </View>

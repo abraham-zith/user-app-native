@@ -117,7 +117,7 @@ const CheckoutScreen = () => {
     const discountAmount = useMemo(() => {
         // If the trip already has a discount from a coupon, use that
         if (trip?.discount > 0) return trip.discount;
-        
+
         // Otherwise use the re-calculated referral discount
         return (trip?.total_fare || 0) - calculatedPayable;
     }, [trip?.discount, trip?.total_fare, calculatedPayable]);
@@ -180,7 +180,7 @@ const CheckoutScreen = () => {
 
                     if (result.success) {
                         setIsProcessing(false);
-                        navigation.navigate(PaymentSuccessScreen_Nav, { 
+                        navigation.navigate(PaymentSuccessScreen_Nav, {
                             targetScreen: RideCompletedScreen_Nav,
                             tripData: { ...trip, payment_status: 'PAID' }
                         });
@@ -254,11 +254,11 @@ const CheckoutScreen = () => {
                         <Text style={[styles.sectionHeader, { color: appColors.secondaryText }]}>PAYMENT METHOD</Text>
                         <View style={styles.methodRow}>
                             <TouchableOpacity
-                                style={[styles.methodButton, paymentMethod === 'ONLINE' && { borderColor: colors.button, backgroundColor: isDark ? 'rgba(59, 130, 246, 0.1)' : 'rgba(30, 64, 175, 0.05)' }]}
+                                style={[styles.methodButton, paymentMethod === 'ONLINE' && { borderColor: '#10B981', backgroundColor: isDark ? 'rgba(59, 130, 246, 0.1)' : 'rgba(30, 64, 175, 0.05)' }]}
                                 onPress={() => setPaymentMethod('ONLINE')}
                             >
-                                <MaterialCommunityIcons name="credit-card" size={mS(20)} color={paymentMethod === 'ONLINE' ? colors.button : appColors.secondaryText} />
-                                <Text style={[styles.methodText, { color: paymentMethod === 'ONLINE' ? colors.button : appColors.text }]}>Online</Text>
+                                <MaterialCommunityIcons name="credit-card" size={mS(20)} color={paymentMethod === 'ONLINE' ? '#10B981' : appColors.secondaryText} />
+                                <Text style={[styles.methodText, { color: paymentMethod === 'ONLINE' ? '#10B981' : appColors.text }]}>Online</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={[styles.methodButton, paymentMethod === 'CASH' && { borderColor: '#10B981', backgroundColor: isDark ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.05)' }]}

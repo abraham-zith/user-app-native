@@ -114,18 +114,27 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
 
     // }
     const handleAddTip = (tipStr: string) => {
-        if (!selectedDriver) return;
+        if (!selectedDriver) {
+            Alert.alert('Selection Required', 'Please select a driver before adding a tip.');
+            return;
+        }
 
         const tipValue = parseFloat(tipStr.replace('+', ''));
-        setUpdatedTip(tipValue)
+        // Toggle tip: if clicking same tip, remove it (set to 0)
+        const newTipValue = updatedTip === tipValue ? 0 : tipValue;
+        setUpdatedTip(newTipValue);
+
         const currentOption = options.find(o => o.id === selectedDriver);
 
         if (currentOption) {
+            const discount = appliedCoupon?.discount || 0;
+            const allowance = currentOption.allowance + newTipValue;
+            const totalFare = currentOption.Price + allowance - discount;
+
             setTripPayload((prev: any) => ({
                 ...prev,
-                // driver_id: selectedDriver,
-                driver_allowance: currentOption.allowance + tipValue,
-                total_fare: currentOption.Price + currentOption.allowance + tipValue
+                driver_allowance: allowance,
+                total_fare: Math.max(0, totalFare)
             }));
         }
     };
@@ -140,6 +149,7 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
             };
             console.log(finalPayload, "finalPayload");
             const result = await createTrip(finalPayload).unwrap();
+            console.log(result, "result");
             if (result.success) {
                 if (Platform.OS === 'android') {
                     ToastAndroid.show(result.message, ToastAndroid.SHORT);
@@ -152,8 +162,14 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
                 joinTripRoom(result.data.trip_id, result.data.user_id || 'USER', 'USER');
                 navigation.navigate(BookedTripScreen_Nav, result.data);
             }
-        } catch (error) {
-            Alert.alert('Booking Failed!!!')
+        } catch (error: any) {
+            if (error.data && error.data.message) {
+                //console.log(error.data, "error");
+                Alert.alert('Booking Failed!!!', error.data.message);
+            } else {
+                Alert.alert('Booking Failed!!!');
+            }
+            //console.log(error, "error");
         }
     };
 
@@ -366,11 +382,28 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
                 <View style={styles.footerRow}>
                     <Text style={[styles.footerLabel, { color: appColors.text }]}>Add a Tip</Text>
                     <View style={styles.chipGroup}>
-                        {tips.map((tip, index) => (
-                            <TouchableOpacity key={index} style={[styles.tipChip, { backgroundColor: isDark ? appColors.background : '#F8FAFC', borderColor: appColors.border }]} onPress={() => handleAddTip(tip)}>
-                                <Text style={[styles.tipText, { color: appColors.primary }]}>{tip}</Text>
-                            </TouchableOpacity>
-                        ))}
+                        {tips.map((tip, index) => {
+                            const tipValue = parseFloat(tip.replace('+', ''));
+                            const isTipSelected = updatedTip === tipValue;
+                            return (
+                                <TouchableOpacity
+                                    key={index}
+                                    style={[
+                                        styles.tipChip,
+                                        {
+                                            backgroundColor: isTipSelected
+                                                ? (isDark ? 'rgba(59, 130, 246, 0.1)' : '#EFF6FF')
+                                                : (isDark ? appColors.background : '#F8FAFC'),
+                                            borderColor: isTipSelected ? appColors.primary : appColors.border,
+                                            borderWidth: isTipSelected ? 1.5 : 1
+                                        }
+                                    ]}
+                                    onPress={() => handleAddTip(tip)}
+                                >
+                                    <Text style={[styles.tipText, { color: isTipSelected ? appColors.primary : appColors.secondaryText }]}>{tip}</Text>
+                                </TouchableOpacity>
+                            );
+                        })}
                     </View>
                 </View>
 
