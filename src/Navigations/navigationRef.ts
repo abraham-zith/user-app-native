@@ -10,11 +10,11 @@ export const setNavigatorReady = () => {
 };
 
 // ─── Wait for Navigator ───────────────────────────────────────────────────────
-export const waitForNavigation = (): Promise<void> => {
+export const waitForNavigation = (timeoutMs = 5000): Promise<boolean> => {
     return new Promise((resolve) => {
         // ✅ Already ready
         if (isNavigatorReady && navigationRef.isReady()) {
-            resolve();
+            resolve(true);
             return;
         }
 
@@ -23,16 +23,16 @@ export const waitForNavigation = (): Promise<void> => {
             if (isNavigatorReady && navigationRef.isReady()) {
                 clearInterval(interval);
                 clearTimeout(timeout);
-                resolve();
+                resolve(true);
             }
         }, 100);
 
-        // ✅ Timeout after 5s — avoid infinite wait
+        // ✅ Timeout after timeoutMs — avoid infinite wait
         const timeout = setTimeout(() => {
             clearInterval(interval);
-
-            resolve();
-        }, 5000);
+            console.warn(`waitForNavigation: Timeout after ${timeoutMs}ms`);
+            resolve(false);
+        }, timeoutMs);
     });
 };
 
@@ -43,8 +43,12 @@ export const safeReset = async (
     routeName: string,
     nestedRoute?: string
 ) => {
-    await waitForNavigation();
+    const isReady = await waitForNavigation();
 
+    if (!isReady || !navigationRef.isReady()) {
+        console.error("safeReset: Navigation is not ready");
+        return;
+    }
 
     navigationRef.dispatch(
         CommonActions.reset({
@@ -67,8 +71,12 @@ export const safeReset = async (
 // ─── Safe Navigate ────────────────────────────────────────────────────────────
 // Use for normal navigation — keeps back stack
 export const safeNavigate = async (routeName: string, params?: any) => {
-    await waitForNavigation();
+    const isReady = await waitForNavigation();
 
+    if (!isReady || !navigationRef.isReady()) {
+        console.error("safeNavigate: Navigation is not ready");
+        return;
+    }
 
     navigationRef.dispatch(
         CommonActions.navigate({

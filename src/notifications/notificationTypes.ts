@@ -9,6 +9,7 @@ export enum NotificationType {
     PAYMENT_SUCCESS = 'PAYMENT_SUCCESS',
     PAYMENT_FAILED = 'PAYMENT_FAILED',
     PROMO_CODE = 'PROMO_CODE',
+    COUPON_EXPIRY = 'COUPON_EXPIRY',
 }
 
 export interface NotificationData {

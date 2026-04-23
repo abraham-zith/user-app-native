@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -17,14 +17,18 @@ import Share from 'react-native-share';
 import { useAppTheme } from '../../../../hooks/useAppTheme';
 import { hS, vS, mS } from '../../../../lib/responsive';
 import colors from '../../../../constant/colors';
+import { useGetReferralCodeQuery, useGetReferralStatsQuery, useGenerateReferralCodeMutation } from '../../../../service/referralApi';
 
 const ReferAndEarn = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { colors: appColors, isDark } = useAppTheme();
-  const [referralCode] = useState('VDRIVE500'); // This would normally come from user data
+  const { data: referralResponse, isLoading: codeLoading } = useGetReferralCodeQuery();
+  const { data: statsResponse } = useGetReferralStatsQuery();
+  const [generateReferralCode] = useGenerateReferralCodeMutation();
+  const referralCode = referralResponse?.data?.referralCode ?? (codeLoading ? '...' : '------');
+  const stats = statsResponse?.data || { totalReferrals: 0, totalEarnings: 0 };
   const [showCopyAlert, setShowCopyAlert] = useState(false);
-
   const steps = [
     { id: 1, title: 'Invite Friends', desc: 'Share your code with friends and family.', icon: 'account-plus-outline' },
     { id: 2, title: 'They Register', desc: 'They get ₹50 off on their first ride.', icon: 'card-account-details-outline' },
@@ -104,12 +108,16 @@ const ReferAndEarn = () => {
         {/* Stats Section */}
         <View style={[styles.statsContainer, { backgroundColor: isDark ? appColors.card : '#1E293B', borderWidth: isDark ? 1 : 0, borderColor: appColors.border }]}>
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, isDark && { color: appColors.text }]}>12</Text>
+            <Text style={[styles.statValue, isDark && { color: appColors.text }]}>{stats.total_referrals || 0}</Text>
             <Text style={[styles.statLabel, isDark && { color: appColors.lightTextColor }]}>Total Referrals</Text>
           </View>
+          {/* <View style={styles.statItem}>
+            <Text style={[styles.statValue, isDark && { color: appColors.text }]}>{stats.pending_referrals || 0}</Text>
+            <Text style={[styles.statLabel, isDark && { color: appColors.lightTextColor }]}>Pending Referrals</Text>
+          </View> */}
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, isDark && { color: appColors.text }]}>₹1,200</Text>
+            <Text style={[styles.statValue, isDark && { color: appColors.text }]}>₹{stats.total_earnings || 0}</Text>
             <Text style={[styles.statLabel, isDark && { color: appColors.lightTextColor }]}>Total Earned</Text>
           </View>
         </View>
@@ -143,7 +151,7 @@ const ReferAndEarn = () => {
       </ScrollView>
 
       {/* Premium In-App Alert Modal */}
-      <Modal statusBarTranslucent navigationBarTranslucent         visible={showCopyAlert}
+      <Modal statusBarTranslucent navigationBarTranslucent visible={showCopyAlert}
         transparent={true}
         animationType="fade"
       >
@@ -262,7 +270,7 @@ const styles = StyleSheet.create({
     borderRadius: mS(16),
   },
   codeText: {
-    fontSize: mS(24),
+    fontSize: mS(20),
     fontWeight: '900',
     color: '#1E293B',
     letterSpacing: 2,

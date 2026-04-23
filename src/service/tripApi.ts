@@ -100,15 +100,7 @@ export const tripApi = createApi({
         }),
 
 
-        //SOS
-        triggerSos: builder.mutation({
-            query: data => ({
-                url: '/sos/trigger',
-                method: 'POST',
-                body: data,
-            }),
-            invalidatesTags: ['Trip']
-        }),
+
 
     }),
 });
@@ -126,7 +118,6 @@ export const {
     useUpdateTripChangesMutation,
     useCancelTripMutation,
 
-    useTriggerSosMutation,
 } = tripApi;
 
 

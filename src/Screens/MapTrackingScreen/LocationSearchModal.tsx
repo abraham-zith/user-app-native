@@ -74,8 +74,8 @@ const styles = StyleSheet.create({
     chipText: { fontSize: 13, fontWeight: '600' },
     modalButtons: { flexDirection: 'row', gap: 12 },
     modalBtn: { flex: 1, padding: 15, borderRadius: 12, alignItems: 'center' },
-    cancelBtn: { },
-    saveBtn: { },
+    cancelBtn: {},
+    saveBtn: {},
     saveBtnText: { color: 'white', fontWeight: '700' },
     cancelBtnText: { fontWeight: '700' },
 });
@@ -91,6 +91,7 @@ interface LocationSearchModalProps {
 const LocationSearchModal = ({ isOpen, onClose, onSelect, type, onSetNext, advancebooking }: LocationSearchModalProps) => {
     const { colors, isDark } = useAppTheme();
     const user = useSelector((state: RootState) => state.userSlice.user);
+    console.log("user", user);
     const dispatch = useDispatch()
     const [updateUser] = useUpdateUserMutation();
 
@@ -98,7 +99,7 @@ const LocationSearchModal = ({ isOpen, onClose, onSelect, type, onSetNext, advan
     const [savedRecents, setSavedRecents] = useState<SavedLocation[]>([]);
 
     const { getCurrentLocation, getAddressFromCoords, loading } = useLocation();
-    const [favoriteLocations, setFavoriteLocations] = useState<SavedLocation[]>(user?.favourite_places);
+    const [favoriteLocations, setFavoriteLocations] = useState<SavedLocation[]>(user?.favourite_places || []);
     const [isAlertVisible, setAlertVisible] = useState(false);
     const [selectedLocation, setSelectedLocation] = useState<SavedLocation | null>(null);
     const [alertMode, setAlertMode] = useState<'add' | 'remove'>('add');
@@ -202,6 +203,10 @@ const LocationSearchModal = ({ isOpen, onClose, onSelect, type, onSetNext, advan
         setFavoriteLocations(updatedArray);
 
         try {
+            if (!user) {
+                console.warn("handleSync: user is null, skipping sync");
+                return;
+            }
             // Sanitize data to avoid validation errors on backend (e.g. removing 'icon')
             const sanitizedArray = updatedArray.map(({ icon, ...rest }) => rest);
             const payload = {
@@ -495,7 +500,7 @@ const LocationSearchModal = ({ isOpen, onClose, onSelect, type, onSetNext, advan
                         </Modal>
 
                         <ScrollView contentContainerStyle={{ paddingHorizontal: 10, paddingBottom: 40 }}>
-                            {user?.favourite_places?.length > 0 && (
+                            {favoriteLocations.length > 0 && (
                                 <View style={{
                                     flexDirection: 'row',
                                     justifyContent: 'space-between',
@@ -513,7 +518,7 @@ const LocationSearchModal = ({ isOpen, onClose, onSelect, type, onSetNext, advan
                                     </TouchableOpacity> */}
                                 </View>
                             )}
-                            {user?.favourite_places?.length === 0 ? (
+                            {favoriteLocations.length === 0 ? (
                                 <View style={{
                                     alignItems: 'center',
                                     justifyContent: 'center',
@@ -528,7 +533,7 @@ const LocationSearchModal = ({ isOpen, onClose, onSelect, type, onSetNext, advan
                                     gap: 10,
                                     padding: 10,
                                 }}>
-                                    {user?.favourite_places.map((item: SavedLocation, index: number) => (
+                                    {favoriteLocations.map((item: SavedLocation, index: number) => (
                                         <TouchableOpacity style={{
                                             backgroundColor: colors.iconBox,
                                             borderRadius: 8,
@@ -560,7 +565,7 @@ const LocationSearchModal = ({ isOpen, onClose, onSelect, type, onSetNext, advan
                                             </TouchableOpacity>
                                         </TouchableOpacity>
                                     ))}
-                                    {user.favourite_places.length === 10 ? (
+                                    {favoriteLocations.length >= 10 ? (
                                         <View style={styles.limitReachedContainer}>
                                             <Text style={styles.limitReachedText}>
                                                 Limit reached. Delete a favorite location to add a new one.

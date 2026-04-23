@@ -20,7 +20,7 @@ import colors from '../../../constant/colors';
 import { useNavigation } from '@react-navigation/native';
 import { SafetyScreen_Nav } from '../../../Navigations/navigations';
 import { useAppTheme } from '../../../hooks/useAppTheme';
-import { useTriggerSosMutation } from '../../../service/tripApi';
+import { useTriggerSosMutation } from '../../../service/sosApi';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 

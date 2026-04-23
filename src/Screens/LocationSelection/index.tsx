@@ -459,6 +459,16 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
         })
     }
 
+    const handleToggleAdvanceBooking = () => {
+        const newAdvanceBooking = !advancebooking;
+        setAdvanceBooking(newAdvanceBooking);
+        setTripPayload(prev => ({
+            ...prev,
+            booking_type: newAdvanceBooking ? BookingType.SCHEDULED : BookingType.LIVE
+        }));
+    };
+
+
     useEffect(() => {
         if (localuser?.favourite_places) {
             setFavoriteLocations(localuser.favourite_places);
@@ -490,6 +500,10 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
     useEffect(() => {
         if (screenName === 'Schedule') {
             setAdvanceBooking(true)
+            setTripPayload(prev => ({
+                ...prev,
+                booking_type: BookingType.SCHEDULED
+            }));
         }
     }, [screenName])
 
@@ -732,9 +746,9 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                             <View style={{ marginTop: vS(8), alignItems: 'center' }}>
                                 <Text style={{ color: '#EF4444', fontSize: mS(13), fontWeight: '700', textAlign: 'center', paddingHorizontal: hS(20) }}>
                                     {pickupError ? "Please select pickup location" :
-                                     destinationError ? "Please select destination" :
-                                     vehicleError ? "Please select your vehicle" :
-                                     "Please complete all booking details"}
+                                        destinationError ? "Please select destination" :
+                                            vehicleError ? "Please select your vehicle" :
+                                                "Please complete all booking details"}
                                 </Text>
                             </View>
                         )}
@@ -900,14 +914,7 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                                             borderWidth: 1,
                                             borderColor: colors.border
                                         }}
-                                        onPress={() => {
-                                            const scheduleBooking = !advancebooking;
-                                            setAdvanceBooking(scheduleBooking)
-                                            setTripPayload(prev => ({
-                                                ...prev,
-                                                booking_type: scheduleBooking ? BookingType.SCHEDULED : BookingType.LIVE
-                                            }));
-                                        }}
+                                        onPress={handleToggleAdvanceBooking}
                                     >
 
                                         <Text style={{ color: isDark ? colors.text : '#FFFFFF', fontWeight: '700', fontSize: mS(15) }}>{advancebooking ? `Go Back to Live Booking` : `Advance Booking`}</Text>

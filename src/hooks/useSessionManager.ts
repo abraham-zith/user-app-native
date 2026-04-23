@@ -84,6 +84,14 @@ export const useSessionManager = () => {
     setCheckingToken(false);
 
     if (
+      onboarding_status === OnboardingStatus.COMPLETED &&
+      status === 'active'
+    ) {
+      safeReset(TabNavigation_Nav);
+      return;
+    }
+
+    if (
       onboarding_status === OnboardingStatus.PROFILE_COMPLETED &&
       phone_verified === true &&
       status === 'active'
@@ -91,7 +99,6 @@ export const useSessionManager = () => {
       safeReset(TabNavigation_Nav);
       return;
     }
-
     if (onboarding_status === OnboardingStatus.PHONE_VERIFIED) {
       safeReset(SignUpScreen_Nav);
       return;

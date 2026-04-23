@@ -37,6 +37,7 @@ import { useRequestOtpMutation } from '../../service/authApi';
 import { RootState } from '../../redux/store';
 import { OnboardingStatus } from '../../enums/user.enum';
 import { useLogin } from '../../service/auth/login';
+import { usePreValidateReferralCodeMutation } from '../../service/referralApi';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -45,6 +46,7 @@ const SignUpScreen: React.FC<any> = ({ navigation }) => {
   const [signUp, { isLoading: signUpLoading }] = useSignUpMutation();
   const [updateUser, { isLoading: updateLoading }] = useUpdateUserMutation();
   const [requestOtp] = useRequestOtpMutation();
+  const [preValidateReferral, { isLoading: isValidatingReferral }] = usePreValidateReferralCodeMutation();
   const { handleRequestOtp } = useLogin(navigation);
 
   const insets = useSafeAreaInsets();
@@ -64,6 +66,9 @@ const SignUpScreen: React.FC<any> = ({ navigation }) => {
   const [deviceid, setDeviceid] = useState('');
   const [gender, setGender] = useState('male');
   const [showValidation, setShowValidation] = useState(false);
+  const [referralCode, setReferralCode] = useState('');
+  const [isReferralApplied, setIsReferralApplied] = useState(false);
+  const [referralError, setReferralError] = useState('');
 
   const options = [
     { label: 'Male', value: 'male', icon: 'gender-male' },
@@ -106,8 +111,10 @@ const SignUpScreen: React.FC<any> = ({ navigation }) => {
         date_of_birth: dob || null,
         gender: gender,
         onboarding_status: OnboardingStatus.PROFILE_COMPLETED,
+        referral_code: isReferralApplied ? referralCode.trim() : undefined,
         // phone_verified: false,
       }
+      console.log(payload, "payload")
       const response = await signUp(payload).unwrap();
       if (response.success) {
         ToastAndroid.show('Profile Updated Successfully', ToastAndroid.SHORT);
@@ -146,6 +153,7 @@ const SignUpScreen: React.FC<any> = ({ navigation }) => {
         date_of_birth: dob || null,
         gender: gender,
         onboarding_status: OnboardingStatus.COMPLETED,
+        referral_code: isReferralApplied ? referralCode.trim() : undefined,
       };
 
       try {
@@ -195,6 +203,32 @@ const SignUpScreen: React.FC<any> = ({ navigation }) => {
     }
 
     return { valid: true };
+  };
+
+
+  const handleApplyReferral = async () => {
+    console.log(referralCode, "referralCode 1")
+    if (!referralCode.trim()) {
+      setReferralError('Please enter a referral code');
+      return;
+    }
+
+    try {
+      console.log(referralCode, referralCode.trim(), "referralCode")
+      const response = await preValidateReferral({ code: referralCode }).unwrap();
+      console.log(response, "response")
+      if (response.success) {
+        setIsReferralApplied(true);
+        setReferralError('');
+        ToastAndroid.show('Referral Code Applied!', ToastAndroid.SHORT);
+      } else {
+        setIsReferralApplied(false);
+        setReferralError(response.error || 'Invalid referral code');
+      }
+    } catch (err: any) {
+      setIsReferralApplied(false);
+      setReferralError(err?.data?.error || 'Validation failed');
+    }
   };
 
   const mobileValidation = validateMobile(mobileNumber, countryCode);
@@ -343,6 +377,59 @@ const SignUpScreen: React.FC<any> = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
+        {/* --- REFERRAL SECTION --- */}
+        <View style={styles.fieldContainer}>
+          <Text style={[styles.fieldLabel, { color: appColors.text }]}>Referral Code (Optional)</Text>
+          <View style={[styles.inputWrapper, {
+            backgroundColor: appColors.card,
+            borderColor: referralError ? '#EF4444' : isReferralApplied ? '#10B981' : appColors.border,
+          }]}>
+            <View style={[styles.iconBox, { backgroundColor: appColors.background }]}>
+              <MaterialCommunityIcons
+                name="ticket-percent-outline"
+                size={mS(20)}
+                color={referralError ? '#EF4444' : isReferralApplied ? '#10B981' : appColors.lightTextColor}
+              />
+            </View>
+            <TextInput
+              placeholder="Enter Referral Code"
+              placeholderTextColor={appColors.lightTextColor}
+              style={[styles.textInput, { color: appColors.text }]}
+              value={referralCode}
+              onChangeText={(text) => {
+                setReferralCode(text);
+                setIsReferralApplied(false);
+                setReferralError('');
+              }}
+              autoCapitalize="characters"
+              editable={!isReferralApplied}
+            />
+            {isReferralApplied ? (
+              <TouchableOpacity onPress={() => setIsReferralApplied(false)}>
+                <MaterialCommunityIcons name="close-circle" size={mS(24)} color="#EF4444" />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                onPress={handleApplyReferral}
+                disabled={isValidatingReferral || !referralCode.trim()}
+                style={[styles.applyButton, { backgroundColor: appColors.button }]}
+              >
+                {isValidatingReferral ? (
+                  <Text style={styles.applyButtonText}>...</Text>
+                ) : (
+                  <Text style={styles.applyButtonText}>Apply</Text>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
+          {referralError ? (
+            <Text style={styles.errorText}>{referralError}</Text>
+          ) : isReferralApplied ? (
+            <Text style={styles.successText}>Code applied successfully!</Text>
+          ) : null}
+        </View>
+
+
 
         {/* Terms Section */}
         <View style={styles.termsRow}>
@@ -375,12 +462,11 @@ const SignUpScreen: React.FC<any> = ({ navigation }) => {
           <Text style={styles.signUpButtonText}>Sign Up</Text>
         </Button>
 
+        {/* Decorative Car SVG */}
+        <View pointerEvents="none" style={styles.carPosition}>
+          <Car width={hS(350)} height={vS(150)} />
+        </View>
       </ScrollView>
-
-      {/* Decorative Car SVG */}
-      <View pointerEvents="none" style={styles.carPosition}>
-        <Car width={hS(350)} height={vS(150)} />
-      </View>
 
       {showDatePicker && (
         <DateTimePickerComponent
@@ -432,7 +518,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: hS(24),
-    paddingBottom: vS(300),
+    paddingBottom: vS(40),
   },
   headerContainer: {
     marginTop: vS(40),
@@ -613,10 +699,35 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   carPosition: {
-    position: 'absolute',
-    bottom: vS(-30),
-    right: hS(-60),
+    marginTop: vS(20),
+    alignSelf: 'flex-end',
+    marginRight: hS(-60),
     opacity: 0.8,
+  },
+  applyButton: {
+    paddingHorizontal: hS(12),
+    paddingVertical: vS(6),
+    borderRadius: mS(8),
+    marginLeft: hS(8),
+  },
+  applyButtonText: {
+    color: '#FFFFFF',
+    fontSize: mS(12),
+    fontWeight: '700',
+  },
+  errorText: {
+    color: '#EF4444',
+    fontSize: mS(12),
+    marginTop: vS(4),
+    marginLeft: hS(4),
+    fontWeight: '600',
+  },
+  successText: {
+    color: '#10B981',
+    fontSize: mS(12),
+    marginTop: vS(4),
+    marginLeft: hS(4),
+    fontWeight: '600',
   },
 });
 

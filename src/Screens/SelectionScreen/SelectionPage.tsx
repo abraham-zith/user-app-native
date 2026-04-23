@@ -1,5 +1,6 @@
 import { View, Platform, StyleSheet } from "react-native";
 import { useEffect, useState } from "react";
+import { useCheckReferralEligibilityQuery } from "../../service/referralApi";
 import { Text } from "../../Components";
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import ServiceSelection from "./serviceSelection";
@@ -22,6 +23,10 @@ const GOOGLE_MAPS_APIKEY = Config.GOOGLE_API_KEY;
 
 const SelectionPage: React.FC<ExtendedScreenProps> = ({ screenName, TripPayload, setTripPayload }) => {
     const { colors, isDark } = useAppTheme();
+    const { data: eligibilityRes } = useCheckReferralEligibilityQuery();
+    console.log("eligibilityRes", eligibilityRes);
+    const isReferred = eligibilityRes?.data?.isReferred;
+    const isEligible = eligibilityRes?.data?.isEligible;
     const { distance, duration, calculateRoute } = useDirections(GOOGLE_MAPS_APIKEY ?? "");
     const [selectedService, setSelectedService] = useState('DRIVER_ONLY');
 
@@ -56,6 +61,12 @@ const SelectionPage: React.FC<ExtendedScreenProps> = ({ screenName, TripPayload,
 
                 {/* --- TRIP DETAILS CARD --- */}
                 <View style={[styles.detailsCard, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 1 : 0 }]}>
+                    {isReferred && isEligible && (
+                        <View style={[styles.offerBanner, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.1)' : '#ECFDF5' }]}>
+                            <MaterialCommunityIcons name="ticket-percent" size={mS(16)} color="#10B981" />
+                            <Text style={styles.offerText}>🎉 First Ride Offer Available</Text>
+                        </View>
+                    )}
                     <Text style={[styles.sectionHeader, { color: colors.secondaryText }]}>TRIP DETAILS</Text>
 
                     <View style={styles.rowBetween}>
@@ -209,6 +220,20 @@ const styles = StyleSheet.create({
             ios: { shadowColor: '#000', shadowOffset: { width: 0, height: -8 }, shadowOpacity: 0.08, shadowRadius: 15 },
             android: { elevation: 12 }
         }),
+    },
+    offerBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: vS(8),
+        paddingHorizontal: hS(12),
+        borderRadius: mS(8),
+        marginBottom: vS(12),
+        gap: hS(8),
+    },
+    offerText: {
+        fontSize: mS(12),
+        fontWeight: '700',
+        color: '#10B981',
     }
 });
 
