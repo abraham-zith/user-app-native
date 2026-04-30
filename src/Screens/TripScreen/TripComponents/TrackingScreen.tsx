@@ -184,7 +184,7 @@ const TrackingView: React.FC<TrackingViewProps> = ({
                         <View style={styles.ratingRow}>
                             <MaterialCommunityIcons name="star" size={mS(14)} color="#F59E0B" />
                             <Text style={[styles.ratingText, { color: appColors.secondaryText }]}>{driver?.driverRating || '4.9'}</Text>
-                            <Text style={styles.rideCount}> • 4.5k Rides</Text>
+                            <Text style={styles.rideCount}> • {driver?.totalRides || '4.5k'} Rides</Text>
                         </View>
                     </View>
 

@@ -326,7 +326,12 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
         if (item === 'Myself') {
             setPassenger({ type: 'Myself', name: '', phone: '' });
             setSelected('Myself');
-            setTripPayload({ ...tripPayload, is_for_self: true, passenger_details: null });
+            setTripPayload({
+                ...tripPayload, is_for_self: true, passenger_details: {
+                    name: localuser?.full_name,
+                    phone: localuser?.phone_number
+                }
+            });
             setVisible(false);
             return;
         }
@@ -478,6 +483,11 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
 
 
     useEffect(() => {
+        // Set current location as default if no pickup location is provided
+        if (!pickupLocation && !startLocation) {
+            handleUseCurrentLocation();
+        }
+
         Animated.parallel([
             Animated.timing(fadeAnim, {
                 toValue: 1,
@@ -491,10 +501,8 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
             })
         ]).start();
 
-
         loadRecents();
         loadSavedContacts();
-
     }, []);
 
     useEffect(() => {

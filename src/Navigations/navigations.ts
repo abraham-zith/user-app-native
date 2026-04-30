@@ -55,6 +55,7 @@ export const OngoingTripsList_Nav: string = 'OngoingTripsList';
 export const ScheduledTripsList_Nav: string = 'ScheduledTripsList';
 
 export const OffersScreen_Nav: string = 'OffersScreen';
+export const SuspensionScreen_Nav: string = 'SuspensionScreen';
 
 
 

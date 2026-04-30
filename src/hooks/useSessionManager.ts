@@ -3,7 +3,7 @@ import { Alert, AppState, AppStateStatus } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { RootState } from '../redux/store';
-import { logout, setUser } from '../redux/userSlice';
+import { logout, setUser, setSuspensionData } from '../redux/userSlice';
 import { clearActiveTrip, setTrips } from '../redux/tripSlice';
 import { useGetActiveTripbyUserIdQuery, useUpdateFcmTokenMutation, userApi } from '../service/userApi';
 import { useSocket } from '../Socket/SocketContext';
@@ -37,6 +37,8 @@ export const useSessionManager = () => {
 
   const [updateFcmToken] = useUpdateFcmTokenMutation();
   const localuser = useSelector((state: RootState) => state.userSlice.user);
+  const activeTrips = useSelector((state: RootState) => state.tripSlice.activeTrips);
+  const suspensionData = useSelector((state: RootState) => state.userSlice.suspensionData);
   const userId = localuser?.id || '';
   const { onTripStatusChanged } = useSocket();
 
@@ -72,6 +74,7 @@ export const useSessionManager = () => {
     await storage.removeAccessToken();
     await storage.removeRefreshToken();
     dispatch(logout());
+    setCheckingToken(false);
     await safeReset(Auth_Nav, WelcomeScreen_Nav);
   };
 
@@ -85,7 +88,7 @@ export const useSessionManager = () => {
 
     if (
       onboarding_status === OnboardingStatus.COMPLETED &&
-      status === 'active'
+      (status === 'active' || (suspensionData && activeTrips.length > 0))
     ) {
       safeReset(TabNavigation_Nav);
       return;
@@ -94,7 +97,7 @@ export const useSessionManager = () => {
     if (
       onboarding_status === OnboardingStatus.PROFILE_COMPLETED &&
       phone_verified === true &&
-      status === 'active'
+      (status === 'active' || (suspensionData && activeTrips.length > 0))
     ) {
       safeReset(TabNavigation_Nav);
       return;
@@ -111,6 +114,10 @@ export const useSessionManager = () => {
   const validateAndInitSession = async () => {
     try {
       const result = await validateSession();
+      console.log(JSON.stringify(result, null, 2));
+      console.log("result.notes", result.notes);
+      console.log("result.status", result.status);
+      console.log("result.message", result.message);
 
       switch (result.code) {
         case 'NO_TOKEN':
@@ -133,9 +140,26 @@ export const useSessionManager = () => {
           return;
 
         case 'ACCOUNT_DISABLED':
-          Alert.alert('Account Disabled', 'Your account has been disabled.');
-          dispatch(logout());
-          setCheckingToken(false);
+        case 'ACCOUNT_SUSPENDED':
+        case 'ACCOUNT_BLOCKED':
+          console.log("result.notes", result.notes);
+
+          dispatch(setSuspensionData({
+            status: result.code === 'ACCOUNT_SUSPENDED' ? 'suspended' : 'blocked',
+            reason: result.notes || result?.message || 'No reason provided by admin'
+          }));
+
+          // If no active trips, log out immediately
+          if (activeTrips.length === 0) {
+            dispatch(logout());
+            setCheckingToken(false);
+          } else {
+            // If active trips, let them finish. Route them to TabNav
+            if (result.data) {
+              dispatch(setUser(result.data));
+              routeUser(result.data);
+            }
+          }
           return;
 
         case 'NETWORK_ERROR':
@@ -187,8 +211,15 @@ export const useSessionManager = () => {
           break;
 
         case 'ACCOUNT_DISABLED':
-          Alert.alert('Account Disabled', 'Your account has been disabled.');
-          await handleForceLogout();
+        case 'ACCOUNT_SUSPENDED':
+        case 'ACCOUNT_BLOCKED':
+          dispatch(setSuspensionData({
+            status: result.code === 'ACCOUNT_SUSPENDED' ? 'suspended' : 'blocked',
+            reason: result.data?.notes || result.data?.reason || 'No reason provided by admin'
+          }));
+          if (activeTrips.length === 0) {
+            await handleForceLogout();
+          }
           break;
 
         case 'NETWORK_ERROR':
@@ -222,6 +253,13 @@ export const useSessionManager = () => {
     const unsubscribe = onFcmTokenRefresh(userId, updateFcmToken);
     return unsubscribe;
   }, [userId]);
+
+  // ─── Deferred Suspension Logout Listener ──────────────────────────────────
+  useEffect(() => {
+    if (suspensionData && activeTrips.length === 0 && localuser) {
+      handleForceLogout();
+    }
+  }, [suspensionData, activeTrips.length, localuser]);
 
   // ─── App Init ─────────────────────────────────────────────────────────────
   useEffect(() => {

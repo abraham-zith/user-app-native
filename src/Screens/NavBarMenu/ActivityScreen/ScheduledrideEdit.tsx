@@ -198,7 +198,7 @@ const ScheduledrideEdit = ({ route, navigation }: any) => {
                 <View style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    backgroundColor: isEditing ? appColors.background : (isDark ? appColors.iconBox : '#F8FAFC'),
+                    backgroundColor: isEditing ? appColors.background : (isDark ? appColors.iconBox : '#FFFFFF'),
                     padding: 14,
                     borderRadius: 12,
                     borderWidth: 1,
@@ -296,8 +296,8 @@ const ScheduledrideEdit = ({ route, navigation }: any) => {
                                 justifyContent: 'center', alignItems: 'center', flexDirection: 'row'
                             }}
                         >
-                            <MaterialCommunityIcons name="pencil" size={20} color={appColors.text} style={{ marginRight: 8 }} />
-                            <Text style={{ color: appColors.text, fontSize: 16, fontWeight: '700' }}>Edit Schedule</Text>
+                            <MaterialCommunityIcons name="pencil" size={20} color={isDark ? '#fff' : '#fff'} style={{ marginRight: 8 }} />
+                            <Text style={{ color: isDark ? '#fff' : '#fff', fontSize: 16, fontWeight: '700' }}>Edit Schedule</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity

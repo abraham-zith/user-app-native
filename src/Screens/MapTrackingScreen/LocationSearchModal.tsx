@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
     Modal, View, Text, TextInput, TouchableOpacity,
     ScrollView, Platform, Pressable,
@@ -23,8 +23,131 @@ import colors from '../../constant/colors';
 import { useAppTheme } from '../../hooks/useAppTheme';
 
 const RECENT_LOCATIONS_KEY = '@recent_locations';
-
 const GOOGLE_P_API_KEY = Config.GOOGLE_API_KEY;
+
+// ============ UTILITY FUNCTIONS ============
+
+/**
+ * Debounce function to limit API calls
+ */
+const debounce = (func: (...args: any[]) => void, wait: number) => {
+    let timeout: ReturnType<typeof setTimeout>;
+    return function executedFunction(...args: any[]) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+};
+
+/**
+ * Geocode address using Google Geocoding API
+ * Use as fallback when Places Autocomplete doesn't find detailed address
+ */
+const geocodeAddress = async (address: string) => {
+    try {
+        const url = 'https://maps.googleapis.com/maps/api/geocode/json';
+        const params = new URLSearchParams({
+            address: address,
+            components: 'country:IN',
+            key: GOOGLE_P_API_KEY || '',
+        });
+
+        const response = await fetch(`${url}?${params}`);
+        const data = await response.json();
+
+        if (data.status === 'OK' && data.results.length > 0) {
+            const result = data.results[0];
+            return {
+                formatted_address: result.formatted_address,
+                lat: result.geometry.location.lat,
+                lng: result.geometry.location.lng,
+                address_components: result.address_components,
+                source: 'geocoding'
+            };
+        }
+
+        return null;
+    } catch (error) {
+        console.error('Geocoding error:', error);
+        return null;
+    }
+};
+
+/**
+ * Reverse geocode coordinates to get formatted address
+ */
+const reverseGeocode = async (lat: number, lng: number) => {
+    try {
+        const url = 'https://maps.googleapis.com/maps/api/geocode/json';
+        const params = new URLSearchParams({
+            latlng: `${lat},${lng}`,
+            key: GOOGLE_P_API_KEY || '',
+        });
+
+        const response = await fetch(`${url}?${params}`);
+        const data = await response.json();
+
+        if (data.status === 'OK' && data.results.length > 0) {
+            return data.results[0].formatted_address;
+        }
+
+        return 'Address not found';
+    } catch (error) {
+        console.error('Reverse geocoding error:', error);
+        return 'Address not found';
+    }
+};
+
+/**
+ * Parse address components to extract detailed information
+ */
+const parseAddressComponents = (components: any[]) => {
+    const address: Record<string, string> = {};
+
+    components.forEach(component => {
+        const types = component.types;
+
+        if (types.includes('street_number')) {
+            address.streetNumber = component.long_name;
+        }
+        if (types.includes('route')) {
+            address.street = component.long_name;
+        }
+        if (types.includes('locality')) {
+            address.city = component.long_name;
+        }
+        if (types.includes('administrative_area_level_2')) {
+            address.district = component.long_name;
+        }
+        if (types.includes('administrative_area_level_1')) {
+            address.state = component.short_name;
+        }
+        if (types.includes('postal_code')) {
+            address.postalCode = component.long_name;
+        }
+        if (types.includes('country')) {
+            address.country = component.long_name;
+        }
+    });
+
+    return address;
+};
+
+/**
+ * Check if search query is detailed (likely a full address)
+ */
+const isDetailedAddress = (query: string) => {
+    const hasMultipleSpaces = (query.match(/\s/g) || []).length >= 2;
+    const hasNumbers = /\d/.test(query);
+    const hasCommas = /,/.test(query);
+
+    return (hasMultipleSpaces && hasNumbers) || hasCommas;
+};
+
+// ============ STYLES ============
 
 const styles = StyleSheet.create({
     limitReachedContainer: {
@@ -78,7 +201,47 @@ const styles = StyleSheet.create({
     saveBtn: {},
     saveBtnText: { color: 'white', fontWeight: '700' },
     cancelBtnText: { fontWeight: '700' },
+    // New styles for address confirmation
+    confirmationContainer: {
+        padding: 16,
+        marginVertical: 12,
+        backgroundColor: '#FFFBEB',
+        borderRadius: 12,
+        borderLeftWidth: 4,
+        borderLeftColor: '#F59E0B',
+        elevation: 1,
+    },
+    confirmationText: {
+        fontSize: 14,
+        color: '#92400E',
+        fontWeight: '600',
+        lineHeight: 20,
+        marginBottom: 12,
+    },
+    confirmBtn: {
+        backgroundColor: '#2563EB',
+        paddingVertical: 12,
+        borderRadius: 10,
+        alignItems: 'center',
+    },
+    confirmBtnText: {
+        color: 'white',
+        fontSize: 15,
+        fontWeight: '700',
+    },
+    searchingIndicator: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+    },
+    searchingText: {
+        marginLeft: 10,
+        fontSize: 14,
+        fontWeight: '500'
+    }
 });
+
 interface LocationSearchModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -89,24 +252,37 @@ interface LocationSearchModalProps {
 }
 
 const LocationSearchModal = ({ isOpen, onClose, onSelect, type, onSetNext, advancebooking }: LocationSearchModalProps) => {
-    const { colors, isDark } = useAppTheme();
+    const { colors: themeColors, isDark } = useAppTheme();
     const user = useSelector((state: RootState) => state.userSlice.user);
-    console.log("user", user);
     const dispatch = useDispatch()
     const [updateUser] = useUpdateUserMutation();
 
     const [search, setSearch] = useState("");
     const [savedRecents, setSavedRecents] = useState<SavedLocation[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
 
     const { getCurrentLocation, getAddressFromCoords, loading } = useLocation();
     const [favoriteLocations, setFavoriteLocations] = useState<SavedLocation[]>(user?.favourite_places || []);
     const [isAlertVisible, setAlertVisible] = useState(false);
     const [selectedLocation, setSelectedLocation] = useState<SavedLocation | null>(null);
     const [alertMode, setAlertMode] = useState<'add' | 'remove'>('add');
-    const [pendingLocation, setPendingLocation] = useState<any>(null); // Temporary storage
+    const [pendingLocation, setPendingLocation] = useState<any>(null);
     const [isFavModalVisible, setIsFavModalVisible] = useState(false);
     const [customName, setCustomName] = useState('');
+
+    // New state for search confirmation
+    const [searchConfirmation, setSearchConfirmation] = useState<{
+        show: boolean;
+        searched: string;
+        found: string;
+        location: any;
+    } | null>(null);
+
+    const googlePlacesRef = useRef(null);
+    const searchCache = useRef<Record<string, any>>({});
+
     const suggestedNames = ["Home", "Work", "Gym", "Parent's House"];
+
     useEffect(() => {
         const loadRecents = async () => {
             const data = await AsyncStorage.getItem(RECENT_LOCATIONS_KEY);
@@ -118,48 +294,168 @@ const LocationSearchModal = ({ isOpen, onClose, onSelect, type, onSetNext, advan
         }
     }, [isOpen]);
 
+    // ============ SEARCH WITH FALLBACK ============
+
+    /**
+     * Attempt to geocode if Places Autocomplete fails for detailed address
+     */
+    const handleDetailedAddressSearch = useCallback(
+        debounce(async (query) => {
+            console.log('Starting detailed search for:', query);
+            if (query.length < 5 || !isDetailedAddress(query)) {
+                console.log('Search query not detailed enough');
+                return;
+            }
+
+            setIsSearching(true);
+
+            try {
+                // Check cache first
+                if (searchCache.current[query]) {
+                    const cached = searchCache.current[query];
+                    showSearchConfirmation(query, cached);
+                    setIsSearching(false);
+                    return;
+                }
+
+                // Call Geocoding API
+                const result = await geocodeAddress(query);
+
+                if (result) {
+                    console.log('Detailed result found:', result.formatted_address);
+                    // Cache the result
+                    searchCache.current[query] = result;
+                    showSearchConfirmation(query, result);
+                } else {
+                    console.log('No results from geocoding API for query:', query);
+                }
+
+                setIsSearching(false);
+            } catch (error) {
+                console.error('Detailed search error:', error);
+                setIsSearching(false);
+            }
+        }, 800),
+        []
+    );
+
+    /**
+     * Show confirmation when address is found differently than searched
+     */
+    const showSearchConfirmation = (searched: string, found: any) => {
+        const match = searched.toLowerCase().includes(found.address_components?.[0]?.long_name?.toLowerCase());
+
+        setSearchConfirmation({
+            show: true,
+            searched,
+            found: found.formatted_address,
+            location: found
+        });
+    };
+
+    /**
+     * Clear recents
+     */
     const clearRecents = async () => {
         try {
             await AsyncStorage.removeItem(RECENT_LOCATIONS_KEY);
             setSavedRecents([]);
         } catch (e) {
             Alert.alert('Error Clearing Recents!!!', 'Try Again Later');
-            // console.error("Error clearing recents", e);
         }
     };
 
+    /**
+     * Get current location
+     */
     const handlePress = async () => {
         try {
             const position = await getCurrentLocation();
             const { latitude, longitude } = position.coords;
             const address = await getAddressFromCoords(latitude, longitude)
 
-            // Note: You can add Reverse Geocoding here to get the street name
             onSelect("Current Location", address?.formatted, latitude, longitude);
             onClose()
         } catch (error) {
+            console.error('Current location error:', error);
         }
     };
 
-    const handleToggleFavoriteFromSearch = async (data: any) => {
+    /**
+     * Handle location selection from search results
+     */
+    const handleLocationSelect = async (data: any, details: any) => {
+        try {
+            const locationName = details?.name || data.structured_formatting.main_text;
+            const address = data.description;
+            const lat = details?.geometry?.location?.lat ?? 0;
+            const lng = details?.geometry?.location?.lng ?? 0;
 
+            const newRecent = {
+                id: data.place_id,
+                name: locationName,
+                address: address,
+                lat: lat,
+                lng: lng,
+                icon: "clock-outline"
+            };
+
+            await saveToRecents(newRecent);
+
+            // Clear search confirmation if visible
+            setSearchConfirmation(null);
+
+            onSelect(locationName, address, lat, lng);
+            onClose();
+        } catch (error) {
+            console.error('Selection error:', error);
+            Alert.alert('Error', 'Failed to select location');
+        }
+    };
+
+    /**
+     * Handle confirmation of geocoded address
+     */
+    const handleConfirmGeocoded = () => {
+        if (!searchConfirmation) return;
+
+        const location = searchConfirmation.location;
+        const locationName = location.formatted_address;
+        const address = location.formatted_address;
+        const lat = location.lat;
+        const lng = location.lng;
+
+        const newRecent = {
+            id: `${lat}-${lng}`,
+            name: locationName,
+            address: address,
+            lat: lat,
+            lng: lng,
+            icon: "map-marker"
+        };
+
+        saveToRecents(newRecent);
+        setSearchConfirmation(null);
+
+        onSelect(locationName, address, lat, lng);
+        onClose();
+    };
+
+    // ============ FAVORITE LOCATION HANDLING ============
+
+    const handleToggleFavoriteFromSearch = async (data: any) => {
         try {
             const idToFind = data.place_id || data.id;
             const isExist = favoriteLocations.find(f => f.id === idToFind);
 
-
             if (isExist) {
-                // If it exists, we just remove it (no API call needed)
                 onToggleFavorite(isExist);
                 return;
             }
 
-            // If it's a NEW favorite, fetch coordinates from Google
             const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${data.place_id}&key=${GOOGLE_P_API_KEY}`;
             const response = await fetch(detailsUrl);
             const json = await response.json();
-
-
 
             if (json.status === 'OK') {
                 const details = json.result;
@@ -185,10 +481,8 @@ const LocationSearchModal = ({ isOpen, onClose, onSelect, type, onSetNext, advan
         try {
             const isExist = favoriteLocations.find(f => f.id === item.id);
             if (isExist) {
-                // If it exists, we trigger the removal confirmation
                 onToggleFavorite(isExist);
             } else {
-                // If it's NEW, open the naming modal
                 setPendingLocation(item);
                 setCustomName(item.name);
                 setIsFavModalVisible(true);
@@ -199,7 +493,6 @@ const LocationSearchModal = ({ isOpen, onClose, onSelect, type, onSetNext, advan
     };
 
     const handleSync = async (updatedArray: SavedLocation[]) => {
-
         setFavoriteLocations(updatedArray);
 
         try {
@@ -207,12 +500,13 @@ const LocationSearchModal = ({ isOpen, onClose, onSelect, type, onSetNext, advan
                 console.warn("handleSync: user is null, skipping sync");
                 return;
             }
-            // Sanitize data to avoid validation errors on backend (e.g. removing 'icon')
+
             const sanitizedArray = updatedArray.map(({ icon, ...rest }) => rest);
             const payload = {
                 id: user.id,
                 favourite_places: sanitizedArray
             };
+
             const response = await updateUser(payload).unwrap();
             if (response.success) {
                 dispatch(updateUserStore({ favourite_places: response.data.favourite_places }));
@@ -233,50 +527,40 @@ const LocationSearchModal = ({ isOpen, onClose, onSelect, type, onSetNext, advan
             setAlertMode('remove');
             setAlertVisible(true);
         }
-
     };
 
     const confirmToggle = async () => {
         if (!selectedLocation) return;
 
-        // Use selectedLocation (which now has the custom name)
         const updated = alertMode === 'remove'
             ? favoriteLocations.filter(f => f.id !== selectedLocation.id)
             : [...favoriteLocations, selectedLocation];
 
-
-
         setAlertVisible(false);
         await handleSync(updated);
 
-        // Clear everything
         setPendingLocation(null);
         setSelectedLocation(null);
         setCustomName('');
     };
 
     const handleSelectFavourites = (data: SavedLocation) => {
-
         onSelect(data.name, data.address, data.lat, data.lng)
         onClose()
     }
 
     const handleConfirmSave = () => {
-
         if (!customName.trim()) {
             Alert.alert("Error", "Please enter a name for this location");
             return;
         }
 
-        // Prepare the final object with the user-defined name
         const finalFav = {
             ...pendingLocation,
             showname: customName.trim(),
         };
 
         setIsFavModalVisible(false);
-
-        // Set this as the 'selected' item so confirmToggle knows what to add
         setSelectedLocation(finalFav);
         setAlertMode('add');
         setAlertVisible(true);
@@ -285,15 +569,13 @@ const LocationSearchModal = ({ isOpen, onClose, onSelect, type, onSetNext, advan
     const allSuggestions = ["Home", "Work", "Gym", "Office"];
 
     const filteredSuggestions = allSuggestions.filter((suggestion) => {
-        // Check if this label is already taken in your favorites list
         const isAlreadyUsed = favoriteLocations.some(
             (fav) =>
                 fav.showname?.toLowerCase() === suggestion.toLowerCase() ||
                 fav.name?.toLowerCase() === suggestion.toLowerCase()
         );
-        return !isAlreadyUsed; // Only keep suggestions NOT in the favorites list
+        return !isAlreadyUsed;
     });
-
 
     useEffect(() => {
         if (user?.favourite_places) {
@@ -303,16 +585,14 @@ const LocationSearchModal = ({ isOpen, onClose, onSelect, type, onSetNext, advan
 
     return (
         <Modal statusBarTranslucent navigationBarTranslucent visible={isOpen} animationType="slide" transparent onRequestClose={onClose}>
-            {/* BACKDROP */}
             <Pressable
                 onPress={onClose}
                 style={{ flex: 1, backgroundColor: isDark ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}
             >
-                {/* SHEET CONTAINER */}
                 <View
-                    onStartShouldSetResponder={() => true} // Prevents taps on sheet from closing modal
+                    onStartShouldSetResponder={() => true}
                     style={{
-                        backgroundColor: colors.card,
+                        backgroundColor: themeColors.card,
                         borderTopLeftRadius: 30,
                         borderTopRightRadius: 30,
                         height: '90%',
@@ -324,79 +604,77 @@ const LocationSearchModal = ({ isOpen, onClose, onSelect, type, onSetNext, advan
                     }}
                 >
                     {/* GRAB HANDLE */}
-                    <View style={{ width: 40, height: 5, backgroundColor: isDark ? colors.border : '#E2E8F0', borderRadius: 10, alignSelf: 'center', marginBottom: 15 }} />
+                    <View style={{ width: 40, height: 5, backgroundColor: isDark ? themeColors.border : '#E2E8F0', borderRadius: 10, alignSelf: 'center', marginBottom: 15 }} />
 
                     {/* HEADER */}
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 20 }}>
-                        <Text style={{ fontSize: 22, fontWeight: '800', color: colors.text }}>
+                        <Text style={{ fontSize: 22, fontWeight: '800', color: themeColors.text }}>
                             {type === "start" ? "Set Pickup" : "Set Drop-off"}
                         </Text>
                         <TouchableOpacity
                             onPress={onClose}
-                            style={{ backgroundColor: colors.iconBox, padding: 8, borderRadius: 25 }}
+                            style={{ backgroundColor: themeColors.iconBox, padding: 8, borderRadius: 25 }}
                         >
-                            <MaterialCommunityIcons name="close" size={20} color={colors.secondaryText} />
+                            <MaterialCommunityIcons name="close" size={20} color={themeColors.secondaryText} />
                         </TouchableOpacity>
                     </View>
 
-                    {/* SEARCH INPUT BOX */}
-
+                    {/* MAIN CONTENT */}
                     <View style={{ flex: 1, paddingHorizontal: 20 }}>
+                        {/* GOOGLE PLACES AUTOCOMPLETE */}
                         <GooglePlacesAutocomplete
+                            ref={googlePlacesRef}
                             placeholder={type === "start" ? "Search Pickup Location" : "Search Destination"}
                             textInputProps={{
                                 placeholderTextColor: '#999',
+                                onChangeText: (text) => {
+                                    setSearch(text);
+                                    // Clear previous results while searching
+                                    if (searchConfirmation) setSearchConfirmation(null);
+
+                                    if (text.length > 5 && isDetailedAddress(text)) {
+                                        setIsSearching(true); // Instant feedback
+                                        handleDetailedAddressSearch(text);
+                                    }
+                                }
                             }}
                             minLength={2}
-                            fetchDetails={true} // Important to get lat/lng if needed
-                            onPress={async (data, details = null) => {
-
-
-                                const locationName = details?.name || data.structured_formatting.main_text;
-                                const address = data.description;
-                                const lat = details?.geometry?.location?.lat ?? 0;
-                                const lng = details?.geometry?.location?.lng ?? 0;
-
-                                const newRecent = {
-                                    id: data.place_id, // Use Google's unique ID
-                                    name: locationName,
-                                    address: address,
-                                    lat: lat,
-                                    lng: lng,
-                                    icon: "clock-outline"
-                                };
-
-                                // 2. Save to Storage (Helper function below)
-                                await saveToRecents(newRecent);
-
-                                onSelect(locationName, address, lat, lng);
-                                onClose();
-                            }}
-
+                            fetchDetails={true}
+                            onPress={handleLocationSelect}
+                            onFail={(error) => console.error(error)}
                             query={{
                                 key: GOOGLE_P_API_KEY,
                                 language: 'en',
-                                components: 'country:in', // Optional: Limit to India
+                                components: 'country:in',
                             }}
                             styles={{
-                                container: { flex: 0, marginBottom: 10 },
+                                container: { flex: 0, marginBottom: 10, zIndex: 1001 },
                                 textInput: {
                                     height: 56,
-                                    backgroundColor: isDark ? colors.background : '#F8FAFC',
+                                    backgroundColor: isDark ? themeColors.background : '#F8FAFC',
                                     borderRadius: 16,
                                     paddingHorizontal: 15,
                                     fontSize: 16,
-                                    color: colors.text,
+                                    color: themeColors.text,
                                     borderWidth: 1,
-                                    borderColor: colors.border,
+                                    borderColor: themeColors.border,
                                     fontWeight: '500',
                                 },
-                                listView: { backgroundColor: colors.card },
-                                row: { paddingVertical: 10, flexDirection: 'row', backgroundColor: colors.card },
-                                description: { fontWeight: '700', color: colors.text },
-                                separator: { height: 1, backgroundColor: colors.border }
+                                listView: {
+                                    backgroundColor: 'transparent', // Flatten the list
+                                    maxHeight: 280,
+                                    marginTop: 5,
+                                },
+                                row: {
+                                    paddingVertical: 12,
+                                    flexDirection: 'row',
+                                    backgroundColor: 'transparent',
+                                    borderBottomWidth: 1,
+                                    borderBottomColor: themeColors.border,
+                                },
+                                description: { fontWeight: '700', color: themeColors.text },
+                                separator: { height: 1, backgroundColor: themeColors.border }
                             }}
-                            // Customizing the row icons to match your theme
                             renderRow={(data) => {
                                 const isFav = favoriteLocations.some(f => f.id === data.place_id);
                                 return (
@@ -404,29 +682,27 @@ const LocationSearchModal = ({ isOpen, onClose, onSelect, type, onSetNext, advan
                                         flexDirection: 'row',
                                         alignItems: 'center',
                                         width: '100%',
-                                        paddingVertical: 8 // Added for better touch spacing
+                                        paddingVertical: 8
                                     }}>
-                                        {/* 1. Left Icon: Fixed width by content */}
                                         <MaterialCommunityIcons
                                             name="map-marker-outline"
                                             size={22}
-                                            color={colors.secondaryText}
+                                            color={themeColors.secondaryText}
                                             style={{ marginRight: 15 }}
                                         />
 
-                                        {/* 2. Middle Text Area: Fills all remaining space */}
                                         <View style={{ flex: 1, overflow: 'hidden' }}>
                                             <Text
                                                 numberOfLines={1}
                                                 ellipsizeMode="tail"
-                                                style={{ fontSize: 15, fontWeight: '700', color: colors.text }}
+                                                style={{ fontSize: 15, fontWeight: '700', color: themeColors.text }}
                                             >
                                                 {data.structured_formatting.main_text}
                                             </Text>
                                             <Text
                                                 numberOfLines={1}
                                                 ellipsizeMode="tail"
-                                                style={{ fontSize: 12, color: colors.secondaryText }}
+                                                style={{ fontSize: 12, color: themeColors.secondaryText }}
                                             >
                                                 {data.structured_formatting.secondary_text}
                                             </Text>
@@ -452,79 +728,102 @@ const LocationSearchModal = ({ isOpen, onClose, onSelect, type, onSetNext, advan
                             enablePoweredByContainer={false}
                         />
 
+                        {/* SEARCHING INDICATOR */}
+                        {isSearching && (
+                            <View style={styles.searchingIndicator}>
+                                <ActivityIndicator size="small" color={themeColors.primary} />
+                                <Text style={[styles.searchingText, { color: themeColors.text }]}>
+                                    Searching detailed addresses...
+                                </Text>
+                            </View>
+                        )}
+
+                        {/* SEARCH CONFIRMATION */}
+                        {searchConfirmation?.show && (
+                            <View style={styles.confirmationContainer}>
+                                <Text style={styles.confirmationText}>
+                                    Found: <Text style={{ color: '#000' }}>{searchConfirmation.found}</Text>
+                                </Text>
+                                <TouchableOpacity
+                                    onPress={handleConfirmGeocoded}
+                                    style={styles.confirmBtn}
+                                >
+                                    <Text style={styles.confirmBtnText}>Use This Address</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+
+                        {/* FAV LOCATION MODAL */}
                         <Modal statusBarTranslucent navigationBarTranslucent visible={isFavModalVisible} transparent animationType="slide">
                             <View style={[styles.modalOverlay, { backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.5)' }]}>
-                                <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
-                                    <Text style={[styles.modalTitle, { color: colors.text }]}>Add to Favorites</Text>
-                                    <Text style={[styles.addressLabel, { color: colors.secondaryText }]}>{pendingLocation?.address}</Text>
+                                <View style={[styles.modalContent, { backgroundColor: themeColors.card }]}>
+                                    <Text style={[styles.modalTitle, { color: themeColors.text }]}>Add to Favorites</Text>
+                                    <Text style={[styles.addressLabel, { color: themeColors.secondaryText }]}>{pendingLocation?.address}</Text>
 
                                     <TextInput
-                                        style={[styles.nameInput, { backgroundColor: isDark ? colors.background : '#F8FAFC', borderColor: colors.border, color: colors.text }]}
+                                        style={[styles.nameInput, { backgroundColor: isDark ? themeColors.background : '#F8FAFC', borderColor: themeColors.border, color: themeColors.text }]}
                                         value={customName}
                                         onChangeText={setCustomName}
                                         placeholder="Give it a name (e.g., Home)"
-                                        placeholderTextColor={colors.secondaryText}
+                                        placeholderTextColor={themeColors.secondaryText}
                                         autoFocus
                                     />
-                                    <Text style={[{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: colors.button }]}>SAVE LOCATION AS</Text>
+                                    <Text style={[{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: themeColors.button }]}>SAVE LOCATION AS</Text>
                                     {/* Suggestions */}
                                     <View style={styles.suggestionContainer}>
                                         {filteredSuggestions.map((name) => (
                                             <TouchableOpacity
                                                 key={name}
-                                                style={[styles.chip, { backgroundColor: isDark ? colors.iconBox : '#F1F5F9', borderColor: colors.border }]}
+                                                style={[styles.chip, { backgroundColor: isDark ? themeColors.iconBox : '#F1F5F9', borderColor: themeColors.border }]}
                                                 onPress={() => setCustomName(name)}
                                             >
-                                                <Text style={[styles.chipText, { color: colors.text }]}>{name}</Text>
+                                                <Text style={[styles.chipText, { color: themeColors.text }]}>{name}</Text>
                                             </TouchableOpacity>
                                         ))}
                                     </View>
 
                                     <View style={styles.modalButtons}>
                                         <TouchableOpacity
-                                            style={[styles.modalBtn, styles.cancelBtn, { backgroundColor: isDark ? colors.background : '#F1F5F9', borderColor: colors.border, borderWidth: isDark ? 1 : 0 }]}
+                                            style={[styles.modalBtn, styles.cancelBtn, { backgroundColor: isDark ? themeColors.background : '#F1F5F9', borderColor: themeColors.border, borderWidth: isDark ? 1 : 0 }]}
                                             onPress={() => setIsFavModalVisible(false)}
                                         >
-                                            <Text style={[styles.cancelBtnText, { color: colors.secondaryText }]}>Cancel</Text>
+                                            <Text style={[styles.cancelBtnText, { color: themeColors.secondaryText }]}>Cancel</Text>
                                         </TouchableOpacity>
 
                                         <TouchableOpacity
-                                            style={[styles.modalBtn, styles.saveBtn, { backgroundColor: isDark ? colors.text : '#1E293B' }]}
+                                            style={[styles.modalBtn, styles.saveBtn, { backgroundColor: isDark ? themeColors.text : '#1E293B' }]}
                                             onPress={handleConfirmSave}
                                         >
-                                            <Text style={[styles.saveBtnText, { color: isDark ? colors.card : 'white' }]}>Save Favorite</Text>
+                                            <Text style={[styles.saveBtnText, { color: isDark ? themeColors.card : 'white' }]}>Save Favorite</Text>
                                         </TouchableOpacity>
                                     </View>
                                 </View>
                             </View>
                         </Modal>
 
+                        {/* SCROLLABLE CONTENT */}
                         <ScrollView contentContainerStyle={{ paddingHorizontal: 10, paddingBottom: 40 }}>
+                            {/* FAVORITES SECTION */}
                             {favoriteLocations.length > 0 && (
                                 <View style={{
                                     flexDirection: 'row',
                                     justifyContent: 'space-between',
                                     alignItems: 'center',
-                                    // marginTop: 10,
                                     marginBottom: 10
                                 }}>
-                                    <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryText, letterSpacing: 1 }}>
+                                    <Text style={{ fontSize: 12, fontWeight: '800', color: themeColors.secondaryText, letterSpacing: 1 }}>
                                         FAVOURITES
                                     </Text>
-                                    {/* <TouchableOpacity onPress={clearRecents}>
-                                        <Text style={{ fontSize: 12, fontWeight: '700', color: '#2563EB' }}>
-                                            Clear All
-                                        </Text>
-                                    </TouchableOpacity> */}
                                 </View>
                             )}
+
                             {favoriteLocations.length === 0 ? (
                                 <View style={{
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     padding: 40,
                                 }}>
-                                    <Text style={{ color: colors.secondaryText }}>No favorite places yet. Start searching to add some!</Text>
+                                    <Text style={{ color: themeColors.secondaryText }}>No favorite places yet. Start searching to add some!</Text>
                                 </View>
                             ) : (
                                 <View style={{
@@ -535,21 +834,21 @@ const LocationSearchModal = ({ isOpen, onClose, onSelect, type, onSetNext, advan
                                 }}>
                                     {favoriteLocations.map((item: SavedLocation, index: number) => (
                                         <TouchableOpacity style={{
-                                            backgroundColor: colors.iconBox,
+                                            backgroundColor: themeColors.iconBox,
                                             borderRadius: 8,
                                             paddingHorizontal: 12,
                                             paddingVertical: 8,
                                             flexDirection: 'row',
                                             alignItems: 'center',
                                             borderWidth: 1,
-                                            borderColor: colors.border,
+                                            borderColor: themeColors.border,
                                         }} key={item.id || index}
                                             onPress={() => handleSelectFavourites(item)}
                                         >
                                             <Text style={{
                                                 fontSize: 14,
                                                 fontWeight: '600',
-                                                color: colors.text,
+                                                color: themeColors.text,
                                                 marginRight: 6,
                                             }} numberOfLines={2}>
                                                 {item.showname ? item.showname : item.name}
@@ -573,10 +872,9 @@ const LocationSearchModal = ({ isOpen, onClose, onSelect, type, onSetNext, advan
                                         </View>
                                     ) : null}
                                 </View>
-
-
                             )}
 
+                            {/* CURRENT LOCATION BUTTON */}
                             {type === 'start' && (
                                 <TouchableOpacity
                                     onPress={handlePress}
@@ -590,12 +888,12 @@ const LocationSearchModal = ({ isOpen, onClose, onSelect, type, onSetNext, advan
                                         marginVertical: 10,
                                         paddingHorizontal: 12,
                                         borderWidth: isDark ? 1 : 0,
-                                        borderColor: colors.primary
+                                        borderColor: themeColors.primary
                                     }}
                                 >
                                     <View style={{
                                         width: 40, height: 40, borderRadius: 20,
-                                        backgroundColor: colors.primary, alignItems: 'center',
+                                        backgroundColor: themeColors.primary, alignItems: 'center',
                                         justifyContent: 'center', marginRight: 15
                                     }}>
                                         {loading ? (
@@ -605,15 +903,15 @@ const LocationSearchModal = ({ isOpen, onClose, onSelect, type, onSetNext, advan
                                         )}
                                     </View>
                                     <View style={{ flex: 1 }}>
-                                        <Text style={{ fontSize: 16, fontWeight: '800', color: colors.primary }}>
+                                        <Text style={{ fontSize: 16, fontWeight: '800', color: themeColors.primary }}>
                                             {loading ? "Locating..." : "Use Current Location"}
                                         </Text>
                                     </View>
-                                    <MaterialCommunityIcons name="chevron-right" size={20} color={colors.primary} />
+                                    <MaterialCommunityIcons name="chevron-right" size={20} color={themeColors.primary} />
                                 </TouchableOpacity>
                             )}
 
-                            {/* RECENT SECTION HEADER */}
+                            {/* RECENT LOCATIONS SECTION */}
                             {savedRecents.length > 0 && search.length === 0 && (
                                 <View style={{
                                     flexDirection: 'row',
@@ -622,18 +920,18 @@ const LocationSearchModal = ({ isOpen, onClose, onSelect, type, onSetNext, advan
                                     marginTop: 20,
                                     marginBottom: 10
                                 }}>
-                                    <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryText, letterSpacing: 1 }}>
+                                    <Text style={{ fontSize: 12, fontWeight: '800', color: themeColors.secondaryText, letterSpacing: 1 }}>
                                         RECENT
                                     </Text>
                                     <TouchableOpacity onPress={clearRecents}>
-                                        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.primary }}>
+                                        <Text style={{ fontSize: 12, fontWeight: '700', color: themeColors.primary }}>
                                             Clear All
                                         </Text>
                                     </TouchableOpacity>
                                 </View>
                             )}
 
-                            {/* RECENT LIST ITEMS */}
+                            {/* RECENT LOCATIONS LIST */}
                             {search.length === 0 && savedRecents.map((item) => (
                                 <TouchableOpacity
                                     key={item.id}
@@ -646,26 +944,26 @@ const LocationSearchModal = ({ isOpen, onClose, onSelect, type, onSetNext, advan
                                         alignItems: 'center',
                                         paddingVertical: 12,
                                         borderBottomWidth: 1,
-                                        borderBottomColor: colors.border
+                                        borderBottomColor: themeColors.border
                                     }}
                                 >
                                     <View style={{
                                         width: 44, height: 44, borderRadius: 22,
-                                        backgroundColor: colors.iconBox, alignItems: 'center',
+                                        backgroundColor: themeColors.iconBox, alignItems: 'center',
                                         justifyContent: 'center', marginRight: 15
                                     }}>
-                                        <MaterialCommunityIcons name="clock-outline" size={22} color={colors.secondaryText} />
+                                        <MaterialCommunityIcons name="clock-outline" size={22} color={themeColors.secondaryText} />
                                     </View>
                                     <View style={{ flex: 1 }}>
-                                        <Text style={{ fontSize: 16, fontWeight: '700', color: colors.text }}>
+                                        <Text style={{ fontSize: 16, fontWeight: '700', color: themeColors.text }}>
                                             {item.name}
                                         </Text>
-                                        <Text numberOfLines={1} style={{ fontSize: 13, color: colors.secondaryText, marginTop: 2 }}>
+                                        <Text numberOfLines={1} style={{ fontSize: 13, color: themeColors.secondaryText, marginTop: 2 }}>
                                             {item.address}
                                         </Text>
                                     </View>
 
-                                    {/* Favorite Toggle for Recents */}
+                                    {/* Favorite Toggle */}
                                     <TouchableOpacity
                                         onPress={() => handleToggleFavoriteFromRecents(item)}
                                         style={{
@@ -677,38 +975,36 @@ const LocationSearchModal = ({ isOpen, onClose, onSelect, type, onSetNext, advan
                                         <MaterialCommunityIcons
                                             name={favoriteLocations.some(f => f.id === item.id) ? "heart" : "heart-outline"}
                                             size={24}
-                                            color={favoriteLocations.some(f => f.id === item.id) ? "#FF0000" : colors.border}
+                                            color={favoriteLocations.some(f => f.id === item.id) ? "#FF0000" : themeColors.border}
                                         />
                                     </TouchableOpacity>
-                                    <MaterialCommunityIcons name="chevron-right" size={20} color={colors.border} />
+                                    <MaterialCommunityIcons name="chevron-right" size={20} color={themeColors.border} />
                                 </TouchableOpacity>
                             ))}
                         </ScrollView>
-
-                        <CustomAlert
-                            visible={isAlertVisible}
-                            title={alertMode === 'remove' ? "Remove Favorite" : "Add Favorite"}
-                            message={
-                                alertMode === 'remove'
-                                    ? `Are you sure you want to remove "${selectedLocation?.name}" from your favorites?`
-                                    : `Do you want to save "${selectedLocation?.name}" to your favorite places?`
-                            }
-                            type={alertMode === 'remove' ? 'danger' : 'info'}
-                            confirmText={alertMode === 'remove' ? 'Remove' : 'Save'}
-                            onConfirm={confirmToggle} // Logic runs here
-                            onCancel={() => {
-                                setAlertVisible(false);
-                                setSelectedLocation(null); // Clean up
-                            }}
-                        />
-
                     </View>
 
+                    {/* CONFIRMATION ALERT */}
+                    <CustomAlert
+                        visible={isAlertVisible}
+                        title={alertMode === 'remove' ? "Remove Favorite" : "Add Favorite"}
+                        message={
+                            alertMode === 'remove'
+                                ? `Are you sure you want to remove "${selectedLocation?.name}" from your favorites?`
+                                : `Do you want to save "${selectedLocation?.name}" to your favorite places?`
+                        }
+                        type={alertMode === 'remove' ? 'danger' : 'info'}
+                        confirmText={alertMode === 'remove' ? 'Remove' : 'Save'}
+                        onConfirm={confirmToggle}
+                        onCancel={() => {
+                            setAlertVisible(false);
+                            setSelectedLocation(null);
+                        }}
+                    />
                 </View>
             </Pressable>
         </Modal>
     );
 };
-
 
 export default LocationSearchModal;

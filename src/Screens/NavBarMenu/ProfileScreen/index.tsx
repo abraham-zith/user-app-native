@@ -103,9 +103,11 @@ const ProfileScreen: React.FC<ScreenProps> = ({ navigation }) => {
                 transparent={true}
                 animationType="fade"
                 onRequestClose={onClose}
+                statusBarTranslucent={true}
+                navigationBarTranslucent={true}
             >
                 <Pressable style={styles.modaloverlay} onPress={onClose}>
-                    <View style={[styles.sheet, { backgroundColor: colors.background }]}>
+                    <View style={[styles.sheet, { backgroundColor: colors.background, paddingBottom: insets.bottom + vS(20) }]}>
                         <View style={[styles.handle, { backgroundColor: colors.border }]} />
                         <Text style={[styles.title, { color: colors.text }]}>Profile Photo</Text>
 
@@ -124,6 +126,16 @@ const ProfileScreen: React.FC<ScreenProps> = ({ navigation }) => {
                                 <Text style={[styles.optionLabel, { color: colors.text }]}>Gallery</Text>
                             </TouchableOpacity>
                         </View>
+
+                        {/* Bottom filler to ensure no gap is visible */}
+                        <View style={{
+                            position: 'absolute',
+                            bottom: -100,
+                            left: 0,
+                            right: 0,
+                            height: 100,
+                            backgroundColor: colors.background
+                        }} />
                     </View>
                 </Pressable>
             </Modal>
@@ -154,7 +166,7 @@ const ProfileScreen: React.FC<ScreenProps> = ({ navigation }) => {
         if (hasPermission) {
             ImagePicker.openCamera(cropperConfig)
                 .then(handleImageResult)
-                .catch(() => {});
+                .catch(() => { });
         } else {
             ToastAndroid.show('App needs Permission to access camera', ToastAndroid.SHORT);
         }
@@ -163,7 +175,7 @@ const ProfileScreen: React.FC<ScreenProps> = ({ navigation }) => {
     const openGallery = () => {
         ImagePicker.openPicker(cropperConfig)
             .then(handleImageResult)
-            .catch(() => {});
+            .catch(() => { });
     };
 
     const handleCamera = () => {

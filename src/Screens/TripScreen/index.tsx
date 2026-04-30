@@ -49,6 +49,7 @@ import {
     useUpdateTripChangesMutation,
 } from '../../service/userApi';
 import { useCancelTripMutation } from '../../service/tripApi';
+import AudioService from '../../service/AudioService';
 
 // Socket & Storage
 import { useSocket } from '../../Socket/SocketContext';
@@ -158,7 +159,7 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
     const localUser = useSelector((state: RootState) => state?.userSlice?.user);
     const emergencyContacts = localUser?.emergency_contacts || [];
     const [isRated, setIsRated] = useState(tripfromroute?.isRated || false);
-
+    console.log("tripfromroute", tripfromroute);
     // ==================== SOCKET SETUP ====================
     const {
         socket,
@@ -203,11 +204,18 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
     }, [tripfromroute?.trip_id]);
 
     useEffect(() => {
-        if (currentStatus === TripStatus.CANCELLED) {
-            navigation.reset({
-                index: 0,
-                routes: [{ name: TabNavigation_Nav }],
-            });
+        if (currentStatus === TripStatus.CANCELLED || currentStatus === TripStatus.MID_CANCELLED) {
+            console.log('🛑 [TripScreen] Cancellation state detected. Calling AudioService.speak().');
+            AudioService.speak("Your trip has been cancelled.");
+
+            const timer = setTimeout(() => {
+                navigation.reset({
+                    index: 0,
+                    routes: [{ name: TabNavigation_Nav }],
+                });
+            }, 2000);
+
+            return () => clearTimeout(timer);
         }
     }, [currentStatus]);
 
@@ -236,6 +244,7 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
         estimatedArrival: currentTrip.eta || driverSrc.estimatedArrival || 5,
         driverLat: driverSrc.current_lat || driverSrc.driverLat,
         driverLng: driverSrc.current_lng || driverSrc.driverLng,
+        totalRides: driverSrc.total_trips || driverSrc.total_rides || driverSrc.totalRides,
     } : null;
 
     const activeDriver = assignedDriver || apiDriver;
@@ -267,12 +276,6 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
                     if (Platform.OS === 'android') {
                         ToastAndroid.show('Trip Cancelled', ToastAndroid.SHORT);
                     }
-                    setTimeout(() => {
-                        navigation.reset({
-                            index: 0,
-                            routes: [{ name: TabNavigation_Nav }],
-                        });
-                    }, 1500);
                 }
             }
         };
@@ -286,7 +289,7 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
             if (Platform.OS === 'android') {
                 ToastAndroid.show('Driver Found!', ToastAndroid.SHORT);
             }
-
+            console.log("Driver Data", data);
             // The socket might send the driver data in several formats. 
             // We prioritize driver_details (new format) then fall back.
             const driverData = data.driver_details || data.driverData || data.driver || data;
@@ -303,6 +306,7 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
                 estimatedArrival: data.estimatedArrival || 5,
                 driverLat: driverData.current_lat || driverData.driverLat,
                 driverLng: driverData.current_lng || driverData.driverLng,
+                totalRides: driverData.total_trips || driverData.total_rides || driverData.totalRides,
             });
             dispatch(updateTripInArray({
                 trip_id: currentTrip.trip_id,
@@ -336,6 +340,7 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
         };
 
         const handleDestinationReached = (data: any) => {
+            console.log("Destination Reached", data);
             setTripPhase('DESTINATION_REACHED');
             setCurrentStatus(TripStatus.DESTINATION_REACHED);
             dispatch(updateTripInArray({ trip_id: currentTrip.trip_id, trip_status: TripStatus.DESTINATION_REACHED }));
@@ -569,12 +574,7 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
                         ToastAndroid.show('Booking Cancelled Successfully', ToastAndroid.SHORT);
                     }
 
-                    setTimeout(() => {
-                        navigation.reset({
-                            index: 0,
-                            routes: [{ name: TabNavigation_Nav }],
-                        });
-                    }, 1500);
+                    setCurrentStatus(TripStatus.CANCELLED);
                 }
             } catch (error) {
                 Alert.alert('Failed to cancel trip. Please try again.');
@@ -643,6 +643,7 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
             estimatedArrival: driver.estimatedArrival || driver.eta || 5,
             driverLat: driver.current_lat,
             driverLng: driver.current_lng,
+            totalRides: driver.total_trips || driver.total_rides || driver.totalRides,
         }
         setAssignedDriver(driverData);
     }, []);

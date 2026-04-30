@@ -8,6 +8,7 @@ import {
     Dimensions,
     Platform,
     TouchableOpacity,
+    Animated,
 } from "react-native";
 import { useTheme, useRoute } from "@react-navigation/native";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -86,6 +87,53 @@ const HomeScreen: React.FC<any> = ({ navigation }) => {
         { name: 'Schedule', iconName: 'profile' },
     ];
 
+
+    // ==================== ANIMATIONS ====================
+    const fadeAnim = React.useRef(new Animated.Value(0)).current;
+    const slideAnim = React.useRef(new Animated.Value(20)).current;
+
+    // Staggered animated values
+    const buttonsAnim = React.useRef(buttons.map(() => new Animated.Value(0))).current;
+    const stepsAnim = React.useRef(bookingSteps.map(() => new Animated.Value(0))).current;
+
+    useEffect(() => {
+        // Reset values for clean entry
+        fadeAnim.setValue(0);
+        slideAnim.setValue(20);
+        buttonsAnim.forEach(anim => anim.setValue(0));
+        stepsAnim.forEach(anim => anim.setValue(0));
+
+        // Main entrance
+        Animated.parallel([
+            Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+            Animated.timing(slideAnim, { toValue: 0, duration: 800, useNativeDriver: true }),
+        ]).start();
+
+        // Staggered buttons
+        const buttonAnims = buttonsAnim.map((anim, i) =>
+            Animated.spring(anim, {
+                toValue: 1,
+                tension: 50,
+                friction: 7,
+                delay: 300 + (i * 100),
+                useNativeDriver: true,
+            })
+        );
+
+        // Staggered steps
+        const stepAnims = stepsAnim.map((anim, i) =>
+            Animated.timing(anim, {
+                toValue: 1,
+                duration: 600,
+                delay: 600 + (i * 150),
+                useNativeDriver: true,
+            })
+        );
+
+        Animated.parallel([...buttonAnims, ...stepAnims]).start();
+    }, []);
+
+
     // Inside your Home.tsx or App.tsx
     // useEffect(() => {
     //     const resumeSession = async () => {
@@ -115,11 +163,11 @@ const HomeScreen: React.FC<any> = ({ navigation }) => {
 
     const renderContent = () => {
         switch (active) {
-            case 0: return <OneWayComponent onSelectLocation={() => {}} />;
+            case 0: return <OneWayComponent onSelectLocation={() => { }} />;
             case 1: return <RoundedTrip />;
             case 2: return <OutstationComponent />;
             case 3: return <DailyComponent />;
-            default: return <OneWayComponent onSelectLocation={() => {}} />;
+            default: return <OneWayComponent onSelectLocation={() => { }} />;
         }
     };
 
@@ -133,7 +181,7 @@ const HomeScreen: React.FC<any> = ({ navigation }) => {
                     contentContainerStyle={{ flexGrow: 1 }}
                 >
                     {/* --- SECTION 1: MAP SECTION --- */}
-                    <View style={{ height: SCREEN_HEIGHT * 0.5, width: '100%' }}>
+                    <Animated.View style={{ height: SCREEN_HEIGHT * 0.5, width: '100%', opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
                         <MapViewComponent />
 
                         {/* Floating Branding Icon */}
@@ -148,7 +196,7 @@ const HomeScreen: React.FC<any> = ({ navigation }) => {
                                     : "In round trip, Pickup & drop are at same location in city"}
                             </Text>
                         </View>
-                    </View>
+                    </Animated.View>
 
                     {/* --- SECTION 2: INTERACTIVE SHEET --- */}
                     <View style={[style.contentSheet, { backgroundColor: appColors.card }]}>
@@ -156,7 +204,19 @@ const HomeScreen: React.FC<any> = ({ navigation }) => {
                         {/* Mode Selection Buttons */}
                         <View style={style.buttonContainer}>
                             {buttons.map((btn, index) => (
-                                <View key={index} style={style.buttonWrapper}>
+                                <Animated.View
+                                    key={index}
+                                    style={[
+                                        style.buttonWrapper,
+                                        {
+                                            opacity: buttonsAnim[index],
+                                            transform: [
+                                                { translateY: buttonsAnim[index].interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) },
+                                                { scale: buttonsAnim[index] }
+                                            ]
+                                        }
+                                    ]}
+                                >
                                     <Button
                                         onPress={() => handleTabChange(index, btn)}
                                         style={[
@@ -191,7 +251,7 @@ const HomeScreen: React.FC<any> = ({ navigation }) => {
                                     >
                                         {btn.name}
                                     </Text>
-                                </View>
+                                </Animated.View>
                             ))}
                         </View>
 
@@ -199,7 +259,15 @@ const HomeScreen: React.FC<any> = ({ navigation }) => {
                         <View style={[style.divider, { backgroundColor: appColors.border }]} />
 
                         {/* Search Input Bar */}
-                        <View style={[style.searchBarWrapper, { backgroundColor: isDark ? appColors.background : appColors.card, borderColor: isDark ? 'transparent' : '#F1F5F9' }]}>
+                        <Animated.View style={[
+                            style.searchBarWrapper,
+                            {
+                                backgroundColor: isDark ? appColors.background : appColors.card,
+                                borderColor: isDark ? 'transparent' : '#F1F5F9',
+                                opacity: fadeAnim,
+                                transform: [{ translateY: slideAnim }]
+                            }
+                        ]}>
                             <AntDesign name="search1" size={mS(20)} color={appColors.icon} style={style.searchIcon} />
                             <TextInput
                                 style={[style.searchInput, { color: appColors.text }]}
@@ -211,7 +279,7 @@ const HomeScreen: React.FC<any> = ({ navigation }) => {
                                 <AntDesign name='clockcircleo' size={mS(12)} color={'#FFFFFF'} />
                                 <Text style={style.nowText}>Now</Text>
                             </TouchableOpacity>
-                        </View>
+                        </Animated.View>
 
                         {/* Dynamic Tab Content Area */}
                         <View style={style.tabContentArea}>
@@ -225,7 +293,16 @@ const HomeScreen: React.FC<any> = ({ navigation }) => {
 
                             <View style={style.stepsContainer}>
                                 {bookingSteps.map((step, index) => (
-                                    <View key={index} style={style.stepRow}>
+                                    <Animated.View
+                                        key={index}
+                                        style={[
+                                            style.stepRow,
+                                            {
+                                                opacity: stepsAnim[index],
+                                                transform: [{ translateX: stepsAnim[index].interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }]
+                                            }
+                                        ]}
+                                    >
                                         <View style={[style.stepIconContainer, { backgroundColor: isDark ? `${step.color}20` : step.bgColor }]}>
                                             <MaterialCommunityIcons name={step.icon} size={mS(24)} color={step.color} />
                                         </View>
@@ -233,7 +310,7 @@ const HomeScreen: React.FC<any> = ({ navigation }) => {
                                             <Text style={[style.stepTitle, { color: appColors.text }]}>{step.title}</Text>
                                             <Text style={[style.stepDesc, { color: appColors.secondaryText }]}>{step.desc}</Text>
                                         </View>
-                                    </View>
+                                    </Animated.View>
                                 ))}
                             </View>
                         </View>

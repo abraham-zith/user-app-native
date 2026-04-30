@@ -177,7 +177,7 @@ export const OneWayComponent: React.FC<OneWayProps> = ({ onSelectLocation }) => 
 
                         {isLoading ? (
                             <ActivityIndicator size="large" color={colors.button} style={{ marginTop: vS(40) }} />
-                        ) : (
+                        ) : filteredResults.length > 0 ? (
                             <ScrollView contentContainerStyle={styles.listPadding}>
                                 {filteredResults.map((place) => (
                                     <TouchableOpacity
@@ -198,6 +198,24 @@ export const OneWayComponent: React.FC<OneWayProps> = ({ onSelectLocation }) => 
                                     </TouchableOpacity>
                                 ))}
                             </ScrollView>
+                        ) : (
+                            <View style={styles.noResultsContainer}>
+                                <View style={[styles.noResultsIconCircle, { backgroundColor: isDark ? 'rgba(244, 63, 94, 0.1)' : '#FFF1F2' }]}>
+                                    <MaterialCommunityIcons name="map-marker-remove-variant" size={mS(48)} color="#F43F5E" />
+                                </View>
+                                <Text style={[styles.noResultsTitle, { color: appColors.text }]}>No Places Found</Text>
+                                <Text style={[styles.noResultsSubtitle, { color: appColors.secondaryText }]}>
+                                    We couldn't find any {modalTitle.toLowerCase()} near your location at the moment.
+                                </Text>
+                                {search.length > 0 && (
+                                    <TouchableOpacity
+                                        onPress={() => setSearch("")}
+                                        style={[styles.clearSearchBtn, { backgroundColor: colors.button }]}
+                                    >
+                                        <Text style={styles.clearSearchText}>Clear Search</Text>
+                                    </TouchableOpacity>
+                                )}
+                            </View>
                         )}
                     </View>
                 </View>
@@ -351,5 +369,42 @@ const styles = StyleSheet.create({
         fontSize: mS(10),
         color: '#64748B',
         fontWeight: '600'
+    },
+    noResultsContainer: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: hS(40),
+        paddingBottom: vS(100), // Offset slightly for visual balance (accounting for header/search)
+    },
+    noResultsIconCircle: {
+        width: hS(80),
+        height: hS(80),
+        borderRadius: hS(40),
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: vS(20)
+    },
+    noResultsTitle: {
+        fontSize: mS(18),
+        fontWeight: '800',
+        marginBottom: vS(8)
+    },
+    noResultsSubtitle: {
+        fontSize: mS(14),
+        textAlign: 'center',
+        lineHeight: vS(20),
+        color: '#64748B'
+    },
+    clearSearchBtn: {
+        marginTop: vS(25),
+        paddingHorizontal: hS(25),
+        paddingVertical: vS(12),
+        borderRadius: mS(30)
+    },
+    clearSearchText: {
+        color: 'white',
+        fontSize: mS(14),
+        fontWeight: '700'
     }
 });
