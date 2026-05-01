@@ -98,6 +98,10 @@ export const validateSession = async (): Promise<{
     success: boolean;
     code?: string;
     data?: any;
+    message?: string;
+    notes?: string;
+    status?: string;
+    body?: any;
 }> => {
     try {
         let accessToken = await storage.getAccessToken();
@@ -133,10 +137,10 @@ export const validateSession = async (): Promise<{
         const data = await response.json();
 
         if (!response.ok) {
-            return { success: false, code: data?.code };
+            return { success: false, code: data?.code, notes: data?.notes, status: data?.status, message: data?.message };
         }
 
-        return { success: true, data: data?.data };
+        return { success: true, data: data?.data, notes: data?.notes, status: data?.status, message: data?.message };
 
     } catch (err) {
         // Alert.alert('Session Invalid!!!', 'Try Again Later');

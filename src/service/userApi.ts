@@ -15,6 +15,22 @@ interface TripsApiResponse {
   };
   error: any;
 }
+interface PaginatedTripsApiResponse {
+  statusCode: number;
+  success: boolean;
+  message: string;
+  data: {
+    data: Trip[];
+    total: number;
+  };
+  meta: {
+    requestId: string;
+    timestamp: string;
+    service: string;
+    version: string;
+  };
+  error: any;
+}
 interface TripApiResponse {
   statusCode: number;
   success: boolean;
@@ -171,12 +187,14 @@ export const userApi = createApi({
       }),
       providesTags: ['Trip']
     }),
-    getTrip: builder.query<TripsApiResponse, string>({
-      query: (id) => ({
+    getTrip: builder.query<PaginatedTripsApiResponse, { id: string, limit?: number, tab?: string }>({
+      query: ({ id, limit, tab }) => ({
         url: `/trips/${id}`,
         method: "POST",
         body: {
-          role: "customer"
+          role: "customer",
+          limit: limit,
+          tab: tab
         }
       }),
       providesTags: ['Trip']

@@ -32,7 +32,7 @@ const TabNavigations: React.FC<ScreenProps> = ({ navigation }) => {
                     marginTop: 4, // Adds space between icon and text
                 },
                 tabBarStyle: {
-                    backgroundColor: appColors.background,
+                    backgroundColor: isDark ? appColors.background : '#FFFFFF',
                     height: Platform.OS === 'ios' ? 85 : 75, // Slightly taller
                     borderTopWidth: 0, // Removes the default gray border completely
                     paddingBottom: Platform.OS === 'ios' ? 25 : 12,

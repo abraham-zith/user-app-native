@@ -52,12 +52,6 @@ const Activity: React.FC<ScreenProps> = ({ navigation }) => {
     const localuser = useSelector((state: RootState) => state?.userSlice?.user);
     const dispatch = useDispatch()
     const { colors: appColors, isDark } = useAppTheme();
-    const { data: trips, isLoading, isFetching, refetch } = useGetTripQuery(localuser.id, {
-        skip: !localuser?.id, // Don't run if we don't have a user ID yet
-    });
-    // console.log(trips, "trips");
-
-    const [rideHistory, setRideHistory] = useState<Trip[]>(trips?.data ? trips.data : []);
     const [searchBy, setSearchBy] = useState(null);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -65,35 +59,42 @@ const Activity: React.FC<ScreenProps> = ({ navigation }) => {
     const [startDate, setStartDate] = useState<string | null>(null);
     const [endDate, setEndDate] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'upcoming' | 'completed' | 'cancelled'>('completed');
-    // console.log(rideHistory.map(t => t.trip_status), "rideHistory");
-
+    const [activeLimit, setActiveLimit] = useState<number | undefined>(5);
     const searchOptions = [
         { label: 'Date', value: 'date' },
         { label: 'Location', value: 'location' },
     ];
 
     const [locations, setLocations] = useState<{ label: string; value: string }[]>([]);
-
     const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+    
+    const hasActiveFilters = Boolean(searchQuery.trim() !== '' || selectedLocation !== null || startDate !== null || endDate !== null);
+    const limitToUse = hasActiveFilters ? undefined : activeLimit;
+
+    const { data: trips, isLoading, isFetching, refetch } = useGetTripQuery({ id: localuser.id, limit: limitToUse, tab: activeTab }, {
+        skip: !localuser?.id, // Don't run if we don't have a user ID yet
+    });
+
+    const [rideHistory, setRideHistory] = useState<Trip[]>(trips?.data?.data ? trips.data.data : []);
+
+
     const onRefresh = useCallback(async () => {
         // No need to set a local "refreshing" state if you use isFetching from RTK Query
         await refetch();
     }, [refetch]);
 
-    useFocusEffect(
-        useCallback(() => {
-            // This runs every time the screen is focused
-            refetch();
-        }, [refetch])
-    );
+    // useFocusEffect(
+    //     useCallback(() => {
+    //         // This runs every time the screen is focused
+    //         refetch();
+    //     }, [refetch])
+    // );
 
     useEffect(() => {
         // This will now run every time 'trips' changes (from undefined to data)
-        if (trips?.success && trips?.data) {
-            setRideHistory(trips.data);
+        if (trips?.success && trips?.data?.data) {
+            setRideHistory(trips.data.data);
         }
-
-
     }, [trips, isFetching]);
 
 
@@ -155,21 +156,9 @@ const Activity: React.FC<ScreenProps> = ({ navigation }) => {
 
     useEffect(() => {
         // 1. First, pick the base data based on tab
-        let baseData: Trip[] = [];
-        if (activeTab === 'upcoming') {
-            // First, let's see what statuses we actually have
-            const scheduledTrips = rideHistory.filter(item =>
-                item?.booking_type?.toUpperCase() === 'SCHEDULED'
-            );
-            const allowedStatuses = ['REQUESTED', 'ACCEPTED', 'ARRIVING', 'ARRIVED'];
-            baseData = scheduledTrips.filter(item =>
-                allowedStatuses.includes(item.trip_status.toUpperCase())
-            );
-        } else if (activeTab === 'completed') {
-            baseData = rideHistory.filter(item => item.trip_status.toUpperCase() === 'COMPLETED');
-        } else if (activeTab === 'cancelled') {
-            baseData = rideHistory.filter(item => item.trip_status.toUpperCase() === 'CANCELLED' || item.trip_status.toUpperCase() === 'MID_CANCELLED');
-        }
+        let baseData = [...rideHistory];
+
+        // The backend now filters by `activeTab` so we don't need to do it here.
 
         // 2. Apply Text Search if it exists
         if (searchQuery) {
@@ -199,8 +188,6 @@ const Activity: React.FC<ScreenProps> = ({ navigation }) => {
 
         setFilteredData(baseData);
     }, [activeTab, searchQuery, selectedLocation, startDate, endDate, rideHistory]);
-
-    const hasActiveFilters = Boolean(searchQuery.trim() !== '' || selectedLocation !== null || startDate !== null || endDate !== null);
 
     const handleSearch = (text: string) => {
         setSearchQuery(text);
@@ -429,6 +416,29 @@ const Activity: React.FC<ScreenProps> = ({ navigation }) => {
                 </TouchableOpacity>
             </View>
 
+            {/* ───────────────────── SEE ALL / SHOW LESS BUTTON ───────────────────── */}
+            {!isLoading && !isFetching && !hasActiveFilters && trips?.data?.total && trips.data.total > 5 ? (
+                <View style={{ alignItems: 'flex-end', paddingHorizontal: 16, marginBottom: 10 }}>
+                    <TouchableOpacity
+                        onPress={() => {
+                            if (activeLimit === 5) {
+                                setActiveLimit(undefined);
+                            } else {
+                                setActiveLimit(5);
+                            }
+                        }}
+                    >
+                        <Text style={{
+                            fontSize: 14,
+                            fontWeight: '700',
+                            color: colors.button,
+                        }}>
+                            {activeLimit === 5 ? "See All" : "Show Less"}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+            ) : null}
+
             {/* ───────────────────── RIDE LIST ───────────────────── */}
             <ScrollView style={{ paddingHorizontal: 16 }}
                 refreshControl={
@@ -487,8 +497,8 @@ const Activity: React.FC<ScreenProps> = ({ navigation }) => {
                                         {/* Icon changes based on booking type */}
                                         <View style={{
                                             width: 48, height: 48, borderRadius: 12,
-                                            backgroundColor: isDark 
-                                                ? (item.booking_type === 'SCHEDULED' ? 'rgba(234, 88, 12, 0.1)' : 'rgba(59, 130, 246, 0.1)') 
+                                            backgroundColor: isDark
+                                                ? (item.booking_type === 'SCHEDULED' ? 'rgba(234, 88, 12, 0.1)' : 'rgba(59, 130, 246, 0.1)')
                                                 : (item.booking_type === 'SCHEDULED' ? '#FFF7ED' : '#EFF6FF'),
                                             alignItems: 'center', justifyContent: 'center'
                                         }}>
@@ -587,6 +597,13 @@ const Activity: React.FC<ScreenProps> = ({ navigation }) => {
                             </View>
                         )}
                     </>
+                )}
+
+
+                {isFetching && activeLimit === undefined && rideHistory.length > 5 && (
+                    <View style={{ alignItems: 'center', marginVertical: 20 }}>
+                        <ActivityIndicator size="small" color={colors.button} />
+                    </View>
                 )}
             </ScrollView>
         </View>

@@ -1,6 +1,6 @@
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Animated } from 'react-native';
 import React from 'react';
-import { createStackNavigator } from '@react-navigation/stack';
+import { CardStyleInterpolators, createStackNavigator, TransitionSpecs } from '@react-navigation/stack';
 import {
   Auth_Nav,
   Dashboard_Nav,
@@ -142,7 +142,49 @@ const RootNavigation = () => {
       <Stack.Screen
         name={LocationSearch_Nav}
         component={LocationSearch}
-        options={{ headerShown: false }}
+        options={{
+          headerShown: false,
+          gestureDirection: 'vertical',
+          transitionSpec: {
+            open: TransitionSpecs.TransitionIOSSpec,
+            close: TransitionSpecs.TransitionIOSSpec,
+          },
+          cardStyleInterpolator: ({ current, layouts }) => {
+            return {
+              cardStyle: {
+                transform: [
+                  {
+                    translateY: current.progress.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [layouts.screen.height, 0],
+                      extrapolate: 'clamp',
+                    }),
+                  },
+                  {
+                    scale: current.progress.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.95, 1],
+                      extrapolate: 'clamp',
+                    }),
+                  },
+                ],
+                opacity: current.progress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, 1],
+                  extrapolate: 'clamp',
+                }),
+              },
+              overlayStyle: {
+                opacity: current.progress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, 0.5],
+                  extrapolate: 'clamp',
+                }),
+              },
+            };
+          },
+        }}
+
       />
       <Stack.Screen
         name={MapViewComponent_Nav}

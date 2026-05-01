@@ -8,6 +8,9 @@ import {
   SafeAreaView,
   StatusBar,
   Dimensions,
+  Platform,
+  Alert,
+  ToastAndroid,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -20,58 +23,40 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { hS, vS, mS } from '../../lib/responsive';
 import Clipboard from '@react-native-clipboard/clipboard';
-import { useGetAvailableCouponsQuery } from '../../service/couponApi';
+import { useGetAvailableCouponsQuery, useSubscribeToCouponTopicMutation } from '../../service/couponApi';
+import messaging from '@react-native-firebase/messaging';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../redux/store';
 
 const { width } = Dimensions.get('window');
 
-const OFFERS = [
-  {
-    id: '1',
-    title: 'First Ride Discount',
-    description: 'Get 50% discount on your first ride with VDrive.',
-    code: 'WELCOME50',
-    discount: '50%',
-    expiry: 'Valid until 30 Apr 2026',
-    icon: 'ticket-percent-outline',
-    tag: 'NEW USER',
-  },
-  {
-    id: '2',
-    title: 'Summer Sale',
-    description: 'Flat ₹100 off on any outstation trips.',
-    code: 'SUMMERFLAT',
-    discount: '₹100',
-    expiry: 'Valid until 15 May 2026',
-    icon: 'weather-sunny',
-    tag: 'OUTSTATION',
-  },
-  {
-    id: '3',
-    title: 'Weekend Special',
-    description: '20% off on weekend city rides.',
-    code: 'WEEKEND20',
-    discount: '20%',
-    expiry: 'Valid until 28 Apr 2026',
-    icon: 'calendar-star',
-    tag: 'WEEKEND',
-  },
-  {
-    id: '4',
-    title: 'Referral Bonus',
-    description: 'Refer a friend and get ₹50 off on your next trip.',
-    code: 'REFER50',
-    discount: '₹50',
-    expiry: 'No Expiry',
-    icon: 'account-group-outline',
-    tag: 'REFERRAL',
-  },
-];
 
-const OfferCard = ({ item, index, isDark, colors }: any) => {
-  const handleCopyCode = () => {
+
+const OfferCard = ({ item, index, isDark, colors, userId }: any) => {
+  const [subscribeToCoupon] = useSubscribeToCouponTopicMutation();
+
+  const isLimitReached = item.per_user_limit && item.user_usage_count >= item.per_user_limit;
+
+  const handleCopyCode = async () => {
+    if (isLimitReached) {
+      if (Platform.OS === 'android') {
+        ToastAndroid.show('You have already used this coupon to its limit.', ToastAndroid.SHORT);
+      } else {
+        Alert.alert('Limit Reached', 'You have already used this coupon to its limit.');
+      }
+      return;
+    }
+
     Clipboard.setString(item.code);
+    
+    try {
+      const fcmToken = await messaging().getToken();
+      if (userId && fcmToken) {
+        await subscribeToCoupon({ userId, couponCode: item.code, fcmToken }).unwrap();
+      }
+    } catch (error) {
+      console.log('Error subscribing to topic', error);
+    }
     // You could add a toast here if available
   };
 
@@ -84,6 +69,7 @@ const OfferCard = ({ item, index, isDark, colors }: any) => {
           backgroundColor: isDark ? colors.card : '#FFFFFF',
           borderColor: isDark ? colors.border : '#E2E8F0',
           shadowColor: isDark ? '#000' : '#64748B',
+          opacity: isLimitReached ? 0.6 : 1,
         },
       ]}
     >
@@ -102,6 +88,11 @@ const OfferCard = ({ item, index, isDark, colors }: any) => {
           <Text style={[styles.discountText, { color: colors.primary }]}>{item.discount}</Text>
         </View>
         <Text style={[styles.description, { color: colors.lightTextColor }]}>{item.description}</Text>
+        {item.per_user_limit ? (
+          <Text style={[styles.usageText, { color: isLimitReached ? '#EF4444' : colors.secondaryText }]}>
+            {item.user_usage_count || 0} out of {item.per_user_limit} used
+          </Text>
+        ) : null}
 
         <View style={styles.footer}>
           <View style={styles.codeContainer}>
@@ -129,15 +120,39 @@ const OffersScreen: React.FC = () => {
   const userId = localuser?.id;
   const visible = true;
 
-  const { data: availableCoupons, isLoading: isFetching } = useGetAvailableCouponsQuery(userId || localuser?.id, {
+  const { data: availableCoupons, isLoading: isFetching } = useGetAvailableCouponsQuery(undefined, {
     skip: !visible,
   });
+
+  const mappedCoupons = React.useMemo(() => {
+    if (!availableCoupons) return [];
+    
+    // Safely extract the array whether it's directly returned or wrapped in a data object
+    const couponsArray = Array.isArray(availableCoupons) 
+      ? availableCoupons 
+      : (availableCoupons.data || availableCoupons.coupons || []);
+      
+    if (!Array.isArray(couponsArray)) return [];
+
+    return couponsArray.map((coupon: any) => ({
+      id: coupon.id || coupon._id || coupon.code || Math.random().toString(),
+      title: coupon.discount_type === 'PERCENTAGE' ? 'Percentage Discount' : 'Flat Discount',
+      description: `Min. ride amount: ₹${coupon.min_ride_amount || 0}. Enjoy your ride with VDrive!`,
+      code: coupon.code || '',
+      discount: coupon.discount_type === 'PERCENTAGE' ? `${coupon.discount_value}%` : `₹${coupon.discount_value}`,
+      expiry: coupon.valid_until ? `Valid until ${new Date(coupon.valid_until).toLocaleDateString()}` : 'No Expiry',
+      icon: 'ticket-percent-outline',
+      tag: 'PROMO',
+      per_user_limit: coupon.per_user_limit,
+      user_usage_count: coupon.user_usage_count,
+    }));
+  }, [availableCoupons]);
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
       <FlatList
-        data={OFFERS}
+        data={mappedCoupons}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
@@ -149,7 +164,7 @@ const OffersScreen: React.FC = () => {
           </View>
         )}
         renderItem={({ item, index }) => (
-          <OfferCard item={item} index={index} isDark={isDark} colors={colors} />
+          <OfferCard item={item} index={index} isDark={isDark} colors={colors} userId={userId} />
         )}
         ListEmptyComponent={() => (
           <View style={styles.emptyContainer}>
@@ -235,6 +250,11 @@ const styles = StyleSheet.create({
   description: {
     fontSize: mS(13),
     lineHeight: mS(20),
+    marginBottom: vS(8),
+  },
+  usageText: {
+    fontSize: mS(12),
+    fontWeight: '600',
     marginBottom: vS(16),
   },
   footer: {

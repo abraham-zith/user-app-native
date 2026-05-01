@@ -97,16 +97,27 @@ const PaymentSuccessScreen: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+
+    const timer = setTimeout(() => {
+      handleContinue();
+    }, 2000);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [navigation, targetScreen, handleContinue]);
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: appColors.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={appColors.background} translucent />
-      
+
       <View style={styles.content}>
         <View style={styles.iconWrapper}>
           <View style={[
-            styles.mainIconContainer, 
-            { 
-              backgroundColor: '#10B981', 
+            styles.mainIconContainer,
+            {
+              backgroundColor: '#10B981',
               shadowColor: '#10B981',
               shadowOpacity: isDark ? 0.6 : 0.4,
               shadowRadius: isDark ? 20 : 12,
@@ -129,17 +140,17 @@ const PaymentSuccessScreen: React.FC = () => {
       </View>
 
       <View style={styles.footer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[
-            styles.continueButton, 
-            { 
+            styles.continueButton,
+            {
               backgroundColor: appColors.button,
               shadowColor: isDark ? appColors.button : '#000',
               shadowOpacity: isDark ? 0.5 : 0.2,
               shadowRadius: isDark ? 15 : 8,
               elevation: isDark ? 10 : 4,
             }
-          ]} 
+          ]}
           onPress={handleContinue}
           activeOpacity={0.8}
         >
