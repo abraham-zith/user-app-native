@@ -97,14 +97,14 @@ export const userApi = createApi({
     }),
     addUser: builder.mutation({
       query: data => ({
-        url: '/user/',
+        url: '/users/',
         method: 'POST',
         body: data,
       }),
     }),
     uploadDocument: builder.mutation({
       query: data => ({
-        url: '/user/add-user',
+        url: '/users/add-user',
         method: 'POST',
         body: data,
       }),
@@ -133,15 +133,22 @@ export const userApi = createApi({
 
     deleteUser: builder.mutation({
       query: (id) => ({
-        url: `/user/${id}`,
+        url: `/users/${id}`,
         method: "DELETE",
       }),
     }),
 
 
+    // getUploadUrl: builder.mutation({
+    //   query: data => ({
+    //     url: '/generate-presigned-url/presigned-url',
+    //     method: 'POST',
+    //     body: data,
+    //   })
+    // }),
     getUploadUrl: builder.mutation({
       query: data => ({
-        url: '/generate-presigned-url/',
+        url: `/users/documents/${data.userId}/upload-url`,
         method: 'POST',
         body: data,
       })
@@ -171,7 +178,7 @@ export const userApi = createApi({
     }),
 
 
-    //Trip
+    // Trip
     createTrip: builder.mutation({
       query: data => ({
         url: '/trips/create',

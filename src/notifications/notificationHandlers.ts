@@ -38,7 +38,12 @@ const NotificationHandler: React.FC = () => {
     const handleNotificationRoute = (data: any) => {
         if (!data) return;
 
-        const { type, tripId, bookingId } = data;
+        const { type, tripId, bookingId, coupon_code, promo_code } = data;
+
+        if (coupon_code || promo_code || type === NotificationType.PROMOTIONAL_NOTIFICATION) {
+            navigation.navigate("OffersScreen");
+            return;
+        }
 
         switch (type) {
             case NotificationType.TRIP_UPDATE:
@@ -93,10 +98,6 @@ const NotificationHandler: React.FC = () => {
                     { cancelable: false }
                 );
                 return;
-            }
-
-            if (remoteMessage.data?.coupon_code) {
-                navigation.navigate("OffersScreen");
             }
 
             await displayBanner(remoteMessage);

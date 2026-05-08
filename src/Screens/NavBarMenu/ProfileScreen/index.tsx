@@ -23,6 +23,7 @@ import ImagePicker from "react-native-image-crop-picker";
 import { useGetUploadUrlMutation, useUploadImageToS3Mutation } from '../../../service/userApi';
 import { useUpdateUserMutation } from '../../../service/userApi';
 import { updateUserStore } from '../../../redux/userSlice';
+import Config from 'react-native-config';
 import { useCameraPermission } from "../../../hooks/useCamera";
 import { hS, mS, vS } from "../../../lib/responsive";
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
@@ -88,6 +89,8 @@ const ProfileScreen: React.FC<ScreenProps> = ({ navigation }) => {
     const { requestCameraPermission } = useCameraPermission();
 
     const imageSource = profileUri || localuser?.profile_url;
+    const BASE_URL = `${Config.DEV_BACKEND_URL}/api`;
+    const proxiedImageSource = imageSource ? (imageSource.startsWith('http') ? `${BASE_URL}/media/proxy?url=${encodeURIComponent(imageSource)}` : imageSource) : null;
 
     interface ProfileImagePickerProps {
         isVisible: boolean;
@@ -193,58 +196,45 @@ const ProfileScreen: React.FC<ScreenProps> = ({ navigation }) => {
         try {
             // 1. Get Presigned URL
             const payload = {
-                bucketName: "vdrive-driver-documents",
+                userId: localuser.id,
+                documentType: "profile_picture",
                 contentType: "image/jpeg",
-                key: `profiles/${localuser?.id}_${Date.now()}.jpg`,
-                expiresIn: 900
             };
 
             const response = await getUploadUrl(payload).unwrap();
-            const uploadUrl = response.data.data.presignedUrl;
+            const uploadUrl = response.data.uploadUrl || response.data.data.uploadUrl;
 
             const responseFile = await fetch(uri);
             const imageBlob = await responseFile.blob();
 
+            const uploadResponse = await fetch(uploadUrl, {
+                method: 'PUT',
+                body: imageBlob,
+                headers: { 'Content-Type': 'image/jpeg' },
+            });
 
-            // 2. Convert file to Blob
-            // Note: Clean the URI if necessary, though 'file://' usually works on modern RN fetch
+            if (uploadResponse.ok) {
+                const publicUrl = uploadUrl.split('?')[0];
+                try {
+                    const payload = {
+                        id: localuser.id,
+                        profile_url: publicUrl
+                    };
 
-            // // 3. PUT to S3
-            let s3Payload = {
-                url: uploadUrl,
-                file: imageBlob,
-                type: 'image/jpeg'
-            }
-
-            const uploadPic = await uploadImageToS3(s3Payload).unwrap()
-
-            // const uploadResponse = await fetch(uploadUrl, {
-            //     method: 'PUT',
-            //     body: imageBlob,
-            //     headers: { 'Content-Type': 'image/jpeg' },
-            // });
-
-            // if (uploadResponse.ok) {
-            try {
-                const payload = {
-                    id: localuser.id,
-                    profile_url: uri
-                };
-
-                const response = await updateUser(payload).unwrap();
-                if (response.success) {
-                    setProfileUri(uri)
-                    dispatch(updateUserStore({ profile_url: response.data.profile_url }));
-                    ToastAndroid.show("Profile updated successfully", ToastAndroid.SHORT);
+                    const response = await updateUser(payload).unwrap();
+                    if (response.success) {
+                        setProfileUri(publicUrl)
+                        dispatch(updateUserStore({ profile_url: response.data.profile_url }));
+                        ToastAndroid.show("Profile updated successfully", ToastAndroid.SHORT);
+                    }
+                } catch (error) {
+                    // console.error("Sync failed", error);
+                    Alert.alert("Could not sync Profile with the server.Try Later!!!");
+                    ToastAndroid.show("Profile update Failed", ToastAndroid.SHORT);
                 }
-            } catch (error) {
-                // console.error("Sync failed", error);
-                Alert.alert("Could not sync Profile with the server.Try Later!!!");
-                ToastAndroid.show("Profile update Failed", ToastAndroid.SHORT);
+                setProfileUri(publicUrl); // Update display
+                Alert.alert("Success", "Profile picture updated!");
             }
-            //     setProfileUri(uri); // Update display
-            //     Alert.alert("Success", "Profile picture updated!");
-            // }
         } catch (error) {
             // console.error("Upload Error:", error);
             ToastAndroid.show("Could not save image to server", ToastAndroid.SHORT);
@@ -299,7 +289,7 @@ const ProfileScreen: React.FC<ScreenProps> = ({ navigation }) => {
                             <View style={[styles.largeAvatarContainer, { backgroundColor: colors.iconBox, borderColor: colors.background }]}>
                                 {imageSource ? (
                                     <Image
-                                        source={{ uri: imageSource }}
+                                        source={{ uri: proxiedImageSource }}
                                         style={styles.largeImageStyle}
                                         resizeMode="cover"
                                     />
