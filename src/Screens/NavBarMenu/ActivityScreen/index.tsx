@@ -8,7 +8,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Dropdown } from 'react-native-element-dropdown';
 import DatePicker from "../../../Components/DatePicker";
 import { BookedTripScreen_Nav, RideDetails_Nav, RideDetailsEdit_Nav } from "../../../Navigations/navigations";
-import colors from "../../../constant/colors";
+import colors, { darkColors } from "../../../constant/colors";
 import formatDate from "../../../Components/FormatDate";
 import { useGetAllTripsQuery, useGetTripQuery } from "../../../service/userApi";
 import { Trip } from "../../../types/trip";
@@ -60,18 +60,27 @@ const Activity: React.FC<ScreenProps> = ({ navigation }) => {
     const [endDate, setEndDate] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'upcoming' | 'completed' | 'cancelled'>('completed');
     const [activeLimit, setActiveLimit] = useState<number | undefined>(5);
+    const [selectedRideType, setSelectedRideType] = useState<string | null>(null);
+    const rideTypeOptions = [
+        { label: 'One Way', value: 'ONE_WAY' },
+        { label: 'Round Trip', value: 'ROUND_TRIP' },
+        { label: 'Outstation', value: 'OUTSTATION' },
+        { label: 'Scheduled', value: 'SCHEDULED' },
+    ];
+
     const searchOptions = [
         { label: 'Date', value: 'date' },
         { label: 'Location', value: 'location' },
+        { label: 'Ride Type', value: 'rideType' },
     ];
 
     const [locations, setLocations] = useState<{ label: string; value: string }[]>([]);
     const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
-    
-    const hasActiveFilters = Boolean(searchQuery.trim() !== '' || selectedLocation !== null || startDate !== null || endDate !== null);
+
+    const hasActiveFilters = Boolean(searchQuery.trim() !== '' || selectedLocation !== null || startDate !== null || endDate !== null || selectedRideType !== null);
     const limitToUse = hasActiveFilters ? undefined : activeLimit;
 
-    const { data: trips, isLoading, isFetching, refetch } = useGetTripQuery({ id: localuser.id, limit: limitToUse, tab: activeTab }, {
+    const { data: trips, isLoading, isFetching, refetch } = useGetTripQuery({ id: localuser?.id, limit: limitToUse, tab: activeTab }, {
         skip: !localuser?.id, // Don't run if we don't have a user ID yet
     });
 
@@ -186,8 +195,15 @@ const Activity: React.FC<ScreenProps> = ({ navigation }) => {
             });
         }
 
+        // 5. Apply Ride Type Filter if it exists
+        if (selectedRideType) {
+            baseData = baseData.filter(item =>
+                item.ride_type === selectedRideType
+            );
+        }
+
         setFilteredData(baseData);
-    }, [activeTab, searchQuery, selectedLocation, startDate, endDate, rideHistory]);
+    }, [activeTab, searchQuery, selectedLocation, startDate, endDate, selectedRideType, rideHistory]);
 
     const handleSearch = (text: string) => {
         setSearchQuery(text);
@@ -203,7 +219,9 @@ const Activity: React.FC<ScreenProps> = ({ navigation }) => {
     const filterRidesByRange = (start: string, end: string) => {
         setStartDate(start);
         setEndDate(end);
+        setSelectedRideType(null);
     };
+
 
     const clearAllFilters = () => {
         setSearchBy(null);
@@ -211,8 +229,13 @@ const Activity: React.FC<ScreenProps> = ({ navigation }) => {
         setSearchQuery('');
         setStartDate(null);
         setEndDate(null);
+        setSelectedRideType(null);
     };
 
+    const formatDateToDMY = (dateStr: string | null) => {
+        if (!dateStr) return '';
+        return dateStr.split('-').reverse().join('-');
+    };
 
     return (
 
@@ -253,6 +276,7 @@ const Activity: React.FC<ScreenProps> = ({ navigation }) => {
                             setSearchBy(item.value);
                             setSearchQuery('');
                             setSelectedLocation(null);
+                            setSelectedRideType(null);
                             // Removing manual setFilteredData to let useEffect handle it
                         }}
                     />
@@ -288,14 +312,42 @@ const Activity: React.FC<ScreenProps> = ({ navigation }) => {
                                 value={selectedLocation}
                                 onChange={(item) => handleLocationFilter(item.value)}
                             />
+                        ) : searchBy === 'rideType' ? (
+                            <Dropdown
+                                style={{ flex: 1, height: 48, marginLeft: 8 }}
+                                containerStyle={{ backgroundColor: appColors.card, borderColor: isDark ? 'transparent' : '#E2E8F0', borderRadius: 8 }}
+                                itemTextStyle={{ color: appColors.text, fontSize: 14 }}
+                                activeColor={isDark ? 'rgba(255,255,255,0.05)' : '#F1F5F9'}
+                                placeholder="Select Ride Type"
+                                placeholderStyle={{ color: appColors.lightTextColor, fontSize: 14 }}
+                                selectedTextStyle={{ color: appColors.text, fontSize: 14, fontWeight: '600' }}
+                                data={rideTypeOptions}
+                                labelField="label"
+                                valueField="value"
+                                value={selectedRideType}
+                                onChange={(item) => setSelectedRideType(item.value)}
+                            />
+                        ) : searchBy === 'date' ? (
+                            <TouchableOpacity
+                                onPress={() => setShowDatePicker(true)}
+                                style={{ flex: 1, marginLeft: 8, height: 48, justifyContent: 'center' }}
+                            >
+                                <TextInput
+                                    placeholder="Tap calendar icon..."
+                                    placeholderTextColor={appColors.lightTextColor}
+                                    style={{ fontSize: 14, color: appColors.text, paddingVertical: 0 }}
+                                    value={startDate && endDate ? `${formatDateToDMY(startDate)} to ${formatDateToDMY(endDate)}` : ''}
+                                    editable={false}
+                                    pointerEvents="none"
+                                />
+                            </TouchableOpacity>
                         ) : (
                             <TextInput
-                                placeholder={searchBy === 'date' ? "Tap calendar icon..." : "Search destination..."}
+                                placeholder="Search destination..."
                                 placeholderTextColor={appColors.lightTextColor}
                                 style={{ flex: 1, marginLeft: 8, fontSize: 14, color: appColors.text }}
                                 value={searchQuery}
                                 onChangeText={handleSearch}
-                                editable={searchBy !== 'date'}
                             />
                         )}
 
@@ -431,7 +483,7 @@ const Activity: React.FC<ScreenProps> = ({ navigation }) => {
                         <Text style={{
                             fontSize: 14,
                             fontWeight: '700',
-                            color: colors.button,
+                            color: isDark ? appColors.primary : colors.button,
                         }}>
                             {activeLimit === 5 ? "See All" : "Show Less"}
                         </Text>
@@ -440,172 +492,184 @@ const Activity: React.FC<ScreenProps> = ({ navigation }) => {
             ) : null}
 
             {/* ───────────────────── RIDE LIST ───────────────────── */}
-            <ScrollView style={{ paddingHorizontal: 16 }}
-                refreshControl={
-                    <RefreshControl
-                        refreshing={isFetching} // Use RTK Query's fetching state
-                        onRefresh={onRefresh}
-                        colors={[colors.button]} // Your primary yellow/blue
-                        tintColor={colors.button}
-                    />
-                }
-            >
-                {(isLoading || (isFetching && rideHistory.length === 0)) ? (
+            {(isLoading || (isFetching && rideHistory.length === 0)) ? (
+                <ScrollView style={{ paddingHorizontal: 16 }}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={isFetching}
+                            onRefresh={onRefresh}
+                            colors={[colors.button]}
+                            tintColor={colors.button}
+                        />
+                    }
+                >
                     <View>
                         {[1, 2, 3, 4, 5].map(i => <ActivityCardSkeleton key={i} isDark={isDark} appColors={appColors} />)}
                     </View>
-                ) : (
-                    <>
-                        {filteredData.length > 0 ? (
-                            filteredData.map((item) => (
+                </ScrollView>
+            ) : (
+                <FlatList
+                    style={{ paddingHorizontal: 16 }}
+                    data={filteredData}
+                    keyExtractor={(item) => item.trip_id.toString()}
+                    removeClippedSubviews={true}
+                    initialNumToRender={10}
+                    maxToRenderPerBatch={5}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={isFetching}
+                            onRefresh={onRefresh}
+                            colors={[colors.button]}
+                            tintColor={colors.button}
+                        />
+                    }
+                    ListEmptyComponent={
+                        <View style={{ marginTop: 60, alignItems: 'center', paddingHorizontal: 40 }}>
+                            <MaterialCommunityIcons
+                                name={searchQuery || selectedLocation ? "database-search-outline" : "car-off"}
+                                size={70}
+                                color={appColors.lightTextColor}
+                            />
+                            <Text style={{
+                                color: appColors.text,
+                                fontSize: 16,
+                                fontWeight: '600',
+                                marginTop: 15,
+                                textAlign: 'center'
+                            }}>
+                                {searchQuery || selectedLocation ? "No matches found" : "No rides yet"}
+                            </Text>
+                            <Text style={{ color: appColors.lightTextColor, textAlign: 'center', marginTop: 8 }}>
+                                {searchQuery || selectedLocation
+                                    ? "Try adjusting your filters or search terms."
+                                    : activeTab === 'upcoming'
+                                        ? "You don't have any scheduled trips."
+                                        : "Your completed trips will appear here."}
+                            </Text>
+                            {(searchQuery || selectedLocation) && (
                                 <TouchableOpacity
-                                    key={item.trip_id}
-                                    activeOpacity={0.9}
-                                    onPress={() => {
-                                        const status = item.trip_status.toUpperCase();
-                                        if (activeTab === 'upcoming') {
-                                            if (status === 'REQUESTED' || status === 'ACCEPTED') {
-                                                navigation.navigate(RideDetailsEdit_Nav, { rideData: item });
-                                            } else if (status === 'ARRIVING' || status === 'ARRIVED') {
-                                                navigation.navigate(BookedTripScreen_Nav, item);
-                                            } else {
-                                                navigation.navigate(RideDetails_Nav, { rideData: item });
-                                            }
-                                        } else {
-                                            if (status === 'REQUESTED') {
-                                                navigation.navigate(RideDetailsEdit_Nav, { rideData: item });
-                                            } else {
-                                                navigation.navigate(RideDetails_Nav, { rideData: item });
-                                            }
-                                        }
-                                    }}
+                                    onPress={clearAllFilters}
                                     style={{
-                                        backgroundColor: appColors.card,
-                                        borderRadius: 16,
-                                        padding: 16,
-                                        marginBottom: 12,
-                                        flexDirection: 'row',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                        ...Platform.select({
-                                            ios: { shadowColor: isDark ? '#000' : '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5 },
-                                            android: { elevation: 3 },
-                                        }),
+                                        marginTop: 20,
+                                        backgroundColor: appColors.iconBox,
+                                        paddingHorizontal: 20,
+                                        paddingVertical: 10,
+                                        borderRadius: 10
                                     }}
                                 >
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                                        {/* Icon changes based on booking type */}
+                                    <Text style={{ color: isDark ? appColors.text : colors.button, fontWeight: '700' }}>Reset Filters</Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    }
+                    ListFooterComponent={
+                        isFetching && activeLimit === undefined && rideHistory.length > 5 ? (
+                            <View style={{ alignItems: 'center', marginVertical: 20 }}>
+                                <ActivityIndicator size="small" color={colors.button} />
+                            </View>
+                        ) : null
+                    }
+                    renderItem={({ item }) => (
+                        <TouchableOpacity
+                            activeOpacity={0.9}
+                            onPress={() => {
+                                const status = item.trip_status.toUpperCase();
+                                if (activeTab === 'upcoming') {
+                                    if (status === 'REQUESTED' || status === 'ACCEPTED') {
+                                        navigation.navigate(RideDetailsEdit_Nav, { rideData: item });
+                                    } else if (status === 'ARRIVING' || status === 'ARRIVED') {
+                                        navigation.navigate(BookedTripScreen_Nav, item);
+                                    } else {
+                                        navigation.navigate(RideDetails_Nav, { rideData: item });
+                                    }
+                                } else {
+                                    if (status === 'REQUESTED') {
+                                        navigation.navigate(RideDetailsEdit_Nav, { rideData: item });
+                                    } else {
+                                        navigation.navigate(RideDetails_Nav, { rideData: item });
+                                    }
+                                }
+                            }}
+                            style={{
+                                backgroundColor: appColors.card,
+                                borderRadius: 16,
+                                padding: 16,
+                                marginBottom: 12,
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                ...Platform.select({
+                                    ios: { shadowColor: isDark ? '#000' : '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5 },
+                                    android: { elevation: 3 },
+                                }),
+                            }}
+                        >
+                            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                                {/* Icon changes based on booking type */}
+                                <View style={{
+                                    width: 48, height: 48, borderRadius: 12,
+                                    backgroundColor: isDark
+                                        ? (item.booking_type === 'SCHEDULED' ? 'rgba(234, 88, 12, 0.1)' : 'rgba(59, 130, 246, 0.1)')
+                                        : (item.booking_type === 'SCHEDULED' ? '#FFF7ED' : '#EFF6FF'),
+                                    alignItems: 'center', justifyContent: 'center'
+                                }}>
+                                    <MaterialCommunityIcons
+                                        name={item.booking_type === 'SCHEDULED' ? "calendar-clock" : "car-connected"}
+                                        size={26}
+                                        color={item.booking_type === 'SCHEDULED' && item.trip_status === 'REQUESTED' ? "#EA580C" : (isDark ? appColors.text : colors.button)}
+                                    />
+                                </View>
+
+                                <View style={{ marginLeft: 14, flex: 1 }}>
+                                    <Text numberOfLines={1} style={{ fontSize: 15, fontWeight: '700', color: appColors.text }}>
+                                        {item.drop_address}
+                                    </Text>
+                                    <Text style={{ fontSize: 12, color: appColors.lightTextColor, marginTop: 2 }}>
+                                        {item.booking_type.toUpperCase()} • {
+                                            item?.scheduled_start_time || item?.original_scheduled_start_time ? (
+                                                <>
+                                                    {formatDate(new Date(item?.scheduled_start_time || item?.original_scheduled_start_time))}
+                                                    {" • "}
+                                                    {new Date(item?.scheduled_start_time || item?.original_scheduled_start_time).toLocaleTimeString([], {
+                                                        hour: '2-digit',
+                                                        minute: '2-digit',
+                                                        hour12: true
+                                                    })}
+                                                </>
+                                            ) : 'N/A'
+                                        }
+                                    </Text>
+
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                                        <Text style={{ fontSize: 13, fontWeight: '800', color: appColors.text }}>
+                                            ₹{Number(item.total_fare)}
+                                        </Text>
+
+                                        {/* DYNAMIC STATUS COLORS */}
                                         <View style={{
-                                            width: 48, height: 48, borderRadius: 12,
-                                            backgroundColor: isDark
-                                                ? (item.booking_type === 'SCHEDULED' ? 'rgba(234, 88, 12, 0.1)' : 'rgba(59, 130, 246, 0.1)')
-                                                : (item.booking_type === 'SCHEDULED' ? '#FFF7ED' : '#EFF6FF'),
-                                            alignItems: 'center', justifyContent: 'center'
+                                            marginLeft: 8, paddingHorizontal: 6, paddingVertical: 2,
+                                            borderRadius: 4,
+                                            backgroundColor:
+                                                item.trip_status.toLowerCase() === 'completed' ? (isDark ? 'rgba(22, 101, 52, 0.2)' : '#DCFCE7') :
+                                                    (item.trip_status.toLowerCase() === 'requested' || item.trip_status.toLowerCase() === 'accepted') ? (isDark ? 'rgba(154, 52, 18, 0.2)' : '#FFEDD5') : (isDark ? 'rgba(153, 27, 27, 0.2)' : '#FEE2E2')
                                         }}>
-                                            <MaterialCommunityIcons
-                                                name={item.booking_type === 'SCHEDULED' ? "calendar-clock" : "car-connected"}
-                                                size={26}
-                                                color={item.booking_type === 'SCHEDULED' && item.trip_status === 'REQUESTED' ? "#EA580C" : (isDark ? appColors.text : colors.button)}
-                                            />
-                                        </View>
-
-                                        <View style={{ marginLeft: 14, flex: 1 }}>
-                                            <Text numberOfLines={1} style={{ fontSize: 15, fontWeight: '700', color: appColors.text }}>
-                                                {item.drop_address}
+                                            <Text style={{
+                                                fontSize: 10, fontWeight: '700',
+                                                color:
+                                                    item.trip_status.toLowerCase() === 'completed' ? (isDark ? '#4ADE80' : '#166534') :
+                                                        (item.trip_status.toLowerCase() === 'requested' || item.trip_status.toLowerCase() === 'accepted') ? (isDark ? '#FB923C' : '#9A3412') : (isDark ? '#F87171' : '#991B1B')
+                                            }}>
+                                                {item.trip_status.toUpperCase()}
                                             </Text>
-                                            <Text style={{ fontSize: 12, color: appColors.lightTextColor, marginTop: 2 }}>
-                                                {item.booking_type.toUpperCase()} • {
-                                                    item?.scheduled_start_time || item?.original_scheduled_start_time ? (
-                                                        <>
-                                                            {formatDate(new Date(item?.scheduled_start_time || item?.original_scheduled_start_time))}
-                                                            {" • "}
-                                                            {new Date(item?.scheduled_start_time || item?.original_scheduled_start_time).toLocaleTimeString([], {
-                                                                hour: '2-digit',
-                                                                minute: '2-digit',
-                                                                hour12: true
-                                                            })}
-                                                        </>
-                                                    ) : 'N/A'
-                                                }
-                                            </Text>
-
-                                            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-                                                <Text style={{ fontSize: 13, fontWeight: '800', color: appColors.text }}>
-                                                    ₹{Number(item.total_fare)}
-                                                </Text>
-
-                                                {/* DYNAMIC STATUS COLORS */}
-                                                <View style={{
-                                                    marginLeft: 8, paddingHorizontal: 6, paddingVertical: 2,
-                                                    borderRadius: 4,
-                                                    backgroundColor:
-                                                        item.trip_status.toLowerCase() === 'completed' ? (isDark ? 'rgba(22, 101, 52, 0.2)' : '#DCFCE7') :
-                                                            (item.trip_status.toLowerCase() === 'requested' || item.trip_status.toLowerCase() === 'accepted') ? (isDark ? 'rgba(154, 52, 18, 0.2)' : '#FFEDD5') : (isDark ? 'rgba(153, 27, 27, 0.2)' : '#FEE2E2')
-                                                }}>
-                                                    <Text style={{
-                                                        fontSize: 10, fontWeight: '700',
-                                                        color:
-                                                            item.trip_status.toLowerCase() === 'completed' ? (isDark ? '#4ADE80' : '#166534') :
-                                                                (item.trip_status.toLowerCase() === 'requested' || item.trip_status.toLowerCase() === 'accepted') ? (isDark ? '#FB923C' : '#9A3412') : (isDark ? '#F87171' : '#991B1B')
-                                                    }}>
-                                                        {item.trip_status.toUpperCase()}
-                                                    </Text>
-                                                </View>
-                                            </View>
                                         </View>
                                     </View>
-                                    <MaterialCommunityIcons name="chevron-right" size={20} color="#CBD5E1" />
-                                </TouchableOpacity>
-                            ))
-                        ) : (
-                            <View style={{ marginTop: 60, alignItems: 'center', paddingHorizontal: 40 }}>
-                                <MaterialCommunityIcons
-                                    name={searchQuery || selectedLocation ? "database-search-outline" : "car-off"}
-                                    size={70}
-                                    color={appColors.lightTextColor}
-                                />
-                                <Text style={{
-                                    color: appColors.text,
-                                    fontSize: 16,
-                                    fontWeight: '600',
-                                    marginTop: 15,
-                                    textAlign: 'center'
-                                }}>
-                                    {searchQuery || selectedLocation ? "No matches found" : "No rides yet"}
-                                </Text>
-                                <Text style={{ color: appColors.lightTextColor, textAlign: 'center', marginTop: 8 }}>
-                                    {searchQuery || selectedLocation
-                                        ? "Try adjusting your filters or search terms."
-                                        : activeTab === 'upcoming'
-                                            ? "You don't have any scheduled trips."
-                                            : "Your completed trips will appear here."}
-                                </Text>
-                                {(searchQuery || selectedLocation) && (
-                                    <TouchableOpacity
-                                        onPress={clearAllFilters}
-                                        style={{
-                                            marginTop: 20,
-                                            backgroundColor: appColors.iconBox,
-                                            paddingHorizontal: 20,
-                                            paddingVertical: 10,
-                                            borderRadius: 10
-                                        }}
-                                    >
-                                        <Text style={{ color: isDark ? appColors.text : colors.button, fontWeight: '700' }}>Reset Filters</Text>
-                                    </TouchableOpacity>
-                                )}
+                                </View>
                             </View>
-                        )}
-                    </>
-                )}
-
-
-                {isFetching && activeLimit === undefined && rideHistory.length > 5 && (
-                    <View style={{ alignItems: 'center', marginVertical: 20 }}>
-                        <ActivityIndicator size="small" color={colors.button} />
-                    </View>
-                )}
-            </ScrollView>
+                            <MaterialCommunityIcons name="chevron-right" size={20} color="#CBD5E1" />
+                        </TouchableOpacity>
+                    )}
+                />
+            )}
         </View>
     );
 };

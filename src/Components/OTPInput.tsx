@@ -9,13 +9,15 @@ interface OTPInputProps {
   value?: string;
   containerStyle?: ViewStyle | ViewStyle[];
   onSubmitEditing?: any;
+  editable?: boolean;
 }
 
 const OTPInput: React.FC<OTPInputProps> = ({
-  numberOfDigits = 4, //--priya
+  numberOfDigits = 4,
   onChangeText = () => { },
   value = '',
   containerStyle,
+  editable = true,
   ...props
 }) => {
   const [valueArray, setValueArray] = useState<string[]>([]);
@@ -73,6 +75,7 @@ const OTPInput: React.FC<OTPInputProps> = ({
             keyboardType="number-pad"
             maxLength={1}
             ref={ref => { inputs.current[i] = ref; }}
+            editable={editable}
             {...props}
           />
         ))}

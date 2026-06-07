@@ -14,6 +14,7 @@ import notificationSliceReducer from './notificationSlice';
 import { sosApi } from '../service/sosApi';
 import { referralApi } from '../service/referralApi';
 import { couponApi } from '../service/couponApi';
+import { ticketsApi } from '../service/ticketsApi';
 
 const persistConfig = {
   key: 'root',
@@ -32,6 +33,7 @@ const rootReducer = combineReducers({
   [sosApi.reducerPath]: sosApi.reducer,
   [referralApi.reducerPath]: referralApi.reducer,
   [couponApi.reducerPath]: couponApi.reducer,
+  [ticketsApi.reducerPath]: ticketsApi.reducer,
 
 });
 
@@ -42,7 +44,7 @@ export const store = configureStore({
   middleware: getDefaultMiddleware =>
     getDefaultMiddleware({
       serializableCheck: false, // Important for redux-persist
-    }).concat(userApi.middleware, authApi.middleware, tripApi.middleware, sosApi.middleware, referralApi.middleware, couponApi.middleware),
+    }).concat(userApi.middleware, authApi.middleware, tripApi.middleware, sosApi.middleware, referralApi.middleware, couponApi.middleware, ticketsApi.middleware),
 });
 
 export const persistor = persistStore(store);

@@ -10,6 +10,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { useRoute } from "@react-navigation/native";
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import { Car } from '../../assets/svg';
 import { Styles } from '../../lib/styles';
@@ -38,7 +39,7 @@ const OTPScreen: React.FC<any> = ({ navigation }) => {
     const { OTPdata, userData, device_id } = route.params;
 
     const { LoginUser } = useLogin(navigation);
-    const { handleVerifyOtp, loading } = useVerifyOtp(navigation);
+    const { handleVerifyOtp, loading, error } = useVerifyOtp(navigation);
     const dispatch = useDispatch();
     const insets = useSafeAreaInsets();
     const user = useSelector((state: RootState) => state?.userSlice.user);
@@ -46,6 +47,7 @@ const OTPScreen: React.FC<any> = ({ navigation }) => {
     const [otp, setOtp] = useState<string>('');
     const [resendTimer, setResendTimer] = useState<number>(59);
     const [canResend, setCanResend] = useState<boolean>(false);
+    const [lockoutTime, setLockoutTime] = useState<number>(0);
 
     // ✅ For resend OTP
     const [requestOtp, { isLoading: resending }] = useRequestOtpMutation();
@@ -59,6 +61,27 @@ const OTPScreen: React.FC<any> = ({ navigation }) => {
         const timer = setTimeout(() => setResendTimer((t) => t - 1), 1000);
         return () => clearTimeout(timer);
     }, [resendTimer]);
+
+    // Lockout timer logic
+    useEffect(() => {
+        if (error?.includes('locked for 5 minutes')) {
+            setLockoutTime(300);
+        }
+    }, [error]);
+
+    useEffect(() => {
+        if (lockoutTime <= 0) return;
+        const timer = setInterval(() => {
+            setLockoutTime((t) => t - 1);
+        }, 1000);
+        return () => clearInterval(timer);
+    }, [lockoutTime]);
+
+    const formatTime = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
 
     // ✅ Fix: actual resend API call
     const handleResendCode = async () => {
@@ -107,6 +130,23 @@ const OTPScreen: React.FC<any> = ({ navigation }) => {
                 device_id,
                 role: 'customer',
                 allow_new_device: false,
+                //             errorContainer: {
+                //     flexDirection: "row",
+                //     alignItems: "center",
+                //     backgroundColor: "#FEF2F2",
+                //     paddingHorizontal: hS(12),
+                //     paddingVertical: vS(8),
+                //     borderRadius: mS(10),
+                //     marginTop: vS(16),
+                //     gap: hS(8),
+                //     width: "100%",
+                // },
+                // errorText: {
+                //     fontSize: mS(12),
+                //     color: "#EF4444",
+                //     fontWeight: "600",
+                //     flex: 1,
+                // },
             });
         }
     }, [handleVerifyOtp, userData.phone_number, device_id]); // ✅ all deps included
@@ -119,7 +159,24 @@ const OTPScreen: React.FC<any> = ({ navigation }) => {
     //         device_id,
     //         role: 'customer',           // ✅ required
     //         allow_new_device: false, // ✅ required, handled inside hook on DEVICE_CONFLICT
-    //     });
+    //         errorContainer: {
+    //         flexDirection: "row",
+    //         alignItems: "center",
+    //         backgroundColor: "#FEF2F2",
+    //         paddingHorizontal: hS(12),
+    //         paddingVertical: vS(8),
+    //         borderRadius: mS(10),
+    //         marginTop: vS(16),
+    //         gap: hS(8),
+    //         width: "100%",
+    //     },
+    //     errorText: {
+    //         fontSize: mS(12),
+    //         color: "#EF4444",
+    //         fontWeight: "600",
+    //         flex: 1,
+    //     },
+    // });
     // };
 
     return (
@@ -154,9 +211,27 @@ const OTPScreen: React.FC<any> = ({ navigation }) => {
                         numberOfDigits={4}
                         onChangeText={handleOtpChange}
                         value={otp}
+                        editable={lockoutTime === 0}
                     // placeholderCharacter="-"
                     // style={localStyles.premiumOtpInput}
                     />
+
+                    {lockoutTime > 0 ? (
+                        <View style={localStyles.errorContainer}>
+                            <MaterialCommunityIcons name="clock-outline" size={mS(16)} color="#EF4444" />
+                            <Text style={localStyles.errorText}>Locked! Try again in {formatTime(lockoutTime)}</Text>
+                        </View>
+                    ) : (error?.includes('locked for 5 minutes') && lockoutTime === 0) ? (
+                        <View style={[localStyles.errorContainer, { backgroundColor: '#F0FDF4' }]}>
+                            <MaterialCommunityIcons name="check-circle-outline" size={mS(16)} color="#10B981" />
+                            <Text style={[localStyles.errorText, { color: '#10B981' }]}>You can try now</Text>
+                        </View>
+                    ) : error && (
+                        <View style={localStyles.errorContainer}>
+                            <MaterialCommunityIcons name="alert-circle-outline" size={mS(16)} color="#EF4444" />
+                            <Text style={localStyles.errorText}>{error}</Text>
+                        </View>
+                    )}
 
                     <View style={localStyles.resendContainer}>
                         <Text style={[localStyles.notReceivedText, { color: appColors.lightTextColor }]}>Didn't receive the code?</Text>
@@ -312,6 +387,23 @@ const localStyles = StyleSheet.create({
         bottom: vS(-40),
         right: hS(-60),
         opacity: 0.7,
+    },
+    errorContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#FEF2F2",
+        paddingHorizontal: hS(12),
+        paddingVertical: vS(8),
+        borderRadius: mS(10),
+        marginTop: vS(16),
+        gap: hS(8),
+        width: "100%",
+    },
+    errorText: {
+        fontSize: mS(12),
+        color: "#EF4444",
+        fontWeight: "600",
+        flex: 1,
     },
 });
 

@@ -154,6 +154,13 @@ export const userApi = createApi({
       })
     }),
 
+    deleteDocument: builder.mutation({
+      query: data => ({
+        url: `/users/documents/${data.userId}/delete`,
+        method: 'DELETE',
+        body: data,
+      })
+    }),
 
     updateFcmToken: builder.mutation<{ success: boolean }, { fcmToken: string, id: string }>({
       query: (body) => ({
@@ -294,6 +301,8 @@ export const {
   useSignUpMutation,
   useAddUserMutation,
   useUploadDocumentMutation,
+  useDeleteDocumentMutation,
+
   useGetUserQuery,
   useUpdateUserMutation,
   useRefreshAccessTokenMutation,

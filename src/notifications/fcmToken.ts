@@ -1,4 +1,4 @@
-import messaging from '@react-native-firebase/messaging';
+import { getMessaging, getToken, requestPermission, onTokenRefresh, AuthorizationStatus } from '@react-native-firebase/messaging';
 import { Platform, PermissionsAndroid, Alert } from 'react-native';
 import { store } from '../redux/store';
 
@@ -15,10 +15,11 @@ export const requestNotificationPermission = async (): Promise<boolean> => {
             }
         }
 
-        const authStatus = await messaging().requestPermission();
+        const messaging = getMessaging();
+        const authStatus = await requestPermission(messaging);
         const enabled =
-            authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-            authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+            authStatus === AuthorizationStatus.AUTHORIZED ||
+            authStatus === AuthorizationStatus.PROVISIONAL;
 
 
         return enabled;
@@ -33,7 +34,8 @@ export const requestNotificationPermission = async (): Promise<boolean> => {
 // ─── Get FCM Token ────────────────────────────────────────────────────────────
 export const getFcmToken = async (): Promise<string | null> => {
     try {
-        const token = await messaging().getToken();
+        const messaging = getMessaging();
+        const token = await getToken(messaging);
 
         return token;
     } catch (err) {
@@ -67,7 +69,8 @@ export const onFcmTokenRefresh = (
     userId: string,
     updateFcmToken: (payload: any) => Promise<any>
 ) => {
-    return messaging().onTokenRefresh(async (newToken) => {
+    const messaging = getMessaging();
+    return onTokenRefresh(messaging, async (newToken) => {
 
         if (userId) {
             await updateFcmToken({ fcmToken: newToken, id: userId });

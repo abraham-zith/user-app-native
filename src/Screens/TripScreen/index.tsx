@@ -267,9 +267,14 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
             if (incomingTripId?.toString() !== currentTrip.trip_id?.toString()) return;
 
             const newStatus = data.status || data.trip_status || data.trip?.trip_status;
+            const cancelBy = data.cancel_by || data.trip?.cancel_by || data.cancelled_by;
             if (newStatus) {
                 setCurrentStatus(newStatus);
-                dispatch(updateTripInArray({ trip_id: currentTrip.trip_id, trip_status: newStatus }));
+                dispatch(updateTripInArray({
+                    trip_id: currentTrip.trip_id,
+                    trip_status: newStatus,
+                    ...(cancelBy && { cancel_by: cancelBy })
+                }));
                 refetch();
 
                 if (newStatus === TripStatus.CANCELLED || newStatus === TripStatus.MID_CANCELLED) {

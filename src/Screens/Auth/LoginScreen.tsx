@@ -5,9 +5,9 @@ import {
   TouchableOpacity,
   ToastAndroid,
   StyleSheet,
-  Image,
   TextInput,
 } from 'react-native';
+import FastImage from 'react-native-fast-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Car, GoogleIcon, MailIcon } from '../../assets/svg';
 import { Styles } from '../../lib/styles';
@@ -85,9 +85,10 @@ const LoginScreen: React.FC<any> = ({ navigation }) => {
               onSelect={setCountryCode}
               renderTrigger={(selectedItem) => (
                 <View style={localStyles.countryPickerTrigger}>
-                  <Image
+                  <FastImage
                     source={{ 
-                      uri: `https://flagcdn.com/w40/${selectedItem?.code?.toLowerCase() || 'in'}.png` 
+                      uri: `https://flagcdn.com/w40/${selectedItem?.code?.toLowerCase() || 'in'}.png`,
+                      priority: FastImage.priority.normal 
                     }}
                     style={localStyles.flagIcon}
                   />

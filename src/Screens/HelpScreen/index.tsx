@@ -9,6 +9,7 @@ import { useNavigation } from '@react-navigation/native';
 import colors from '../../constant/colors';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { hS, mS, vS } from '../../lib/responsive';
+import FaqChatbotModal from './FaqChatbotModal';
 
 const FAQ_CATEGORIES = [
     {
@@ -42,6 +43,7 @@ const FAQ_CATEGORIES = [
 
 const HelpScreen: React.FC<ScreenProps> = () => {
     const [search, setSearch] = useState('');
+    const [isChatbotVisible, setIsChatbotVisible] = useState(false);
     const navigation = useNavigation<any>();
     const { colors: appColors, isDark } = useAppTheme();
 
@@ -157,6 +159,20 @@ const HelpScreen: React.FC<ScreenProps> = () => {
                     <Text style={[styles.footerText, { color: appColors.lightTextColor }]}>Version 1.0.42 (Beta)</Text>
                 </View>
             </ScrollView>
+
+            {/* --- FLOATING CHATBOT BUTTON --- */}
+            <TouchableOpacity 
+                style={[styles.fab, { backgroundColor: '#10B981' }]} 
+                onPress={() => setIsChatbotVisible(true)}
+                activeOpacity={0.8}
+            >
+                <MaterialCommunityIcons name="chat-processing-outline" size={mS(32)} color="#FFFFFF" />
+            </TouchableOpacity>
+
+            <FaqChatbotModal 
+                visible={isChatbotVisible} 
+                onClose={() => setIsChatbotVisible(false)} 
+            />
         </View>
     );
 };
@@ -328,6 +344,21 @@ const styles = StyleSheet.create({
         fontSize: mS(12),
         color: '#94A3B8',
         fontWeight: '500',
+    },
+    fab: {
+        position: 'absolute',
+        bottom: vS(30),
+        right: hS(20),
+        width: mS(60),
+        height: mS(60),
+        borderRadius: mS(30),
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#10B981',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 6,
     },
 });
 

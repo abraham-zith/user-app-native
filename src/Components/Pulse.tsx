@@ -1,10 +1,13 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, View, StyleSheet } from 'react-native';
+import { useOptimization } from '../context/OptimizationContext';
 
 const Pulse = () => {
+    const { shouldThrottle } = useOptimization();
     const pulseAnim = useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
+        if (shouldThrottle) return;
         // Create a looping animation
         Animated.loop(
             Animated.sequence([
@@ -20,7 +23,7 @@ const Pulse = () => {
                 }),
             ])
         ).start();
-    }, []);
+    }, [shouldThrottle]);
 
     return (
         <View style={styles.container}>

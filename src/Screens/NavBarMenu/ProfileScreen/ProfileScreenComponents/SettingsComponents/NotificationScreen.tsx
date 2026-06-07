@@ -140,7 +140,10 @@ const NotificationScreen = () => {
             <FlatList
                 data={notifications}
                 renderItem={renderItem}
-                keyExtractor={item => item.id}
+                keyExtractor={(item, index) => item.id ? `${item.id}-${index}` : index.toString()}
+                removeClippedSubviews={true}
+                initialNumToRender={10}
+                maxToRenderPerBatch={5}
                 contentContainerStyle={[styles.listPadding, { paddingBottom: insets.bottom + vS(20) }]}
                 showsVerticalScrollIndicator={false}
                 ListEmptyComponent={
