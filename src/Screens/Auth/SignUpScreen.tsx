@@ -7,9 +7,9 @@ import {
   StyleSheet,
   ScrollView,
   ToastAndroid,
-  Image,
   Platform,
 } from 'react-native';
+import FastImage from 'react-native-fast-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -285,9 +285,10 @@ const SignUpScreen: React.FC<any> = ({ navigation }) => {
               onSelect={setCountryCode}
               renderTrigger={(selectedItem) => (
                 <View style={styles.countryPickerTrigger}>
-                  <Image
+                  <FastImage
                     source={{
-                      uri: `https://flagcdn.com/w40/${selectedItem?.code?.toLowerCase() || 'in'}.png`
+                      uri: `https://flagcdn.com/w40/${selectedItem?.code?.toLowerCase() || 'in'}.png`,
+                      priority: FastImage.priority.normal
                     }}
                     style={styles.flagIcon}
                   />

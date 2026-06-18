@@ -1,4 +1,4 @@
-import { Image, View, ActivityIndicator, TouchableOpacity, Dimensions, Modal, StyleSheet, ScrollView, NativeSyntheticEvent, NativeScrollEvent, Platform, Alert, ToastAndroid, Pressable } from "react-native"
+import { View, ActivityIndicator, TouchableOpacity, Dimensions, Modal, StyleSheet, ScrollView, NativeSyntheticEvent, NativeScrollEvent, Platform, Alert, ToastAndroid, Pressable } from "react-native"
 import { Text } from "../../../Components"
 import { Styles } from "../../../lib/styles";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -20,7 +20,7 @@ import { RootState } from '../../../redux/store';
 import { useDispatch, useSelector } from "react-redux";
 // import { launchImageLibrary, launchCamera, ImagePickerResponse } from 'react-native-image-picker';
 import ImagePicker from "react-native-image-crop-picker";
-import { useGetUploadUrlMutation, useUploadImageToS3Mutation } from '../../../service/userApi';
+import { useDeleteDocumentMutation, useGetUploadUrlMutation, useUploadImageToS3Mutation } from '../../../service/userApi';
 import { useUpdateUserMutation } from '../../../service/userApi';
 import { updateUserStore } from '../../../redux/userSlice';
 import Config from 'react-native-config';
@@ -29,6 +29,7 @@ import { hS, mS, vS } from "../../../lib/responsive";
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { getLoggedUser } from "../../../service/validation";
 import Skeleton from "../../../Components/Skeleton";
+import FastImage from "react-native-fast-image";
 import { useAppTheme } from "../../../hooks/useAppTheme";
 
 const ProfileScreenSkeleton = () => {
@@ -82,10 +83,13 @@ const ProfileScreen: React.FC<ScreenProps> = ({ navigation }) => {
     const [loading, setLoading] = useState(true);
     const [profileUri, setProfileUri] = useState<string | null>(localuser?.profile_url || null);
     const [isUploading, setIsUploading] = useState(false);
+    const [isImageLoading, setIsImageLoading] = useState(false);
     const [pickerVisible, setPickerVisible] = useState(false);
+    const [isViewVisible, setIsViewVisible] = useState(false);
     const [getUploadUrl] = useGetUploadUrlMutation();
     const [uploadImageToS3] = useUploadImageToS3Mutation();
     const [updateUser] = useUpdateUserMutation();
+    const [deleteDocument] = useDeleteDocumentMutation();
     const { requestCameraPermission } = useCameraPermission();
 
     const imageSource = profileUri || localuser?.profile_url;
@@ -97,9 +101,9 @@ const ProfileScreen: React.FC<ScreenProps> = ({ navigation }) => {
         onClose: () => void;
         onCamera: () => void;
         onGallery: () => void;
-        onDelete?: () => void;
+        onRemove?: () => void;
     }
-    const ProfileImagePicker = ({ isVisible, onClose, onCamera, onGallery }: ProfileImagePickerProps) => {
+    const ProfileImagePicker = ({ isVisible, onClose, onCamera, onGallery, onRemove }: ProfileImagePickerProps) => {
         return (
             <Modal
                 visible={isVisible}
@@ -128,6 +132,15 @@ const ProfileScreen: React.FC<ScreenProps> = ({ navigation }) => {
                                 </View>
                                 <Text style={[styles.optionLabel, { color: colors.text }]}>Gallery</Text>
                             </TouchableOpacity>
+
+                            {imageSource && (
+                                <TouchableOpacity style={styles.option} onPress={onRemove}>
+                                    <View style={[styles.iconCircle, { backgroundColor: isDark ? '#450a0a' : '#FEE2E2' }]}>
+                                        <MaterialCommunityIcons name="trash-can-outline" size={30} color="#EF4444" />
+                                    </View>
+                                    <Text style={[styles.optionLabel, { color: colors.text }]}>Remove</Text>
+                                </TouchableOpacity>
+                            )}
                         </View>
 
                         {/* Bottom filler to ensure no gap is visible */}
@@ -144,6 +157,65 @@ const ProfileScreen: React.FC<ScreenProps> = ({ navigation }) => {
             </Modal>
         );
     };
+
+    const FullScreenImageModal = () => {
+        return (
+            <Modal
+                visible={isViewVisible}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setIsViewVisible(false)}
+                statusBarTranslucent={true}
+                navigationBarTranslucent={true}
+            >
+                <View style={styles.fullScreenContainer}>
+                    {/* Header Overlay */}
+                    <View style={[styles.fullScreenHeader, { paddingTop: insets.top + vS(10) }]}>
+                        <View style={styles.headerLeft}>
+                            <TouchableOpacity
+                                onPress={() => setIsViewVisible(false)}
+                                style={styles.headerIconButton}
+                                activeOpacity={0.7}
+                            >
+                                <MaterialCommunityIcons name="arrow-left" size={mS(28)} color="white" />
+                            </TouchableOpacity>
+                            <Text style={styles.fullScreenTitle}>Profile photo</Text>
+                        </View>
+
+                        <TouchableOpacity
+                            onPress={() => {
+                                setIsViewVisible(false);
+                                setTimeout(() => setPickerVisible(true), 300);
+                            }}
+                            style={styles.headerIconButton}
+                            activeOpacity={0.7}
+                        >
+                            <MaterialCommunityIcons name="pencil" size={mS(24)} color="white" />
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Image Viewer */}
+                    <View style={styles.fullScreenImageWrapper}>
+                        {imageSource ? (
+                            <FastImage
+                                source={{ uri: proxiedImageSource || '', priority: FastImage.priority.high }}
+                                style={styles.fullScreenImage}
+                                resizeMode={FastImage.resizeMode.contain}
+                            />
+                        ) : (
+                            <View style={styles.fullScreenPlaceholder}>
+                                <FontAwesome name="user" size={mS(150)} color="#475569" />
+                                <Text style={styles.noPhotoText}>No profile photo</Text>
+                            </View>
+                        )}
+                    </View>
+
+                    {/* Bottom Gradient/Overlay for depth (Optional) */}
+                    <View style={styles.bottomOverlay} />
+                </View>
+            </Modal>
+        );
+    };
     const cropperConfig = {
         width: 500,
         height: 500,
@@ -156,11 +228,107 @@ const ProfileScreen: React.FC<ScreenProps> = ({ navigation }) => {
         cropperToolbarWidgetColor: 'white',
     };
 
-    const handleImageResult = async (image: any) => {
+    const deleteOldProfileImage = async () => {
+        try {
+            if (!localuser?.profile_url) return;
 
+            const filename = localuser.profile_url.split('/').pop();
+            if (!filename) return;
+
+            const payload = {
+                userId: localuser.id,
+                documentType: filename
+            };
+
+            console.log('Deleting old image:', payload);
+            await deleteDocument(payload).unwrap();
+            console.log("Old image deleted successfully");
+
+        } catch (error) {
+            console.error("Error deleting old document:", error);
+            // We log but don't necessarily block the next step
+        }
+    };
+
+    const uploadNewProfileImage = async (uri: string, mimeType: string) => {
+        try {
+            const filename = uri.split('/').pop() || `profile_${Date.now()}`;
+
+            // Get presigned URL
+            const payload = {
+                userId: localuser.id,
+                documentType: `profile_picture_${filename}`,
+                contentType: mimeType,
+            };
+
+            const response = await getUploadUrl(payload).unwrap();
+            const uploadUrl = response.data.uploadUrl || response.data.data.uploadUrl;
+
+            // Fetch and upload image
+            const responseFile = await fetch(uri);
+            const imageBlob = await responseFile.blob();
+
+            const uploadResponse = await fetch(uploadUrl, {
+                method: 'PUT',
+                body: imageBlob,
+                headers: { 'Content-Type': mimeType },
+            });
+
+            if (!uploadResponse.ok) {
+                throw new Error("Upload failed");
+            }
+
+            // Update user profile
+            const publicUrl = uploadUrl.split('?')[0];
+            const updatePayload = {
+                id: localuser.id,
+                profile_url: publicUrl
+            };
+
+            const updateResponse = await updateUser(updatePayload).unwrap();
+
+            if (updateResponse.success) {
+                setProfileUri(publicUrl);
+                dispatch(updateUserStore({ profile_url: updateResponse.data.profile_url }));
+                if (Platform.OS === 'android') {
+                    ToastAndroid.show("Profile updated successfully", ToastAndroid.SHORT);
+                }
+                Alert.alert("Success", "Profile picture updated!");
+            }
+
+        } catch (error) {
+            console.error("Error uploading new image:", error);
+            throw error;
+        }
+    };
+
+    const uploadProfileImage = async (uri: string, mimeType: string) => {
+        setIsUploading(true);
+        try {
+            // Step 1: Delete old image if it exists
+            await deleteOldProfileImage();
+
+            // Step 2: Upload new image
+            await uploadNewProfileImage(uri, mimeType);
+
+        } catch (error) {
+            console.error("Upload Error:", error);
+            if (Platform.OS === 'android') {
+                ToastAndroid.show("Could not save image to server", ToastAndroid.SHORT);
+            }
+            Alert.alert("Error", "Failed to upload profile picture.");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const handleImageResult = async (image: any) => {
+        console.log('Selected image:', image);
         const uri = image.path;
-        setProfileUri(uri);
-        await uploadProfileImage(uri);
+        const mimeType = image.mime || 'image/jpeg';
+
+        setProfileUri(uri); // Show preview immediately
+        await uploadProfileImage(uri, mimeType);
     };
 
     const openCamera = async () => {
@@ -171,7 +339,10 @@ const ProfileScreen: React.FC<ScreenProps> = ({ navigation }) => {
                 .then(handleImageResult)
                 .catch(() => { });
         } else {
-            ToastAndroid.show('App needs Permission to access camera', ToastAndroid.SHORT);
+            if (Platform.OS === 'android') {
+                ToastAndroid.show('App needs Permission to access camera', ToastAndroid.SHORT);
+            }
+            Alert.alert('Permission Denied', 'App needs Permission to access camera');
         }
     };
 
@@ -191,54 +362,36 @@ const ProfileScreen: React.FC<ScreenProps> = ({ navigation }) => {
         openGallery();
     };
 
-    const uploadProfileImage = async (uri: string) => {
+    const handleRemove = async () => {
+        setPickerVisible(false);
         setIsUploading(true);
+
         try {
-            // 1. Get Presigned URL
+            // Delete old image
+            await deleteOldProfileImage();
+
+            // Update user profile
             const payload = {
-                userId: localuser.id,
-                documentType: "profile_picture",
-                contentType: "image/jpeg",
+                id: localuser.id,
+                profile_url: ""
             };
 
-            const response = await getUploadUrl(payload).unwrap();
-            const uploadUrl = response.data.uploadUrl || response.data.data.uploadUrl;
-
-            const responseFile = await fetch(uri);
-            const imageBlob = await responseFile.blob();
-
-            const uploadResponse = await fetch(uploadUrl, {
-                method: 'PUT',
-                body: imageBlob,
-                headers: { 'Content-Type': 'image/jpeg' },
-            });
-
-            if (uploadResponse.ok) {
-                const publicUrl = uploadUrl.split('?')[0];
-                try {
-                    const payload = {
-                        id: localuser.id,
-                        profile_url: publicUrl
-                    };
-
-                    const response = await updateUser(payload).unwrap();
-                    if (response.success) {
-                        setProfileUri(publicUrl)
-                        dispatch(updateUserStore({ profile_url: response.data.profile_url }));
-                        ToastAndroid.show("Profile updated successfully", ToastAndroid.SHORT);
-                    }
-                } catch (error) {
-                    // console.error("Sync failed", error);
-                    Alert.alert("Could not sync Profile with the server.Try Later!!!");
-                    ToastAndroid.show("Profile update Failed", ToastAndroid.SHORT);
+            const response = await updateUser(payload).unwrap();
+            if (response.success) {
+                setProfileUri(null);
+                dispatch(updateUserStore({ profile_url: "" }));
+                if (Platform.OS === 'android') {
+                    ToastAndroid.show("Profile picture removed", ToastAndroid.SHORT);
                 }
-                setProfileUri(publicUrl); // Update display
-                Alert.alert("Success", "Profile picture updated!");
+                Alert.alert("Success", "Profile picture removed!");
             }
+
         } catch (error) {
-            // console.error("Upload Error:", error);
-            ToastAndroid.show("Could not save image to server", ToastAndroid.SHORT);
-            // Alert.alert("Upload Failed", "Could not save image to server.");
+            console.error("Remove Error:", error);
+            if (Platform.OS === 'android') {
+                ToastAndroid.show("Could not remove image", ToastAndroid.SHORT);
+            }
+            Alert.alert("Error", "Failed to remove profile picture.");
         } finally {
             setIsUploading(false);
         }
@@ -281,28 +434,44 @@ const ProfileScreen: React.FC<ScreenProps> = ({ navigation }) => {
                 <View style={[styles.premiumCard, { backgroundColor: colors.card, shadowColor: isDark ? '#000' : '#64748B' }]}>
                     <View style={styles.headerContent}>
                         {/* Profile Image with Edit Icon */}
-                        <TouchableOpacity
-                            onPress={() => setPickerVisible(true)}
-                            activeOpacity={0.9}
-                            style={styles.avatarWrapper}
-                        >
-                            <View style={[styles.largeAvatarContainer, { backgroundColor: colors.iconBox, borderColor: colors.background }]}>
-                                {imageSource ? (
-                                    <Image
-                                        source={{ uri: proxiedImageSource }}
-                                        style={styles.largeImageStyle}
-                                        resizeMode="cover"
-                                    />
-                                ) : (
-                                    <View style={[styles.largePlaceholder, { backgroundColor: colors.iconBox }]}>
-                                        <FontAwesome name="user" size={mS(50)} color={isDark ? colors.lightTextColor : '#CBD5E1'} />
-                                    </View>
-                                )}
-                            </View>
-                            <View style={[styles.cameraIconBadge, { borderColor: colors.card, backgroundColor: colors.primary }]}>
+                        <View style={styles.avatarWrapper}>
+                            <TouchableOpacity
+                                onPress={() => setIsViewVisible(true)}
+                                activeOpacity={0.9}
+                                style={styles.avatarMainButton}
+                            >
+                                <View style={[styles.largeAvatarContainer, { backgroundColor: colors.iconBox, borderColor: colors.background }]}>
+                                    {imageSource ? (
+                                        <>
+                                            <FastImage
+                                                source={{ uri: proxiedImageSource || '', priority: FastImage.priority.normal }}
+                                                style={styles.largeImageStyle}
+                                                resizeMode={FastImage.resizeMode.cover}
+                                                onLoadStart={() => setIsImageLoading(true)}
+                                                onLoadEnd={() => setIsImageLoading(false)}
+                                            />
+                                            {isImageLoading && (
+                                                <View style={[StyleSheet.absoluteFillObject, styles.largePlaceholder, { backgroundColor: colors.iconBox }]}>
+                                                    <Skeleton width="100%" height="100%" borderRadius={45} />
+                                                </View>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <View style={[styles.largePlaceholder, { backgroundColor: colors.iconBox }]}>
+                                            <FontAwesome name="user" size={mS(50)} color={isDark ? colors.lightTextColor : '#CBD5E1'} />
+                                        </View>
+                                    )}
+                                </View>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                onPress={() => setPickerVisible(true)}
+                                activeOpacity={0.8}
+                                style={[styles.cameraIconBadge, { borderColor: colors.card, backgroundColor: colors.primary }]}
+                            >
                                 <MaterialCommunityIcons name="camera" size={mS(16)} color="white" />
-                            </View>
-                        </TouchableOpacity>
+                            </TouchableOpacity>
+                        </View>
 
                         <View style={styles.userInfoContainer}>
                             <Text style={[styles.userName, { color: colors.text }]}>{localuser?.full_name}</Text>
@@ -368,7 +537,10 @@ const ProfileScreen: React.FC<ScreenProps> = ({ navigation }) => {
                 onClose={() => setPickerVisible(false)}
                 onCamera={handleCamera}
                 onGallery={handleGallery}
+                onRemove={handleRemove}
             />
+
+            <FullScreenImageModal />
         </View>
     );
 };
@@ -688,6 +860,71 @@ const styles = StyleSheet.create({
         color: '#CBD5E1',
         marginTop: vS(4),
         fontWeight: '400',
+    },
+
+    // --- FULL SCREEN VIEWER STYLES ---
+    fullScreenContainer: {
+        flex: 1,
+        backgroundColor: '#000000',
+    },
+    fullScreenHeader: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: hS(10),
+        zIndex: 100,
+        backgroundColor: 'rgba(0,0,0,0.4)', // Subtle overlay for header text
+        paddingBottom: vS(15),
+    },
+    headerLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    headerIconButton: {
+        padding: hS(10),
+        borderRadius: mS(25),
+    },
+    fullScreenTitle: {
+        color: '#FFFFFF',
+        fontSize: mS(19),
+        fontWeight: '600',
+        marginLeft: hS(8),
+    },
+    fullScreenImageWrapper: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    fullScreenImage: {
+        width: '100%',
+        height: '100%',
+    },
+    fullScreenPlaceholder: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    noPhotoText: {
+        color: '#94A3B8',
+        fontSize: mS(16),
+        marginTop: vS(20),
+        fontWeight: '500',
+    },
+    bottomOverlay: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: vS(80),
+        backgroundColor: 'transparent',
+    },
+    avatarMainButton: {
+        borderRadius: mS(45),
+        overflow: 'hidden',
     },
 });
 

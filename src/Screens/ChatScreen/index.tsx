@@ -8,6 +8,7 @@ import {
     Alert,
     Animated
 } from 'react-native';
+import FastImage from 'react-native-fast-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
@@ -278,7 +279,12 @@ const ChatScreen = ({ route, navigation }: any) => {
 
                 {/* 2. Image Content */}
                 {item.image && (
-                    <Image source={{ uri: item.image }} style={styles.messageImage} />
+                    <View style={styles.messageImageContainer}>
+                        <FastImage
+                            source={{ uri: item.image, priority: FastImage.priority.normal }}
+                            style={styles.messageImage}
+                        />
+                    </View>
                 )}
 
                 {/* 3. Text Content */}
@@ -676,6 +682,14 @@ const styles = StyleSheet.create({
         height: vS(150),
         borderRadius: mS(16),
         marginBottom: vS(4),
+    },
+    messageImageContainer: {
+        position: 'relative',
+        width: hS(200),
+        height: vS(150),
+        borderRadius: mS(16),
+        marginBottom: vS(4),
+        overflow: 'hidden',
     },
     modalOverlay: {
         ...StyleSheet.absoluteFillObject,

@@ -24,6 +24,7 @@ export const useVerifyOtp = (navigation: any) => {
     const dispatch = useDispatch();
     const [verifyOtp] = useVerifyOtpMutation();
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const handleVerifyOtp = async ({
         phone_number,
@@ -33,7 +34,10 @@ export const useVerifyOtp = (navigation: any) => {
         allow_new_device = false,
         isRetry = false,
     }: VerifyOtpParams) => {
-        if (!isRetry) setLoading(true);
+        if (!isRetry) {
+            setLoading(true);
+            setError(null);
+        }
         try {
             const fcm_token = await getFcmToken()
 
@@ -49,6 +53,7 @@ export const useVerifyOtp = (navigation: any) => {
             const { verified, isNewUser, accessToken, refreshToken, userData } = response.data;
 
             if (!verified) {
+                setError('OTP verification failed');
                 Alert.alert('Error', 'OTP verification failed');
                 return;
             }
@@ -74,6 +79,7 @@ export const useVerifyOtp = (navigation: any) => {
 
         } catch (error: any) {
             const err = error?.data?.data || error?.data?.error || error;
+            console.log("verifyOtp Error", err);
             const fcm_token = await getFcmToken() || "";
 
             if (err?.code === 'DEVICE_CONFLICT') {
@@ -96,20 +102,35 @@ export const useVerifyOtp = (navigation: any) => {
             }
 
             if (err?.code === 'OTP_EXPIRED') {
+                setError('OTP has expired. Please request a new one.');
                 Alert.alert('Expired', 'OTP has expired. Please request a new one.');
                 return;
             }
 
             if (err?.code === 'INVALID_OTP') {
+                setError('Incorrect OTP. Please try again.');
                 Alert.alert('Invalid', 'Incorrect OTP. Please try again.');
                 return;
             }
 
+            if (err?.code === 'VALIDATION_ERROR') {
+                setError(err?.message || 'Invalid OTP. Please try again.');
+                Alert.alert('Invalid', err?.message || 'Invalid OTP. Please try again.');
+                return;
+            }
+
+            if (err?.code === 'TOO_MANY_ATTEMPTS') {
+                setError('Too many attempts. Your account is locked for 5 minutes.');
+                Alert.alert('Blocked', 'Too many attempts. Your account is locked for 5 minutes.');
+                return;
+            }
+
+            setError(err?.message || 'Verification failed');
             Alert.alert('Error', err?.message || 'Verification failed');
         } finally {
             if (!isRetry) setLoading(false); // ✅ only stop on initial call
         }
     };
 
-    return { handleVerifyOtp, loading };
+    return { handleVerifyOtp, loading, error };
 };

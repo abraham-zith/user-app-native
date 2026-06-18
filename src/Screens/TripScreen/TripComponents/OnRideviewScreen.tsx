@@ -2,18 +2,20 @@ import React, { useCallback, useEffect, useState, useRef } from 'react';
 import {
     View,
     StyleSheet,
+    Animated,
+    Dimensions,
+    Share,
     TouchableOpacity,
     Alert,
     Linking,
-    Image,
-    Share,
-    Animated,
-    Dimensions,
 } from 'react-native';
+import FastImage from 'react-native-fast-image';
+import Skeleton from '../../../Components/Skeleton';
 import { Text } from '../../../Components';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSocket } from '../../../Socket/SocketContext';
 import { TripStatus } from '../../../enums/trip.enum';
+import { useOptimization } from '../../../context/OptimizationContext';
 
 // Utils
 import { hS, vS, mS } from '../../../lib/responsive';
@@ -24,9 +26,11 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // --- Sub-Component: Pulse Animation for Live Status ---
 const LivePulse = () => {
+    const { shouldThrottle } = useOptimization();
     const pulseAnim = useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
+        if (shouldThrottle) return;
         Animated.loop(
             Animated.sequence([
                 Animated.timing(pulseAnim, {
@@ -41,7 +45,7 @@ const LivePulse = () => {
                 }),
             ])
         ).start();
-    }, []);
+    }, [shouldThrottle]);
 
     return (
         <View style={pulseStyles.container}>
@@ -83,6 +87,7 @@ const OnRideView: React.FC<OnRideViewProps> = ({
     const { colors: appColors, isDark } = useAppTheme();
     const { socket } = useSocket();
     const fadeAnim = useRef(new Animated.Value(0)).current;
+    const [isImageLoading, setIsImageLoading] = useState(false);
     useEffect(() => {
         Animated.timing(fadeAnim, {
             toValue: 1,
@@ -191,10 +196,19 @@ const OnRideView: React.FC<OnRideViewProps> = ({
                 <View style={styles.glanceLeft}>
                     <View style={[styles.avatar, styles.avatarContainer, { backgroundColor: isDark ? '#1E293B' : '#F1F5F9', borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0' }]}>
                         {driver?.driverImage ? (
-                            <Image
-                                source={{ uri: driver.driverImage }}
-                                style={styles.avatarImage}
-                            />
+                            <>
+                                <FastImage
+                                    source={{ uri: driver.driverImage, priority: FastImage.priority.normal }}
+                                    style={styles.avatarImage}
+                                    onLoadStart={() => setIsImageLoading(true)}
+                                    onLoadEnd={() => setIsImageLoading(false)}
+                                />
+                                {isImageLoading && (
+                                    <View style={[StyleSheet.absoluteFillObject, { backgroundColor: isDark ? '#1E293B' : '#F1F5F9' }]}>
+                                        <Skeleton width="100%" height="100%" borderRadius={25} />
+                                    </View>
+                                )}
+                            </>
                         ) : (
                             <View style={[styles.placeholderAvatar, { backgroundColor: isDark ? '#1E293B' : '#F1F5F9' }]}>
                                 <MaterialCommunityIcons name="account" size={mS(22)} color={isDark ? '#64748B' : "#94A3B8"} />

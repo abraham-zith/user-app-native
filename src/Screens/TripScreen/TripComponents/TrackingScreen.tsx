@@ -3,7 +3,6 @@ import {
     View,
     StyleSheet,
     TouchableOpacity,
-    Image,
     Alert,
     Linking,
     Animated,
@@ -15,6 +14,8 @@ import { useSocket } from '../../../Socket/SocketContext';
 import { hS, vS, mS } from '../../../lib/responsive';
 import colors from '../../../constant/colors';
 import { useAppTheme } from '../../../hooks/useAppTheme';
+import FastImage from 'react-native-fast-image';
+import Skeleton from '../../../Components/Skeleton';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -34,6 +35,7 @@ const TrackingView: React.FC<TrackingViewProps> = ({
     navigation,
 }) => {
     const { colors: appColors, isDark } = useAppTheme();
+    const [isImageLoading, setIsImageLoading] = React.useState(false);
     // ==================== ANIMATIONS ====================
     const pulseAnim = useRef(new Animated.Value(1)).current;
     const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -164,10 +166,19 @@ const TrackingView: React.FC<TrackingViewProps> = ({
                         <View style={[styles.avatarGlow, { borderColor: appColors.primary }]} />
                         <View style={[styles.premiumAvatar, styles.avatarContainer, { backgroundColor: isDark ? '#1E293B' : '#F3F4F6' }]}>
                             {driver?.driverProfilePic ? (
-                                <Image
-                                    source={{ uri: driver.driverProfilePic }}
-                                    style={styles.avatarImage}
-                                />
+                                <>
+                                    <FastImage
+                                        source={{ uri: driver.driverProfilePic, priority: FastImage.priority.normal }}
+                                        style={styles.avatarImage}
+                                        onLoadStart={() => setIsImageLoading(true)}
+                                        onLoadEnd={() => setIsImageLoading(false)}
+                                    />
+                                    {isImageLoading && (
+                                        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: isDark ? '#1E293B' : '#F3F4F6' }]}>
+                                            <Skeleton width="100%" height="100%" borderRadius={28} />
+                                        </View>
+                                    )}
+                                </>
                             ) : (
                                 <View style={[styles.placeholderAvatar, { backgroundColor: isDark ? '#1E293B' : '#F3F4F6' }]}>
                                     <MaterialCommunityIcons name="account" size={mS(28)} color={appColors.border} />
@@ -188,14 +199,14 @@ const TrackingView: React.FC<TrackingViewProps> = ({
                         </View>
                     </View>
 
-                    <View style={styles.carDetailsArea}>
+                    {/* <View style={styles.carDetailsArea}>
                         <View style={[styles.plateBadge, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#111827' }]}>
                             <Text style={[styles.plateText, { color: isDark ? appColors.text : '#FFFFFF' }]}>{driver?.carPlate || 'TN 02 3456'}</Text>
                         </View>
                         <Text style={[styles.carModelText, { color: appColors.secondaryText }]} numberOfLines={1}>
                             {driver?.carModel || 'White Sedan'}
                         </Text>
-                    </View>
+                    </View> */}
                 </View>
 
                 {/* 4. ACTION BUTTONS SECTION */}

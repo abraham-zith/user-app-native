@@ -1,4 +1,4 @@
-import { fetchBaseQuery, FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query";
+import { fetchBaseQuery, FetchArgs, FetchBaseQueryError, retry } from "@reduxjs/toolkit/query";
 import type { BaseQueryApi } from "@reduxjs/toolkit/query";
 import { storage } from "./utils/storage";
 import { logout } from "../redux/userSlice";
@@ -64,6 +64,27 @@ const rawBaseQuery = fetchBaseQuery({
     },
 });
 
+// ─── Retry Logic with Exponential Backoff ─────────────────────────────────────
+const staggeredBaseQuery = retry(
+    async (args, api, extraOptions) => {
+        const result = await rawBaseQuery(args, api, extraOptions);
+
+        // Check if there's an error
+        if (result.error) {
+            const status = result.error.status;
+            
+            // Bail out of retries for Client Errors (4xx) and Parsing Errors
+            // We only want to retry on 5xx Server Errors or network timeouts (FETCH_ERROR)
+            if (status === 'PARSING_ERROR' || (typeof status === 'number' && status >= 400 && status < 500)) {
+                retry.fail(result.error);
+            }
+        }
+
+        return result;
+    },
+    { maxRetries: 3 }
+);
+
 // ─── Force Logout Handler ─────────────────────────────────────────────────────
 const handleForceLogout = async (api: BaseQueryApi) => {
     // ✅ Clear tokens
@@ -83,7 +104,7 @@ export const baseQueryWithReauth = async (
     api: BaseQueryApi,
     extraOptions: any
 ) => {
-    let result = await rawBaseQuery(args, api, extraOptions);
+    let result = await staggeredBaseQuery(args, api, extraOptions);
 
     // ✅ Debug parsing errors
     if (result.error && result.error.status === 'PARSING_ERROR') {
@@ -147,7 +168,7 @@ export const baseQueryWithReauth = async (
             ]);
 
             // ✅ Retry original request with new token
-            result = await rawBaseQuery(args, api, extraOptions);
+            result = await staggeredBaseQuery(args, api, extraOptions);
         } else {
             // ✅ Refresh failed — logout
 

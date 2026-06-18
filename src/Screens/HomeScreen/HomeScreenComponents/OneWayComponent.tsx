@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+
+
+import React, { useState, useMemo } from "react";
 import {
     View,
     Text,
@@ -9,7 +11,9 @@ import {
     TextInput,
     Platform,
     ActivityIndicator,
-    Alert
+    Alert,
+    Animated,
+    FlatList
 } from "react-native";
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import colors from "../../../constant/colors";
@@ -19,10 +23,15 @@ import { useLocation } from "../../../hooks/useLocation";
 import { LocationSearch_Nav } from "../../../Navigations/navigations";
 import Geolocation from 'react-native-geolocation-service';
 import { useAppTheme } from "../../../hooks/useAppTheme";
-
-
-// Import your responsive utilities
 import { hS, vS, mS, SCREEN_HEIGHT } from '../../../lib/responsive';
+import { useSelector } from "react-redux";
+import { RootState } from "../../../redux/store";
+import { useGetTripQuery } from "../../../service/userApi";
+import { useGetAvailableCouponsQuery } from "../../../service/couponApi";
+import Clipboard from '@react-native-clipboard/clipboard';
+import { Trip } from "../../../types/trip";
+import Ionicons from 'react-native-vector-icons/Ionicons';
+
 
 const GOOGLE_P_API_KEY = Config.GOOGLE_API_KEY;
 
@@ -38,6 +47,10 @@ const CATEGORIES = [
     { name: 'Heritage', icon: 'pillar', types: ['historical_landmark', 'monument'], color: '#D97706', bgColor: '#FEF3C7' },
 ];
 
+
+
+
+
 interface OneWayProps {
     onSelectLocation: (name: string, address: string, lat: number, lng: number) => void;
 }
@@ -52,6 +65,37 @@ export const OneWayComponent: React.FC<OneWayProps> = ({ onSelectLocation }) => 
     const [search, setSearch] = useState("");
     const [modalData, setModalData] = useState<any[]>([]);
     const [modalTitle, setModalTitle] = useState("");
+
+    const localuser = useSelector((state: RootState) => state?.userSlice?.user);
+    const { data: tripsData } = useGetTripQuery(
+        { id: localuser?.id, limit: 5, tab: 'completed' },
+        { skip: !localuser?.id }
+    );
+    const { data: availableCoupons } = useGetAvailableCouponsQuery();
+
+    const couponsArray = useMemo(() => {
+        if (!availableCoupons) return [];
+        return Array.isArray(availableCoupons)
+            ? availableCoupons
+            : (availableCoupons.data || availableCoupons.coupons || []);
+    }, [availableCoupons]);
+
+    const firstCoupon = couponsArray?.[0];
+
+    const handleClaimOffer = () => {
+        const codeToCopy = firstCoupon ? firstCoupon.code : "WELCOME20";
+        Clipboard.setString(codeToCopy);
+        Alert.alert('Offer Claimed', `Coupon code "${codeToCopy}" has been copied to your clipboard.`);
+    };
+    const QUICK_STATS = [
+        { label: 'Verified Drivers', value: '2.5K+', icon: 'shield-check', color: '#10B981' },
+        { label: 'Rides Completed', value: localuser?.total_trips || '0', icon: 'check-circle', color: '#3B82F6' },
+        { label: 'Avg Rating', value: localuser?.rating ? `${localuser.rating}★` : '0★', icon: 'star', color: '#FCD34D' },
+    ];
+
+    const recentOneWayTrips = (tripsData?.data?.data || [])
+        .filter((trip: Trip) => trip.ride_type === 'ONE_WAY')
+        .slice(0, 3);
 
     const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number): string => {
         const R = 6371;
@@ -70,7 +114,6 @@ export const OneWayComponent: React.FC<OneWayProps> = ({ onSelectLocation }) => 
         setIsLoading(true);
         setModalData([]);
         const { coords } = await getCurrentLocation();
-
 
         try {
             const response = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
@@ -91,6 +134,19 @@ export const OneWayComponent: React.FC<OneWayProps> = ({ onSelectLocation }) => 
                     }
                 })
             });
+            //     bookAgainBtn: {
+            //         paddingHorizontal: hS(12),
+            //         paddingVertical: vS(6),
+            //         borderRadius: mS(8),
+            //         justifyContent: "center",
+            //         alignItems: "center",
+            //     },
+            //     bookAgainText: {
+            //         color: "#FFFFFF",
+            //         fontSize: mS(11),
+            //         fontWeight: "700",
+            //     },
+            // });
 
             const data = await response.json();
             setIsLoading(false);
@@ -109,7 +165,6 @@ export const OneWayComponent: React.FC<OneWayProps> = ({ onSelectLocation }) => 
         } catch (error) {
             setIsLoading(false);
             Alert.alert('Something Went Wrong!!!', 'Try Again Later');
-            // console.error(error);
         }
     };
 
@@ -118,10 +173,42 @@ export const OneWayComponent: React.FC<OneWayProps> = ({ onSelectLocation }) => 
         onSelectLocation(place.name, place.address, place.lat, place.lng);
         navigation.navigate(LocationSearch_Nav, {
             selectedDropOff: fullAddress,
-            dropoffLocation: { dropLat: place.lat, dropLng: place.lng }
+            dropoffLocation: { dropLat: place.lat, dropLng: place.lng },
+            bookAgainBtn: {
+                paddingHorizontal: hS(12),
+                paddingVertical: vS(6),
+                borderRadius: mS(8),
+                justifyContent: "center",
+                alignItems: "center",
+            },
+            bookAgainText: {
+                color: "#FFFFFF",
+                fontSize: mS(11),
+                fontWeight: "700",
+            },
         });
         setIsOpen(false);
         setSearch("");
+    };
+
+    const handleBookAgain = (trip: Trip) => {
+        onSelectLocation(trip.drop_address, trip.drop_address, trip.drop_lat, trip.drop_lng);
+        navigation.navigate(LocationSearch_Nav, {
+            selectedDropOff: trip.drop_address,
+            dropoffLocation: { dropLat: trip.drop_lat, dropLng: trip.drop_lng },
+            bookAgainBtn: {
+                paddingHorizontal: hS(12),
+                paddingVertical: vS(6),
+                borderRadius: mS(8),
+                justifyContent: "center",
+                alignItems: "center",
+            },
+            bookAgainText: {
+                color: "#FFFFFF",
+                fontSize: mS(11),
+                fontWeight: "700",
+            },
+        });
     };
 
     const filteredResults = modalData.filter(item =>
@@ -131,28 +218,168 @@ export const OneWayComponent: React.FC<OneWayProps> = ({ onSelectLocation }) => 
 
     return (
         <View style={[styles.container, { backgroundColor: appColors.background }]}>
-            <Text style={[styles.sectionTitle, { color: appColors.text }]}>Popular Routes</Text>
+            <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+                {/* Hero Section */}
+                {/* <View style={[styles.heroSection, { backgroundColor: appColors.primary }]}>
+                    <View style={styles.heroContent}>
+                        <Text style={styles.heroSubtitle}>Ready to go?</Text>
+                        <Text style={styles.heroTitle}>Book Your Ride</Text>
+                        <Text style={styles.heroDescription}>
+                            Quick, affordable, and reliable rides to any destination
+                        </Text>
+                    </View>
+                    <View style={styles.heroIcon}>
+                        <MaterialCommunityIcons name="car-multiple" size={mS(64)} color="rgba(255,255,255,0.3)" />
+                    </View>
+                </View> */}
 
-            <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.horizontalScroll}
-            >
-                {CATEGORIES.map((item, index) => (
-                    <TouchableOpacity
-                        key={index}
-                        onPress={() => handleCategoryPress(item)}
-                        style={[styles.catCard, { backgroundColor: appColors.card, borderColor: appColors.border }]}
-                    >
-                        <View style={[styles.iconCircle, { backgroundColor: isDark ? `${item.color}20` : item.bgColor }]}>
-                            <MaterialCommunityIcons name={item.icon} size={mS(26)} color={item.color} />
+                {/* Quick Stats */}
+                <View style={styles.statsSection}>
+                    {QUICK_STATS.map((stat, idx) => (
+                        <View key={idx} style={[styles.statCard, { backgroundColor: isDark ? '#1F2937' : '#FFFFFF', borderColor: appColors.border }]}>
+                            <View style={[styles.statIconBox, { backgroundColor: stat.color + '20' }]}>
+                                <MaterialCommunityIcons name={stat.icon} size={mS(20)} color={stat.color} />
+                            </View>
+                            <Text style={[styles.statValue, { color: appColors.text }]}>{stat.value}</Text>
+                            <Text style={[styles.statLabel, { color: appColors.text }]}>{stat.label}</Text>
                         </View>
-                        <Text numberOfLines={1} style={[styles.catText, { color: appColors.text }]}>{item.name}</Text>
+                    ))}
+                </View>
+                {/* Popular Routes Section */}
+                <View style={styles.popularRoutesContainer}>
+                    <Text style={[styles.sectionTitle, { color: appColors.text }]}>Popular Routes</Text>
+
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.horizontalScroll}
+                    >
+                        {CATEGORIES.map((item, index) => (
+                            <TouchableOpacity
+                                key={index}
+                                onPress={() => handleCategoryPress(item)}
+                                style={[
+                                    styles.catCard,
+                                    {
+                                        backgroundColor: appColors.card,
+                                        borderColor: appColors.border
+                                    }
+                                ]}
+                            >
+                                <View style={[
+                                    styles.iconCircle,
+                                    { backgroundColor: isDark ? `${item.color}20` : item.bgColor }
+                                ]}>
+                                    <MaterialCommunityIcons name={item.icon} size={mS(26)} color={item.color} />
+                                </View>
+                                <Text numberOfLines={1} style={[styles.catText, { color: appColors.text }]}>
+                                    {item.name}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                </View>
+
+                {/* Recent OneWay Trips */}
+                <View style={styles.trendingSection}>
+                    <View style={styles.sectionHeader}>
+                        <Text style={[styles.sectionTitle, { color: appColors.text }]}>Recent Trips</Text>
+                    </View>
+                    {recentOneWayTrips.length > 0 ? (
+
+                        <View style={styles.trendingGrid}>
+                            {recentOneWayTrips.map((trip: Trip) => (
+                                <View
+                                    key={trip.trip_id}
+                                    style={[
+                                        styles.trendingCard,
+                                        {
+                                            backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
+                                            borderColor: appColors.border,
+                                            flexDirection: 'column',
+                                            alignItems: 'stretch',
+                                        }
+                                    ]}
+                                >
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: hS(10) }}>
+                                        <View style={[styles.routeIconBox, { backgroundColor: appColors.primary + '15' }]}>
+                                            <MaterialCommunityIcons name="history" size={mS(22)} color={appColors.primary} />
+                                        </View>
+                                        <View style={styles.routeContent}>
+                                            <Text style={[styles.routeLabel, { color: appColors.text }]}>To</Text>
+                                            <Text numberOfLines={1} style={[styles.routeTo, { color: appColors.text }]}>{trip.drop_address}</Text>
+                                        </View>
+                                        <TouchableOpacity
+                                            onPress={() => handleBookAgain(trip)}
+                                            style={[styles.bookAgainBtn, { backgroundColor: appColors.primary }]}
+                                        >
+                                            <Text style={styles.bookAgainText}>Book Again</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            ))}
+                        </View>
+                    ) : (
+                        <View style={styles.emptyContainer}>
+                            <Ionicons name="map-outline" size={50} color={isDark ? 'rgba(255,255,255,0.1)' : '#E5E7EB'} />
+                            <Text style={[styles.emptyText, { color: appColors.text }]}>No round trips found</Text>
+                        </View>
+                    )}
+                </View>
+
+
+
+                {/* Why Choose Us */}
+                <View style={[styles.whyChooseSection, { backgroundColor: isDark ? '#1F2937' : '#F9FAFB' }]}>
+                    <Text style={[styles.sectionTitle, { color: appColors.text }]}>Why Choose Us?</Text>
+
+                    <View style={styles.benefitsGrid}>
+                        {[
+                            { icon: 'clock-fast', title: 'Quick Booking', desc: 'Book in seconds' },
+                            { icon: 'lock-outline', title: 'Safe & Secure', desc: 'Verified drivers' },
+                            { icon: 'wallet-outline', title: 'Transparent Pricing', desc: 'No hidden charges' },
+                            { icon: 'headset', title: '24/7 Support', desc: 'Always here to help' },
+                        ].map((benefit, idx) => (
+                            <View key={idx} style={styles.benefitCard}>
+                                <View style={[styles.benefitIcon, { backgroundColor: appColors.primary + '15' }]}>
+                                    <MaterialCommunityIcons name={benefit.icon} size={mS(20)} color={appColors.primary} />
+                                </View>
+                                <Text style={[styles.benefitTitle, { color: appColors.text }]}>{benefit.title}</Text>
+                                <Text style={[styles.benefitDesc, { color: appColors.text }]}>{benefit.desc}</Text>
+                            </View>
+                        ))}
+                    </View>
+                </View>
+
+                {/* CTA Section */}
+                <View style={[styles.ctaSection, { backgroundColor: appColors.primary }]}>
+                    <MaterialCommunityIcons name="lightning-bolt" size={mS(32)} color="rgba(255,255,255,0.3)" style={styles.ctaIcon} />
+                    <Text style={styles.ctaTitle}>Special Offer</Text>
+                    <Text style={styles.ctaSubtitle}>
+                        {firstCoupon 
+                            ? `Get ${firstCoupon.discount_type === 'PERCENTAGE' ? `${firstCoupon.discount_value}%` : `₹${firstCoupon.discount_value}`} off on your ride`
+                            : "Get 20% off on your first ride"}
+                    </Text>
+                    <Text style={styles.ctaCode}>
+                        Use code: {firstCoupon ? firstCoupon.code : "WELCOME20"}
+                    </Text>
+                    <TouchableOpacity style={styles.ctaButton} onPress={handleClaimOffer}>
+                        <Text style={styles.ctaButtonText}>Claim Offer</Text>
                     </TouchableOpacity>
-                ))}
+                </View>
+
+                <View style={{ height: vS(20) }} />
             </ScrollView>
 
-            <Modal visible={isOpen} animationType="slide" transparent statusBarTranslucent navigationBarTranslucent onRequestClose={() => setIsOpen(false)}>
+            {/* Modal (unchanged) */}
+            <Modal
+                visible={isOpen}
+                animationType="slide"
+                transparent
+                statusBarTranslucent
+                navigationBarTranslucent
+                onRequestClose={() => setIsOpen(false)}
+            >
                 <View style={styles.backdrop}>
                     <View style={[styles.sheetContainer, { backgroundColor: appColors.card }]}>
                         <View style={[styles.handle, { backgroundColor: appColors.border }]} />
@@ -227,30 +454,170 @@ export const OneWayComponent: React.FC<OneWayProps> = ({ onSelectLocation }) => 
 const styles = StyleSheet.create({
     container: {
         width: '100%',
+        flex: 1,
         backgroundColor: '#F8FAFC',
+    },
+
+    // Hero Section
+    heroSection: {
         paddingHorizontal: hS(20),
-        paddingVertical: vS(10)
+        paddingVertical: vS(28),
+        borderBottomLeftRadius: mS(24),
+        borderBottomRightRadius: mS(24),
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        position: 'relative',
+        overflow: 'hidden',
+    },
+    heroContent: {
+        flex: 1,
+        gap: vS(8),
+    },
+    heroSubtitle: {
+        fontSize: mS(12),
+        color: 'rgba(255, 255, 255, 0.8)',
+        fontWeight: '500',
+    },
+    heroTitle: {
+        fontSize: mS(26),
+        fontWeight: '800',
+        color: '#FFFFFF',
+        lineHeight: vS(32),
+    },
+    heroDescription: {
+        fontSize: mS(12),
+        color: 'rgba(255, 255, 255, 0.85)',
+        lineHeight: vS(16),
+    },
+    heroIcon: {
+        opacity: 0.15,
+        marginRight: hS(-10),
+    },
+
+    // Stats Section
+    statsSection: {
+        flexDirection: 'row',
+        paddingHorizontal: hS(20),
+        paddingVertical: vS(16),
+        gap: hS(10),
+        marginTop: vS(-12),
+        marginBottom: vS(8),
+    },
+    statCard: {
+        flex: 1,
+        paddingVertical: vS(14),
+        paddingHorizontal: hS(12),
+        borderRadius: mS(12),
+        borderWidth: 1,
+        alignItems: 'center',
+        gap: vS(8),
+        ...Platform.select({
+            ios: { shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } },
+            android: { elevation: 2 }
+        })
+    },
+    statIconBox: {
+        width: hS(36),
+        height: hS(36),
+        borderRadius: hS(18),
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    statValue: {
+        fontSize: mS(14),
+        fontWeight: '700',
+    },
+    statLabel: {
+        fontSize: mS(9),
+        fontWeight: '500',
+        textAlign: 'center',
+    },
+
+    // Trending Routes
+    trendingSection: {
+        paddingHorizontal: hS(20),
+        paddingVertical: vS(16),
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: vS(12),
     },
     sectionTitle: {
         fontSize: mS(16),
         fontWeight: '700',
         color: '#1E293B',
-        marginBottom: vS(10)
+    },
+    seeAllText: {
+        fontSize: mS(12),
+        fontWeight: '600',
+        color: '#3B82F6',
+    },
+    trendingGrid: {
+        gap: vS(10),
+    },
+    trendingCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: hS(14),
+        paddingVertical: vS(12),
+        borderRadius: mS(14),
+        borderWidth: 1,
+        gap: hS(10),
+        ...Platform.select({
+            ios: { shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } },
+            android: { elevation: 1 }
+        })
+    },
+    routeIconBox: {
+        width: hS(40),
+        height: hS(40),
+        borderRadius: mS(10),
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    routeContent: {
+        flex: 1,
+    },
+    routeLabel: {
+        fontSize: mS(9),
+        fontWeight: '500',
+        marginBottom: vS(2),
+    },
+    routeFrom: {
+        fontSize: mS(12),
+        fontWeight: '600',
+    },
+    routeTo: {
+        fontSize: mS(12),
+        fontWeight: '600',
+    },
+    routeArrow: {
+        paddingHorizontal: hS(6),
+    },
+
+    // Popular Routes
+    popularRoutesContainer: {
+        paddingHorizontal: hS(20),
+        // paddingVertical: vS(10),
     },
     horizontalScroll: {
         paddingRight: hS(20),
-        paddingBottom: hS(20)
+        paddingBottom: hS(20),
+        marginTop: vS(10),
+        gap: hS(12),
     },
     catCard: {
         width: hS(90),
         height: vS(105),
         backgroundColor: '#FFFFFF',
         borderRadius: mS(16),
-        marginRight: hS(16),
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
-        borderColor: '#F1F5F9', // subtle border
+        borderColor: '#F1F5F9',
         ...Platform.select({
             ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
             android: { elevation: 4 }
@@ -262,7 +629,7 @@ const styles = StyleSheet.create({
         borderRadius: hS(24),
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: vS(10)
+        marginBottom: vS(10),
     },
     catText: {
         fontSize: mS(12),
@@ -272,7 +639,86 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
 
-    // Modal Styles
+    // Why Choose Us
+    whyChooseSection: {
+        paddingHorizontal: hS(20),
+        paddingVertical: vS(20),
+        marginTop: vS(8),
+    },
+    benefitsGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: hS(12),
+        marginTop: vS(12),
+    },
+    benefitCard: {
+        width: '48%',
+        paddingVertical: vS(16),
+        paddingHorizontal: hS(12),
+        borderRadius: mS(14),
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.6)',
+        gap: vS(8),
+    },
+    benefitIcon: {
+        width: hS(44),
+        height: hS(44),
+        borderRadius: hS(22),
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    benefitTitle: {
+        fontSize: mS(12),
+        fontWeight: '700',
+        textAlign: 'center',
+    },
+    benefitDesc: {
+        fontSize: mS(10),
+        textAlign: 'center',
+    },
+
+    // CTA Section
+    ctaSection: {
+        marginHorizontal: hS(20),
+        marginVertical: vS(16),
+        paddingVertical: vS(24),
+        paddingHorizontal: hS(20),
+        borderRadius: mS(20),
+        alignItems: 'center',
+        gap: vS(12),
+    },
+    ctaIcon: {
+        marginBottom: vS(4),
+    },
+    ctaTitle: {
+        fontSize: mS(18),
+        fontWeight: '800',
+        color: '#FFFFFF',
+    },
+    ctaSubtitle: {
+        fontSize: mS(13),
+        color: 'rgba(255, 255, 255, 0.9)',
+    },
+    ctaCode: {
+        fontSize: mS(14),
+        fontWeight: '700',
+        color: '#FFFFFF',
+        marginTop: vS(4),
+    },
+    ctaButton: {
+        backgroundColor: '#FFFFFF',
+        paddingHorizontal: hS(28),
+        paddingVertical: vS(10),
+        borderRadius: mS(20),
+        marginTop: vS(8),
+    },
+    ctaButtonText: {
+        color: colors.button,
+        fontSize: mS(12),
+        fontWeight: '700',
+    },
+
+    // Modal Styles (unchanged)
     backdrop: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.5)',
@@ -375,7 +821,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         paddingHorizontal: hS(40),
-        paddingBottom: vS(100), // Offset slightly for visual balance (accounting for header/search)
+        paddingBottom: vS(100),
     },
     noResultsIconCircle: {
         width: hS(80),
@@ -406,5 +852,27 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: mS(14),
         fontWeight: '700'
-    }
+    },
+    bookAgainBtn: {
+        paddingHorizontal: hS(12),
+        paddingVertical: vS(6),
+        borderRadius: mS(8),
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    bookAgainText: {
+        color: "#FFFFFF",
+        fontSize: mS(11),
+        fontWeight: "700",
+    },
+
+    emptyContainer: {
+        alignItems: "center",
+        paddingVertical: vS(30),
+        gap: vS(12),
+    },
+    emptyText: {
+        fontSize: mS(14),
+        fontWeight: "600",
+    },
 });

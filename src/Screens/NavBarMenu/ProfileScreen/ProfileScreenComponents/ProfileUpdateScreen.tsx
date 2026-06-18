@@ -259,7 +259,7 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
                     };
 
 
-                    const updatedList = [...emergencyContacts, newContact].slice(0, 3);
+                    const updatedList = [...emergencyContacts, newContact].slice(0, 5);
                     try {
                         const payload = {
                             id: user.id,
@@ -375,7 +375,7 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
                 {/* --- Section: Emergency Contacts --- */}
                 <View style={styles.sectionHeader}>
                     <Text style={[styles.sectionTitle, { color: colors.lightTextColor }]}>Emergency Contacts</Text>
-                    <Text style={[styles.sectionSubtitle, { color: colors.secondaryText }]}>Up to 3 trusted contacts</Text>
+                    <Text style={[styles.sectionSubtitle, { color: colors.secondaryText }]}>Up to 5 trusted contacts</Text>
                 </View>
 
                 <View style={[styles.cardContainer, { backgroundColor: colors.card }, isDark && { shadowColor: colors.text }]}>
@@ -387,23 +387,23 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
                             </View>
 
                             <TouchableOpacity
-                                disabled={emergencyContacts.length >= 3}
+                                disabled={emergencyContacts.length >= 5}
                                 style={[
                                     styles.addBadge,
                                     { backgroundColor: isDark ? 'rgba(96, 165, 250, 0.1)' : '#EFF6FF' },
-                                    emergencyContacts.length >= 3 && { backgroundColor: colors.iconBox }
+                                    emergencyContacts.length >= 5 && { backgroundColor: colors.iconBox }
                                 ]}
                                 onPress={handleAddEmergencyContact}
                             >
                                 <MaterialCommunityIcons
                                     name="plus"
                                     size={mS(16)}
-                                    color={emergencyContacts.length >= 3 ? colors.border : (isDark ? colors.primary : colors.button)}
+                                    color={emergencyContacts.length >= 5 ? colors.border : (isDark ? colors.primary : colors.button)}
                                 />
                                 <Text style={[
                                     styles.addBadgeText,
                                     { color: isDark ? colors.primary : colors.button },
-                                    emergencyContacts.length >= 3 && { color: colors.lightTextColor }
+                                    emergencyContacts.length >= 5 && { color: colors.lightTextColor }
                                 ]}>Add</Text>
                             </TouchableOpacity>
                         </View>

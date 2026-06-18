@@ -5,6 +5,7 @@ import { requestLocationPermission } from '../../service/utils/permissions';
 import Geolocation from 'react-native-geolocation-service';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { darkMapStyle } from '../../constant/colors';
+import { useOptimization } from '../../context/OptimizationContext';
 
 
 interface LocationProps {
@@ -21,6 +22,7 @@ interface LocationType {
 }
 export default function MapViewComponent({ pickup, dropLocation }: LocationProps) {
     const { colors: appColors, isDark } = useAppTheme();
+    const { shouldThrottle } = useOptimization();
     const [location, setLocation] = useState<LocationType | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
 
@@ -52,7 +54,7 @@ export default function MapViewComponent({ pickup, dropLocation }: LocationProps
                     Alert.alert("Error", "Could not get your location.");
                     setLoading(false);
                 },
-                { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+                { enableHighAccuracy: !shouldThrottle, timeout: 15000, maximumAge: 10000 }
             );
         } else {
             Alert.alert("Permission Denied", "Location access is required.");
@@ -94,6 +96,10 @@ export default function MapViewComponent({ pickup, dropLocation }: LocationProps
                 region={location || initialRegion}
                 showsUserLocation={true}
                 showsMyLocationButton={true}
+                showsTraffic={!shouldThrottle}
+                rotateEnabled={!shouldThrottle}
+                scrollEnabled={true}
+                zoomEnabled={true}
             >
                 {location && (
                     <Marker

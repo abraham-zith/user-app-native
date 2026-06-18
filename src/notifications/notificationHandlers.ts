@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useDispatch } from 'react-redux';
-import messaging from '@react-native-firebase/messaging';
+import { getMessaging, onMessage, onNotificationOpenedApp, getInitialNotification } from '@react-native-firebase/messaging';
 import notifee, { EventType } from '@notifee/react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
 
@@ -85,8 +85,10 @@ const NotificationHandler: React.FC = () => {
         // ✅ Create channels on mount
         createNotificationChannels();
 
+        const messaging = getMessaging();
+
         // ─── Foreground FCM ────────────────────────────────────────────────
-        const unsubscribeFcm = messaging().onMessage(async (remoteMessage) => {
+        const unsubscribeFcm = onMessage(messaging, async (remoteMessage) => {
 
             dispatch(addNotification(remoteMessage));
 
@@ -127,7 +129,7 @@ const NotificationHandler: React.FC = () => {
         });
 
         // ─── Background Tap ────────────────────────────────────────────────
-        messaging().onNotificationOpenedApp(async (remoteMessage) => {
+        const unsubscribeBackground = onNotificationOpenedApp(messaging, async (remoteMessage) => {
 
             dispatch(addNotification(remoteMessage));
 
@@ -140,7 +142,7 @@ const NotificationHandler: React.FC = () => {
         });
 
         // ─── Quit State Tap ────────────────────────────────────────────────
-        messaging().getInitialNotification().then(async (remoteMessage) => {
+        getInitialNotification(messaging).then(async (remoteMessage) => {
             if (!remoteMessage) return;
 
             dispatch(addNotification(remoteMessage));
@@ -156,6 +158,7 @@ const NotificationHandler: React.FC = () => {
         return () => {
             unsubscribeFcm();
             unsubscribeNotifee();
+            unsubscribeBackground();
         };
     }, []);
 

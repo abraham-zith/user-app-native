@@ -20,6 +20,7 @@ import Clipboard from '@react-native-clipboard/clipboard';
 import { SocketProvider } from './src/Socket/SocketProvider';
 import { useAppTheme } from './src/hooks/useAppTheme';
 import { useSessionManager } from './src/hooks/useSessionManager';
+import NetworkStatusIndicator from './src/Components/NetworkStatusIndicator';
 
 notifee.onBackgroundEvent(async ({ type, detail }) => {
   const { notification, pressAction } = detail;
@@ -46,9 +47,11 @@ const AppContent = () => {
     },
   };
 
+
   return (
     <SafeAreaProvider style={[Styles.flex, { backgroundColor: theme.colors.background }]}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={isDark ? appColors.background : "white"} />
+      <NetworkStatusIndicator />
       <NavigationContainer theme={theme} linking={linking} ref={navigationRef} onReady={setNavigatorReady} >
         <RootProvider>
           <View style={{ flex: 1 }}>
@@ -61,12 +64,16 @@ const AppContent = () => {
   );
 };
 
+import { OptimizationProvider } from './src/context/OptimizationContext';
+
 // ─── Root App ─────────────────────────────────────────────────────────────────
 const App = () => (
   <Provider store={store}>
     <SocketProvider>
       <PersistGate loading={<AnimationWithImperativeApi />} persistor={persistor}>
-        <AppContent />
+        <OptimizationProvider>
+          <AppContent />
+        </OptimizationProvider>
       </PersistGate>
     </SocketProvider>
   </Provider>

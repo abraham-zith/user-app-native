@@ -1,5 +1,5 @@
-import { View, Text, TouchableOpacity, Animated } from 'react-native';
-import React from 'react';
+import { View, Text, TouchableOpacity, Animated, ActivityIndicator } from 'react-native';
+import React, { Suspense, lazy } from 'react';
 import { CardStyleInterpolators, createStackNavigator, TransitionSpecs } from '@react-navigation/stack';
 import {
   Auth_Nav,
@@ -58,25 +58,36 @@ import TripScreen from '../Screens/TripScreen';
 import RideCompletedScreen from '../Screens/TripScreen/TripComponents/RideCompletedScreen';
 import FareSummaryScreen from '../Screens/PaymentScreen/FareSummaryScreen';
 import CheckoutScreen from '../Screens/PaymentScreen/CheckoutScreen';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
-import FAQDetails from '../Screens/HelpScreen/FAQDetails';
-import HelpScreen from '../Screens/HelpScreen/index';
-import Favourites from '../Screens/NavBarMenu/ProfileScreen/ProfileScreenComponents/SettingsComponents/Favourites';
-import AboutVDrive from '../Screens/NavBarMenu/ProfileScreen/ProfileScreenComponents/SettingsComponents/AboutVDrive';
-import Preferences from '../Screens/NavBarMenu/ProfileScreen/ProfileScreenComponents/SettingsComponents/Preferences';
-import NotificationScreen from '../Screens/NavBarMenu/ProfileScreen/ProfileScreenComponents/SettingsComponents/NotificationScreen';
-import SafetyScreen from '../Screens/NavBarMenu/ProfileScreen/ProfileScreenComponents/SettingsComponents/SafetyScreen';
-import { vS } from '../lib/responsive';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import SearchingDriver from '../Screens/TripScreen/TripComponents/SearchingForDriver';
-import ContactListScreen from '../Screens/ContactScreen';
+import { vS } from '../lib/responsive';
 import { UserAppUI } from '../Screens/MapTrackingScreen/UserMapScreen';
 import ChatScreen from '../Screens/ChatScreen';
 import OngoingTripsList from '../Screens/TripScreen/TripComponents/LiveRideBadge/OngoingTripsList';
 import ScheduledTripCard from '../Screens/TripScreen/TripComponents/ScheduledRideBadge/ScheduledTripList';
 import PaymentSuccessScreen from '../Screens/PaymentScreen/PaymentSuccessScreen';
-import OffersScreen from '../Screens/Offers/OffersScreen';
 
+const withSuspense = (Component: any) => {
+  return (props: any) => (
+    <Suspense fallback={
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#2563EB" />
+      </View>
+    }>
+      <Component {...props} />
+    </Suspense>
+  );
+};
 
+const FAQDetails = withSuspense(lazy(() => import('../Screens/HelpScreen/FAQDetails')));
+const HelpScreen = withSuspense(lazy(() => import('../Screens/HelpScreen/index')));
+const Favourites = withSuspense(lazy(() => import('../Screens/NavBarMenu/ProfileScreen/ProfileScreenComponents/SettingsComponents/Favourites')));
+const AboutVDrive = withSuspense(lazy(() => import('../Screens/NavBarMenu/ProfileScreen/ProfileScreenComponents/SettingsComponents/AboutVDrive')));
+const Preferences = withSuspense(lazy(() => import('../Screens/NavBarMenu/ProfileScreen/ProfileScreenComponents/SettingsComponents/Preferences')));
+const NotificationScreen = withSuspense(lazy(() => import('../Screens/NavBarMenu/ProfileScreen/ProfileScreenComponents/SettingsComponents/NotificationScreen')));
+const SafetyScreen = withSuspense(lazy(() => import('../Screens/NavBarMenu/ProfileScreen/ProfileScreenComponents/SettingsComponents/SafetyScreen')));
+const ContactListScreen = withSuspense(lazy(() => import('../Screens/ContactScreen')));
+const OffersScreen = withSuspense(lazy(() => import('../Screens/Offers/OffersScreen')));
 
 
 const RootNavigation = () => {

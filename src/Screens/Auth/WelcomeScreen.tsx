@@ -20,6 +20,7 @@ const WelcomeScreen: React.FC<ScreenProps> = ({ navigation }) => {
   const handleGetStarted = () => {
     if (!user) {
       navigation.navigate('LoginScreen');
+      // navigation.replace(TabNavigation_Nav);
       return;
     }
 

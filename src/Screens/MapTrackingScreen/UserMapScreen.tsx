@@ -10,7 +10,7 @@ import Config from 'react-native-config';
 import { hS, mS, vS } from '../../lib/responsive';
 import Pulse from '../../Components/Pulse';
 import { useUpdateTripChangesMutation, useUpdateTripMutation } from '../../service/userApi';
-import { ChangeBy, ChangeType, TripStatus } from '../../enums/trip.enum';
+import { CancelBy, ChangeBy, ChangeType, TripStatus } from '../../enums/trip.enum';
 import { RideCompletedScreen_Nav, TabNavigation_Nav } from '../../Navigations/navigations';
 import { useDispatch } from 'react-redux';
 import { updateTripInArray } from '../../redux/tripSlice';
@@ -313,15 +313,33 @@ export const UserAppUI = ({ trip, status, onFindETA, onTripPhase, driver, liveDr
     const routeDestination = (currentStatusValue === TripStatus.ARRIVED || currentStatusValue === TripStatus.LIVE || currentStatusValue === TripStatus.COMPLETED)
         ? { latitude: parseFloat(tripData.drop_lat), longitude: parseFloat(tripData.drop_lng) }
         : { latitude: parseFloat(tripData.pickup_lat), longitude: parseFloat(tripData.pickup_lng) };
+    const cancelBy = tripData.cancel_by;
 
+    const alertedRef = useRef(false);
     useEffect(() => {
         if (currentStatusValue === TripStatus.CANCELLED || currentStatusValue === TripStatus.MID_CANCELLED) {
-            Alert.alert("Ride Cancelled", "Your ride has been cancelled by the driver or system.");
             setShowCancelButton(true);
+            // Only alert if we haven't alerted yet and we have the cancelBy information
+            if (!alertedRef.current && cancelBy) {
+                if (cancelBy === CancelBy.USER) {
+                    Alert.alert("Ride Cancelled", "Your ride has been cancelled by you.");
+                }
+                else if (cancelBy === CancelBy.DRIVER) {
+                    Alert.alert("Ride Cancelled", "Your ride has been cancelled by the driver.");
+                }
+                else if (cancelBy === CancelBy.ADMIN) {
+                    Alert.alert("Ride Cancelled", "Your ride has been cancelled by the admin.");
+                }
+                else {
+                    Alert.alert("Ride Cancelled", "Your ride has been cancelled by the system.");
+                }
+                alertedRef.current = true;
+            }
         } else {
             setShowCancelButton(false);
+            alertedRef.current = false;
         }
-    }, [currentStatusValue]);
+    }, [currentStatusValue, cancelBy]);
 
     useEffect(() => {
         if (driver && !hasReceivedLiveUpdate.current) {

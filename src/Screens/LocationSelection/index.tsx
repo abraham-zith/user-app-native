@@ -72,7 +72,7 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
 
     const { screenName, selectedDropOff, dropoffLocation } = route.params;
     const localuser = useSelector((state: RootState) => state.userSlice.user);
-    const [favoriteLocations, setFavoriteLocations] = useState<SavedLocation[]>(localuser?.favourite_places);
+    const [favoriteLocations, setFavoriteLocations] = useState<SavedLocation[]>(localuser?.favourite_places || []);
     const [isAlertVisible, setAlertVisible] = useState(false);
     const [isContactAlertVisible, setIsContactAlertVisible] = useState(false);
     const [contactToDelete, setContactToDelete] = useState<string | null>(null);
@@ -956,7 +956,7 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                                     </TouchableOpacity>
 
                                     {/* <ScrollView> */}
-                                    {localuser?.favourite_places?.length > 0 && (
+                                    {favoriteLocations?.length > 0 && (
                                         <View style={{
                                             flexDirection: 'row',
                                             justifyContent: 'space-between',
@@ -974,7 +974,7 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                                                                         </TouchableOpacity> */}
                                         </View>
                                     )}
-                                    {localuser?.favourite_places?.length === 0 ? (
+                                    {favoriteLocations?.length === 0 ? (
                                         <View style={{
                                             alignItems: 'center',
                                             justifyContent: 'center',
@@ -989,7 +989,7 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                                             gap: mS(10),              // Space between cards (React Native 0.71+)
                                             padding: mS(10),
                                         }}>
-                                            {localuser?.favourite_places.map((item: SavedLocation, index: number) => (
+                                            {favoriteLocations.map((item: SavedLocation, index: number) => (
                                                 <TouchableOpacity style={{
                                                     backgroundColor: colors.iconBox,
                                                     borderRadius: mS(12),

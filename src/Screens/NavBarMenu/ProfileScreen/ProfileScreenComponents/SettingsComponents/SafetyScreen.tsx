@@ -22,7 +22,8 @@ import { hS, mS, vS } from '../../../../../lib/responsive';
 import { ContactScreen_Nav } from '../../../../../Navigations/navigations';
 import { useAppTheme } from "../../../../../hooks/useAppTheme";
 import RelationshipSelectionModal from '../../../../../Components/RelationshipSelectionModal';
-import { useAddTrustedContactMutation } from '../../../../../service/sosApi';
+import { useAddTrustedContactMutation, useGetTrustedContactsQuery, useRemoveTrustedContactMutation } from '../../../../../service/sosApi';
+import { skipToken } from '@reduxjs/toolkit/query';
 
 export interface EmergencyContact {
     name: string;
@@ -47,25 +48,62 @@ const SafetyScreen = ({ navigation }: any) => {
     const dispatch = useDispatch()
     const [updateUser] = useUpdateUserMutation();
     const [addTrustedContact] = useAddTrustedContactMutation();
+    const [removeTrustedContact] = useRemoveTrustedContactMutation();
     const insets = useSafeAreaInsets()
     const { colors: appColors, isDark } = useAppTheme();
+    const { data: serverContactsData, refetch: refetchContacts } = useGetTrustedContactsQuery(
+        localuser?.id ? { userId: localuser.id } : skipToken
+    );;
 
     const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([]);
     const [pickerloading, setpickerLoading] = useState(false);
     const [relationshipModalVisible, setRelationshipModalVisible] = useState(false);
     const [selectedContact, setSelectedContact] = useState<{ name: string; phone: string } | null>(null);
 
+    if (!localuser) {
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: appColors.background }}>
+                <ActivityIndicator size="large" color={colors.button} />
+            </View>
+        );
+    }
+    console.log(serverContactsData?.data, "serverContactsData")
     useEffect(() => {
         loadSavedContacts();
     }, []);
 
+    // Sync with Redux store (primary ground truth for display)
+    useEffect(() => {
+        if (localuser?.emergency_contacts && Array.isArray(localuser.emergency_contacts)) {
+            setEmergencyContacts(localuser.emergency_contacts);
+            AsyncStorage.setItem('@emergency_contacts', JSON.stringify(localuser.emergency_contacts));
+        }
+    }, [localuser?.emergency_contacts]);
+
+    // Sync with Server (source of truth for data integrity)
+    useEffect(() => {
+        if (serverContactsData?.data && Array.isArray(serverContactsData.data)) {
+            setEmergencyContacts(serverContactsData.data);
+            AsyncStorage.setItem('@emergency_contacts', JSON.stringify(serverContactsData.data));
+            // Also sync back to Redux if different
+            dispatch(updateUserStore({ emergency_contacts: serverContactsData.data }));
+        }
+    }, [serverContactsData]);
+
     const loadSavedContacts = async () => {
         const saved = await AsyncStorage.getItem('@emergency_contacts');
-        if (saved) setEmergencyContacts(JSON.parse(saved));
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed)) setEmergencyContacts(parsed);
+            } catch (e) {
+                console.error("Error parsing saved contacts", e);
+            }
+        }
     };
 
     const openContactPicker = async () => {
-        if (emergencyContacts.length >= 5) {
+        if ((emergencyContacts || []).length >= 5) {
             Alert.alert(
                 "Limit Reached",
                 "You can only add up to 5 emergency contacts. Please remove one to add a new one."
@@ -79,7 +117,7 @@ const SafetyScreen = ({ navigation }: any) => {
                 if (SelectedContact) {
                     const cleanphone = SelectedContact.phone?.replace(/\+91|\s/g, '');
 
-                    const isDuplicate = emergencyContacts.some(contact => {
+                    const isDuplicate = (emergencyContacts || []).some(contact => {
                         const existingPhone = contact.phone?.replace(/[^0-9]/g, '');
                         const incomingPhone = cleanphone?.replace(/[^0-9]/g, '');
                         return existingPhone === incomingPhone;
@@ -138,6 +176,7 @@ const SafetyScreen = ({ navigation }: any) => {
 
             const res = await addTrustedContact(trustedcontacts).unwrap();
             console.log(res, "res")
+            refetchContacts();
             setEmergencyContacts(updatedList);
             await AsyncStorage.setItem('@emergency_contacts', JSON.stringify(updatedList));
         } catch (error) {
@@ -169,7 +208,8 @@ const SafetyScreen = ({ navigation }: any) => {
     };
 
     const performDelete = async (index: number) => {
-        const updatedList = emergencyContacts.filter((_, i) => i !== index);
+        const contactToDelete = emergencyContacts[index];
+        const updatedList = (emergencyContacts || []).filter((_, i) => i !== index);
 
         try {
             const payload = {
@@ -182,11 +222,16 @@ const SafetyScreen = ({ navigation }: any) => {
 
             if (serverContacts) {
                 dispatch(updateUserStore({ emergency_contacts: serverContacts }));
-                ToastAndroid.show("Contact removed successfully", ToastAndroid.SHORT);
+            }
+
+            // Also remove from trusted_contacts table if ID exists
+            if (contactToDelete && (contactToDelete as any).id) {
+                await removeTrustedContact({ id: (contactToDelete as any).id }).unwrap();
             }
 
             setEmergencyContacts(updatedList);
             await AsyncStorage.setItem('@emergency_contacts', JSON.stringify(updatedList));
+            ToastAndroid.show("Contact removed successfully", ToastAndroid.SHORT);
         } catch (error) {
             ToastAndroid.show("Something Went Wrong!!! Try Later...", ToastAndroid.SHORT);
         }
@@ -232,7 +277,7 @@ const SafetyScreen = ({ navigation }: any) => {
                             <Text style={[styles.sectionSubtitle, { color: appColors.secondaryText }]}>Select up to 5 trusted contacts</Text>
                         </View>
                         <TouchableOpacity
-                            disabled={emergencyContacts.length >= 5 || pickerloading}
+                            disabled={(emergencyContacts || []).length >= 5 || pickerloading}
                             onPress={openContactPicker}
                             activeOpacity={0.7}
                             style={[
@@ -247,7 +292,7 @@ const SafetyScreen = ({ navigation }: any) => {
                                 <MaterialCommunityIcons
                                     name="plus"
                                     size={mS(24)}
-                                    color={emergencyContacts.length >= 5 ? "#CBD5E1" : isDark ? colors.primary : colors.button}
+                                    color={(emergencyContacts || []).length >= 5 ? "#CBD5E1" : isDark ? colors.primary : colors.button}
                                 />
                             )}
                         </TouchableOpacity>
@@ -265,7 +310,7 @@ const SafetyScreen = ({ navigation }: any) => {
                                 <Text style={[styles.emptyStateSubtext, { color: appColors.secondaryText }]}>Tap to add your first contact</Text>
                             </TouchableOpacity>
                         ) : (
-                            emergencyContacts.map((item, index) => (
+                            (emergencyContacts || []).map((item, index) => (
                                 <View
                                     key={index}
                                     style={[
@@ -294,7 +339,7 @@ const SafetyScreen = ({ navigation }: any) => {
                         )}
                     </View>
 
-                    {emergencyContacts.length >= 5 && (
+                    {(emergencyContacts || [])?.length >= 5 && (
                         <View style={styles.limitBanner}>
                             <MaterialCommunityIcons name="information" size={mS(16)} color={isDark ? '#F59E0B' : '#B45309'} />
                             <Text style={[styles.limitText, isDark && { color: '#F59E0B' }]}>Maximum limit reached (5 contacts)</Text>

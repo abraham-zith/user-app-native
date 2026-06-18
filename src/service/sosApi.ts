@@ -32,6 +32,7 @@ export const sosApi = createApi({
             query: () => ({
                 url: '/sos/contacts',
                 method: 'GET',
+                params: { user_type: 'customer' },
             }),
             providesTags: ['Trip']
         }),
