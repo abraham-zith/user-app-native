@@ -282,9 +282,17 @@ export const userApi = createApi({
     }),
 
     //pricing
+    // getPricing: builder.mutation({
+    //   query: data => ({
+    //     url: '/pricing/calculate-all-types',
+    //     method: 'POST',
+    //     body: data,
+    //   })
+    // }),
+
     getPricing: builder.mutation({
       query: data => ({
-        url: '/pricing/calculate-all-types',
+        url: '/pricing/quote',
         method: 'POST',
         body: data,
       })

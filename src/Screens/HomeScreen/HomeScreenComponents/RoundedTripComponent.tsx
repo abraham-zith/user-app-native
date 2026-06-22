@@ -86,7 +86,7 @@ export function RoundedTrip() {
 
     // Calculate stats from completed round trips
     const completedRoundTrips = roundTrips.filter(t => t.trip_status === 'COMPLETED');
-    const totalDistance = completedRoundTrips.reduce((acc, trip) => acc + (trip.distance_km || 0), 0);
+    const totalDistance = completedRoundTrips.reduce((acc, trip) => acc + (Number(trip.distance_km) || 0), 0);
     const totalTrips = completedRoundTrips.length;
     const avgRating = completedRoundTrips.length > 0
         ? (completedRoundTrips.reduce((acc, trip) => acc + (trip.rating || 0), 0) / (completedRoundTrips.filter(t => t.rating).length || 1)).toFixed(1)
@@ -224,7 +224,7 @@ export function RoundedTrip() {
             )}
 
             {/* Quick Actions */}
-            <View style={styles.actionsRow}>
+            {/* <View style={styles.actionsRow}>
                 <ActionButton
                     icon="map"
                     label="View Map"
@@ -244,7 +244,7 @@ export function RoundedTrip() {
                     appColors={appColors}
                     isDark={isDark}
                 />
-            </View>
+            </View> */}
 
             {/* Trips List */}
             <View style={styles.listContainer}>
@@ -288,7 +288,7 @@ export function RoundedTrip() {
                 <Text style={[fonts.bold, styles.benefitsTitle, { color: appColors.text }]}>
                     Why Round Trips?
                 </Text>
-                <BenefitItem icon="checkmark" label="Explore multiple destinations in one trip" appColors={appColors} />
+                {/* <BenefitItem icon="checkmark" label="Explore multiple destinations in one trip" appColors={appColors} /> */}
                 <BenefitItem icon="checkmark" label="Save on transportation costs" appColors={appColors} />
                 <BenefitItem icon="checkmark" label="Hassle-free return journey" appColors={appColors} />
             </View>

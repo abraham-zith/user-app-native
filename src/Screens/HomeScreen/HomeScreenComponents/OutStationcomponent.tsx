@@ -53,7 +53,7 @@
 // });
 
 import React, { useEffect, useRef } from "react";
-import { View, Text, StyleSheet, Animated, TouchableOpacity, ScrollView, Image } from "react-native";
+import { View, Text, StyleSheet, Animated, TouchableOpacity, ScrollView, Image, FlatList } from "react-native";
 import { OutStationImage } from '../../../assets/svg';
 import { Styles } from "../../../lib/styles";
 import fonts from "../../../constant/fonts";
@@ -62,6 +62,10 @@ import { hS, vS, mS } from '../../../lib/responsive';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from "@react-navigation/native";
 import { ActivityScreen_Nav, TabNavigation_Nav } from "../../../Navigations/navigations";
+import { useSelector } from "react-redux";
+import { RootState } from "../../../redux/store";
+import { useGetTripQuery } from "../../../service/userApi";
+import { Trip } from "../../../types/trip";
 
 interface OutstationData {
     location: string;
@@ -76,6 +80,14 @@ export function OutstationComponent() {
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(30)).current;
     const navigation = useNavigation<any>();
+
+    const localuser = useSelector((state: RootState) => state?.userSlice?.user);
+    const { data: tripsData, isLoading, isFetching } = useGetTripQuery(
+        { id: localuser?.id, limit: 20 },
+        { skip: !localuser?.id }
+    );
+    const outstationTrips = (tripsData?.data?.data || []).filter((trip: Trip) => trip.ride_type === 'OUTSTATION');
+
 
     // Mock data - replace with actual data from props
     const recentOutstations: OutstationData[] = [
@@ -225,7 +237,7 @@ export function OutstationComponent() {
                 <Text style={[fonts.bold, styles.listTitle, { color: appColors.text }]}>
                     Recent Trips
                 </Text>
-
+                {/* 
                 <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
@@ -242,7 +254,49 @@ export function OutstationComponent() {
                             getStatusIcon={getStatusIcon}
                         />
                     ))}
-                </ScrollView>
+                </ScrollView> */}
+
+                <FlatList
+                    data={outstationTrips.slice(0, 5)}
+                    keyExtractor={(item) => item.trip_id}
+                    scrollEnabled={false}
+                    renderItem={({ item }) => {
+                        let mappedStatus: 'active' | 'completed' | 'upcoming' = 'upcoming';
+                        if (['ARRIVING', 'ARRIVED', 'LIVE', 'DESTINATION_REACHED'].includes(item.trip_status)) {
+                            mappedStatus = 'active';
+                        } else if (['COMPLETED', 'CANCELLED', 'MID_CANCELLED'].includes(item.trip_status)) {
+                            mappedStatus = 'completed';
+                        }
+
+                        const mappedData: OutstationData = {
+                            location: `${item.pickup_address?.split(',')[0] || 'Unknown'} - ${item.drop_address?.split(',')[0] || 'Unknown'}`,
+                            duration: item.trip_duration_minutes ? `${item.trip_duration_minutes} mins` : '--',
+                            distance: item.distance_km ? `${item.distance_km} km` : '--',
+                            date: new Date(item.scheduled_start_time || item.original_scheduled_start_time || new Date()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                            status: mappedStatus
+                        };
+
+                        return (
+                            <TripCard
+                                data={mappedData}
+                                appColors={appColors}
+                                isDark={isDark}
+                                getStatusColor={getStatusColor}
+                                getStatusIcon={getStatusIcon}
+                            />
+                        );
+                    }}
+                    ItemSeparatorComponent={() => (
+                        <View style={[styles.separator, { backgroundColor: appColors.border }]} />
+                    )}
+                    ListEmptyComponent={
+                        <View style={styles.emptyContainer}>
+                            <Ionicons name="map-outline" size={50} color={isDark ? 'rgba(255,255,255,0.1)' : '#E5E7EB'} />
+                            <Text style={[styles.emptyText, { color: appColors.text }]}>No round trips found</Text>
+                        </View>
+                    }
+                    contentContainerStyle={styles.listContent}
+                />
             </View>
 
             {/* Quick Stats Footer */}
@@ -611,5 +665,54 @@ const styles = StyleSheet.create({
         width: 1,
         height: vS(30),
         marginHorizontal: hS(12),
+    },
+
+    // Separator
+    separator: {
+        height: 1,
+        marginVertical: vS(4),
+    },
+
+    // Benefits Container
+    benefitsContainer: {
+        borderRadius: 12,
+        borderWidth: 1,
+        paddingHorizontal: hS(16),
+        paddingVertical: vS(14),
+        gap: vS(10),
+    },
+
+    benefitsTitle: {
+        fontSize: mS(14),
+        fontWeight: '700',
+        marginBottom: vS(4),
+    },
+    benefitItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: hS(10),
+    },
+    benefitIcon: {
+        width: hS(24),
+        height: hS(24),
+        borderRadius: hS(12),
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    benefitLabel: {
+        fontSize: mS(12),
+        fontWeight: '500',
+    },
+    emptyContainer: {
+        alignItems: "center",
+        paddingVertical: vS(30),
+        gap: vS(12),
+    },
+    emptyText: {
+        fontSize: mS(14),
+        fontWeight: "600",
+    },
+    listContent: {
+        gap: vS(12),
     },
 });

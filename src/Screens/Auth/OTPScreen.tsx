@@ -207,6 +207,16 @@ const OTPScreen: React.FC<any> = ({ navigation }) => {
 
                 {/* PREMIUM OTP INPUT CARD */}
                 <View style={[localStyles.otpCard, { backgroundColor: appColors.card, borderColor: appColors.border, shadowColor: isDark ? '#000' : '#64748B' }]}>
+                    {/* --- START TEMPORARY OTP DISPLAY (DETACHABLE) --- */}
+                    {/* TODO: Remove this block once SMS integration is complete */}
+                    {OTPdata?.otp && (
+                        <View style={{ marginBottom: vS(15), padding: mS(10), backgroundColor: isDark ? 'rgba(2, 132, 199, 0.2)' : '#E0F2FE', borderRadius: mS(8), width: '100%' }}>
+                            <Text style={{ fontSize: mS(14), color: isDark ? '#38BDF8' : '#0284C7', fontWeight: 'bold', textAlign: 'center' }}>
+                                Temporary Dev OTP: {OTPdata.otp}
+                            </Text>
+                        </View>
+                    )}
+                    {/* --- END TEMPORARY OTP DISPLAY --- */}
                     <OTPInput
                         numberOfDigits={4}
                         onChangeText={handleOtpChange}

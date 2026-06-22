@@ -30,7 +30,7 @@ const ScheduledrideEdit = ({ route, navigation }: any) => {
         drop_address: rideData.drop_address,
         scheduled_start_time: rideData.scheduled_start_time,
         ride_type: rideData.ride_type,
-        trip_duration_minutes: 10
+        trip_duration_minutes: rideData.trip_duration_minutes
     }))
 
 
@@ -47,7 +47,7 @@ const ScheduledrideEdit = ({ route, navigation }: any) => {
         setEditedData((prev: Partial<Trip>) => ({
             ...prev,
             ...updatedFields,
-            trip_duration_minutes: 10,
+            trip_duration_minutes: rideData.trip_duration_minutes,
         }));
     };
 
@@ -67,7 +67,7 @@ const ScheduledrideEdit = ({ route, navigation }: any) => {
         const rawData = {
             trip_id: rideData.trip_id,
             ...editedData,
-            trip_duration_minutes: 10 // Ensure this is included
+            trip_duration_minutes: rideData.trip_duration_minutes // Ensure this is included
         };
 
         // 3. Filter the object to only include allowed keys AND remove nulls

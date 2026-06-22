@@ -83,7 +83,8 @@ export const OneWayComponent: React.FC<OneWayProps> = ({ onSelectLocation }) => 
     const firstCoupon = couponsArray?.[0];
 
     const handleClaimOffer = () => {
-        const codeToCopy = firstCoupon ? firstCoupon.code : "WELCOME20";
+        if (!firstCoupon) return;
+        const codeToCopy = firstCoupon.code;
         Clipboard.setString(codeToCopy);
         Alert.alert('Offer Claimed', `Coupon code "${codeToCopy}" has been copied to your clipboard.`);
     };
@@ -352,21 +353,21 @@ export const OneWayComponent: React.FC<OneWayProps> = ({ onSelectLocation }) => 
                 </View>
 
                 {/* CTA Section */}
-                <View style={[styles.ctaSection, { backgroundColor: appColors.primary }]}>
-                    <MaterialCommunityIcons name="lightning-bolt" size={mS(32)} color="rgba(255,255,255,0.3)" style={styles.ctaIcon} />
-                    <Text style={styles.ctaTitle}>Special Offer</Text>
-                    <Text style={styles.ctaSubtitle}>
-                        {firstCoupon 
-                            ? `Get ${firstCoupon.discount_type === 'PERCENTAGE' ? `${firstCoupon.discount_value}%` : `₹${firstCoupon.discount_value}`} off on your ride`
-                            : "Get 20% off on your first ride"}
-                    </Text>
-                    <Text style={styles.ctaCode}>
-                        Use code: {firstCoupon ? firstCoupon.code : "WELCOME20"}
-                    </Text>
-                    <TouchableOpacity style={styles.ctaButton} onPress={handleClaimOffer}>
-                        <Text style={styles.ctaButtonText}>Claim Offer</Text>
-                    </TouchableOpacity>
-                </View>
+                {firstCoupon && (
+                    <View style={[styles.ctaSection, { backgroundColor: appColors.primary }]}>
+                        <MaterialCommunityIcons name="lightning-bolt" size={mS(32)} color="rgba(255,255,255,0.3)" style={styles.ctaIcon} />
+                        <Text style={styles.ctaTitle}>Special Offer</Text>
+                        <Text style={styles.ctaSubtitle}>
+                            {`Get ${firstCoupon.discount_type === 'PERCENTAGE' ? `${firstCoupon.discount_value}%` : `₹${firstCoupon.discount_value}`} off on your ride`}
+                        </Text>
+                        <Text style={styles.ctaCode}>
+                            Use code: {firstCoupon.code}
+                        </Text>
+                        <TouchableOpacity style={styles.ctaButton} onPress={handleClaimOffer}>
+                            <Text style={styles.ctaButtonText}>Claim Offer</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
 
                 <View style={{ height: vS(20) }} />
             </ScrollView>
