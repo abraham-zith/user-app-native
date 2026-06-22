@@ -43,17 +43,22 @@ const SelectionPage: React.FC<ExtendedScreenProps> = ({ screenName, TripPayload,
                 if (distance) {
                     DistanceKm = parseFloat(distance.replace(/[^\d.]/g, ''));
                 }
+                let DurationMin = 0;
+                if (duration) {
+                    DurationMin = parseInt(duration.replace(/[^\d.]/g, ''));
+                }
 
                 if (result) {
                     setTripPayload((prev) => ({
                         ...prev,
                         distance_km: DistanceKm,
+                        trip_duration_minutes: DurationMin
                     }));
                 }
             };
             fetchRoute();
         }
-    }, [TripPayload.pickup_lat, TripPayload.drop_lat, distance]);
+    }, [TripPayload.pickup_lat, TripPayload.drop_lat, distance, duration]);
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>

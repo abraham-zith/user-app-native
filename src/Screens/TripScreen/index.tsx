@@ -607,7 +607,7 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
                 const rawData = {
                     trip_id: currentTrip.trip_id,
                     ...currentTrip,
-                    trip_duration_minutes: 10,
+                    trip_duration_minutes: currentTrip.trip_duration_minutes,
                     driver_id: selectedDriver?.id || selectedDriver?.driverId,
                     trip_status: TripStatus.LIVE,
                 };

@@ -557,7 +557,7 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                                 <MaterialCommunityIcons name="arrow-left" size={mS(26)} color={colors.text} />
                             </TouchableOpacity>
                             <Text style={{ fontSize: mS(20), fontWeight: '700', color: colors.text }}>
-                                {screenName}
+                                {rideDetails.find(r => r.value === selectedRide)?.label || screenName}
                             </Text>
                         </View>
 

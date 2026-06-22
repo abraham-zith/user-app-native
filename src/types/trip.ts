@@ -37,6 +37,7 @@ export interface Trip {
     drop_lng: number;
     drop_address: string;
     distance_km: number;
+    // duration_km: number;
     trip_duration_minutes?: number;
     waiting_time_minutes?: number;
     base_fare: number;

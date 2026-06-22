@@ -57,6 +57,7 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
     const [isCouponModalVisible, setIsCouponModalVisible] = useState(false);
     const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
     const [appliedCoupon, setAppliedCoupon] = useState<{ id: string, code: string, discount: number } | null>(null);
+    const [options, setOptions] = useState<OptionModal[]>([])
     const doptions = {
         "prices": [
             {
@@ -80,15 +81,15 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
         "hotspot_multiplier": 1
     }
 
-    const options = [
-        { id: '1', name: 'Classic', Description: 'Reliable Drivers at the Best Price', Price: 200.0, allowance: 59.95 },
-        { id: '2', name: 'Pro', Description: 'Expert Drivers for Premium Rides', Price: 300.00, allowance: 59.95 },
-        { id: '3', name: 'Premium', Description: 'Expert Drivers for Premium Rides', Price: 450.00, allowance: 59.95 },
-    ];
+    // const options = [
+    //     { id: '1', name: 'Classic', Description: 'Reliable Drivers at the Best Price', Price: 200.0, allowance: 59.95 },
+    //     { id: '2', name: 'Pro', Description: 'Expert Drivers for Premium Rides', Price: 300.00, allowance: 59.95 },
+    //     { id: '3', name: 'Premium', Description: 'Expert Drivers for Premium Rides', Price: 450.00, allowance: 59.95 },
+    // ];
     const [modalData, setModalData] = useState<OptionModal>()
     const selectedOptionData = options.find(option => option.id === selectedDriver);
     // Default to the first option's price if nothing is selected yet
-    const baseFare = selectedOptionData ? selectedOptionData.Price : options[0].Price;
+    const baseFare = selectedOptionData ? selectedOptionData.Price : (options[0]?.Price ?? 0);
     // const [selectedPrice, setSelectedPrice] = useState(parseFloat(options[0].Price.replace('₹', '')));
     // const [allowancePrice, setAllowancePrice] = useState(parseFloat(options[0].allowance.replace('₹', '')));
     const [updatedTip, setUpdatedTip] = useState<any>();
@@ -282,9 +283,11 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
             const { day, time } = parseScheduledDate(TripPayload.scheduled_start_time);
             const payload = {
                 distance_km: TripPayload.distance_km,
-                duration_min: 60,
-                day,
-                time,
+                duration_min: TripPayload.trip_duration_minutes,
+                ride_type: TripPayload.ride_type,
+                // driver_type: TripPayload.,
+                // Ensure the date object is properly converted to an ISO string rather than logging as {}
+                scheduled_at: new Date((TripPayload?.booking_type === "LIVE" ? TripPayload?.original_scheduled_start_time : TripPayload.scheduled_start_time) || new Date()).toISOString(),
                 from_area: fromAddress?.area,
                 from_district: fromAddress?.district,
                 to_area: toAddress?.area,
@@ -292,6 +295,14 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
             };
 
             const result = await getPricing(payload).unwrap();
+            console.log(result, TripPayload, "result", payload);
+            setOptions(result.data.ride_options.map((item: any, index: number) => ({
+                id: index.toString(),
+                name: item.ride_type,
+                Description: item.vehicle_type_description,
+                Price: item.fare_details?.total_fare || item.total_fare,
+                allowance: item.fare_details?.time_charge || item.allowance
+            })));
         };
 
         loadData();
