@@ -38,10 +38,12 @@ export const useDirections = (googleApiKey: string) => {
                 }));
 
                 setCoords(routeCoords);
-                setDistance(json.routes[0].legs[0].distance.text);
-                setDuration(json.routes[0].legs[0].duration.text);
+                const distanceText = json.routes[0].legs[0].distance.text;
+                const durationText = json.routes[0].legs[0].duration.text;
+                setDistance(distanceText);
+                setDuration(durationText);
 
-                return routeCoords; // Return for external use (like fitToCoordinates)
+                return { routeCoords, distanceText, durationText }; // Return for external use
             }
         } catch (error) {
             Alert.alert('Network Error!!!', 'Try Again Later');

@@ -149,7 +149,7 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
         drop_lat: dropoffLocation?.dropLat || 0,
         drop_lng: dropoffLocation?.dropLng || 0,
         drop_address: destination,
-        distance_km: 10,
+        distance_km: undefined,
         total_fare: 0,
         platform_fee: 1,
         vehicle_model: '',

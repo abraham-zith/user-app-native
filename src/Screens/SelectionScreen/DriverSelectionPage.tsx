@@ -271,6 +271,8 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
     };
     useEffect(() => {
         const loadData = async () => {
+            if (!TripPayload.distance_km || !TripPayload.trip_duration_minutes) return;
+
             const fromAddress = await getAddressFromCoords(
                 Number(TripPayload.pickup_lat),
                 Number(TripPayload.pickup_lng)
@@ -280,14 +282,17 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
                 Number(TripPayload.drop_lat),
                 Number(TripPayload.drop_lng)
             );
-            const { day, time } = parseScheduledDate(TripPayload.scheduled_start_time);
+            const actualStartDate = TripPayload?.booking_type === "LIVE" ? new Date() : new Date(TripPayload.scheduled_start_time || new Date());
+            const { day, time } = parseScheduledDate(actualStartDate);
+            
             const payload = {
                 distance_km: TripPayload.distance_km,
                 duration_min: TripPayload.trip_duration_minutes,
                 ride_type: TripPayload.ride_type,
                 // driver_type: TripPayload.,
-                // Ensure the date object is properly converted to an ISO string rather than logging as {}
-                scheduled_at: new Date((TripPayload?.booking_type === "LIVE" ? TripPayload?.original_scheduled_start_time : TripPayload.scheduled_start_time) || new Date()).toISOString(),
+                scheduled_at: actualStartDate.toISOString(),
+                day,
+                time,
                 from_area: fromAddress?.area,
                 from_district: fromAddress?.district,
                 to_area: toAddress?.area,
