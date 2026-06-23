@@ -40,15 +40,17 @@ const SelectionPage: React.FC<ExtendedScreenProps> = ({ screenName, TripPayload,
 
                 const result = await calculateRoute(pickup, drop);
                 let DistanceKm = 0;
-                if (distance) {
-                    DistanceKm = parseFloat(distance.replace(/[^\d.]/g, ''));
-                }
                 let DurationMin = 0;
-                if (duration) {
-                    DurationMin = parseInt(duration.replace(/[^\d.]/g, ''));
-                }
 
                 if (result) {
+                    const { distanceText, durationText } = result as any;
+                    if (distanceText) {
+                        DistanceKm = parseFloat(distanceText.replace(/[^\d.]/g, ''));
+                    }
+                    if (durationText) {
+                        DurationMin = parseInt(durationText.replace(/[^\d.]/g, ''));
+                    }
+
                     setTripPayload((prev) => ({
                         ...prev,
                         distance_km: DistanceKm,
@@ -58,7 +60,7 @@ const SelectionPage: React.FC<ExtendedScreenProps> = ({ screenName, TripPayload,
             };
             fetchRoute();
         }
-    }, [TripPayload.pickup_lat, TripPayload.drop_lat, distance, duration]);
+    }, [TripPayload.pickup_lat, TripPayload.drop_lat]);
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
