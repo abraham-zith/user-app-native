@@ -23,6 +23,7 @@ import {
     BackHandler
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Geolocation from 'react-native-geolocation-service';
 
 // Components
 import MapLocationPolyline from './TripComponents/MapLocationPolyline';
@@ -176,6 +177,7 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
         onTripMidCancelled,
         onTripStatusChanged,
         onDriverLocationUpdated,
+        emit,
     } = useSocket();
 
     // ==================== API QUERIES & MUTATIONS ====================
@@ -387,6 +389,39 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
         return () => unsubscribe();
     }, [currentTrip?.trip_id]);
 
+    // ==================== USER LOCATION TRACKER (LIVE SHARING) ====================
+    useEffect(() => {
+        let watchId: number | null = null;
+        if (currentStatus === TripStatus.LIVE && currentTrip?.trip_id && localUser?.id) {
+            // console.log("🚀 Trip went live, starting user location share...");
+            watchId = Geolocation.watchPosition(
+                (position) => {
+                    emit(SOCKET_EVENTS.USER_LOCATION_UPDATE, {
+                        tripId: currentTrip.trip_id,
+                        userId: localUser.id,
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        heading: position.coords.heading,
+                    });
+                },
+                (error) => {
+                    console.error("❌ Geolocation watch error:", error);
+                },
+                {
+                    enableHighAccuracy: true,
+                    distanceFilter: 10,
+                    interval: 5000,
+                    fastestInterval: 2000,
+                }
+            );
+        }
+
+        return () => {
+            if (watchId !== null) {
+                Geolocation.clearWatch(watchId);
+            }
+        };
+    }, [currentStatus, currentTrip?.trip_id, localUser?.id]);
 
 
     const pickup = {
@@ -583,6 +618,7 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
                 }
             } catch (error) {
                 Alert.alert('Failed to cancel trip. Please try again.');
+                console.error('❌ Cancel Trip Error:', error);
             }
         },
         [currentTrip, socket, otherReason]
