@@ -98,7 +98,7 @@ const AboutVDrive = () => {
                     <View style={styles.logoBadge}>
                         <MaterialCommunityIcons name="car-limousine" size={mS(50)} color="#FFF" />
                     </View>
-                    <Text style={[styles.brandName, { color: appColors.text }]}>VDrive</Text>
+                    <Text style={[styles.brandName, { color: appColors.text }]}>T2Drive</Text>
                     <Text style={[styles.tagline, { color: appColors.secondaryText }]}>Redefining Your Daily Commute</Text>
 
                     <View style={[styles.statsRow, { backgroundColor: isDark ? appColors.card : 'rgba(255, 255, 255, 0.8)', borderColor: appColors.border }]}>
@@ -117,7 +117,7 @@ const AboutVDrive = () => {
                         <Text style={[styles.sectionTitle, { color: appColors.text }]}>Our Mission</Text>
                     </View>
                     <Text style={[styles.para, { color: appColors.secondaryText }]}>
-                        At VDrive, we're on a mission to revolutionize urban mobility. We believe that getting from point A to point B should be seamless, safe, and sustainable. By connecting thousands of expert drivers with millions of riders, we're building the future of transportation, one ride at a time.
+                        At T2Drive, we're on a mission to revolutionize urban mobility. We believe that getting from point A to point B should be seamless, safe, and sustainable. By connecting thousands of expert drivers with millions of riders, we're building the future of transportation, one ride at a time.
                     </Text>
                 </View>
 

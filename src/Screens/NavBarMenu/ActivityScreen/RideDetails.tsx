@@ -237,7 +237,7 @@ const RideDetails: React.FC<any> = () => {
                 <View style={styles.disclaimerContainer}>
                     <MaterialCommunityIcons name="information-outline" size={mS(20)} color={appColors.secondaryText} />
                     <Text style={[styles.disclaimerText, { color: appColors.secondaryText }]}>
-                        VDrive serves solely as a facilitator between you and independent Captains. The fare
+                        T2Drive serves solely as a facilitator between you and independent Captains. The fare
                         displayed is an estimate; the final fare is subject to mutual agreement. A tax invoice
                         will not be provided for this trip. Please refer to the T&Cs for further details.
                     </Text>

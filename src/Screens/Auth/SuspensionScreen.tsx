@@ -17,17 +17,17 @@ const SuspensionScreen = () => {
     };
 
     const handleContactSupport = () => {
-        Linking.openURL('mailto:support@vdrive.com');
+        Linking.openURL('mailto:support@t2drive.com');
     };
 
     return (
         <View style={[styles.container, { backgroundColor: appColors.background }]}>
             <View style={styles.content}>
                 <View style={[styles.iconContainer, { backgroundColor: appColors.error + '20' }]}>
-                    <MaterialCommunityIcons 
-                        name={suspensionData?.status === 'blocked' ? "account-off" : "account-clock"} 
-                        size={80} 
-                        color={appColors.error} 
+                    <MaterialCommunityIcons
+                        name={suspensionData?.status === 'blocked' ? "account-off" : "account-clock"}
+                        size={80}
+                        color={appColors.error}
                     />
                 </View>
 
@@ -46,14 +46,14 @@ const SuspensionScreen = () => {
                     </Text>
                 </View>
 
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={[styles.supportButton, { backgroundColor: appColors.primary }]}
                     onPress={handleContactSupport}
                 >
                     <Text style={styles.supportButtonText}>Contact Support</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={styles.logoutButton}
                     onPress={handleLogout}
                 >

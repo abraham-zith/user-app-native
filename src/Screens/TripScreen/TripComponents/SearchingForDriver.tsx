@@ -278,7 +278,7 @@ const SearchingDriver: React.FC<SearchDriverProps> = ({
             <View style={styles.header}>
                 <Text style={[styles.title, { color: appColors.text }]}>Finding your Captain</Text>
                 <Text style={[styles.subtitle, { color: appColors.secondaryText }]}>
-                    Connecting you to the nearest VDrive driver...
+                    Connecting you to the nearest T2Drive driver...
                 </Text>
             </View>
             <View style={styles.progressBarsRow}>
@@ -412,7 +412,7 @@ const SearchingDriver: React.FC<SearchDriverProps> = ({
     const renderTimeoutPopup = () => {
         const minutes = Math.floor(popupTimer / 60);
         const seconds = (popupTimer % 60).toString().padStart(2, '0');
-        
+
         return (
             <Modal
                 visible={isPopupVisible}
@@ -428,11 +428,11 @@ const SearchingDriver: React.FC<SearchDriverProps> = ({
                         <View style={styles.modalIconWrapper}>
                             <MaterialCommunityIcons name="alert-circle-outline" size={mS(36)} color="#EF4444" />
                         </View>
-                        
+
                         <Text style={[styles.modalTitle, { color: appColors.text }]}>
                             No Driver Found Yet
                         </Text>
-                        
+
                         <Text style={[styles.modalSubtitle, { color: appColors.secondaryText }]}>
                             Would you like to customize your tip to find a driver quickly, or cancel the request?
                         </Text>

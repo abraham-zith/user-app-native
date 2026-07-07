@@ -118,7 +118,7 @@ const RatingView: React.FC<RatingViewProps> = ({
             [
                 {
                     text: 'No',
-                    onPress: () => {},
+                    onPress: () => { },
                     style: 'cancel',
                 },
                 {
@@ -153,7 +153,7 @@ const RatingView: React.FC<RatingViewProps> = ({
                 </View>
                 <Text style={[styles.completionTitle, { color: appColors.text }]}>Trip Complete!</Text>
                 <Text style={[styles.completionSubtitle, { color: appColors.secondaryText }]}>
-                    Thank you for using VDrive
+                    Thank you for using T2Drive
                 </Text>
             </View>
 

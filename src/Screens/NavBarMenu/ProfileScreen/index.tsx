@@ -527,7 +527,7 @@ const ProfileScreen: React.FC<ScreenProps> = ({ navigation }) => {
                 {/* --- APP INFO SECTION --- */}
                 <View style={styles.appInfoSection}>
                     <Text style={[styles.versionText, { color: colors.lightTextColor }]}>Version 1.0.42 (Beta)</Text>
-                    <Text style={[styles.brandText, { color: colors.lightTextColor }]}>Made with ❤️ for V-Drive Users</Text>
+                    <Text style={[styles.brandText, { color: colors.lightTextColor }]}>Made with ❤️ for T2Drive Users</Text>
                 </View>
 
             </ScrollView>

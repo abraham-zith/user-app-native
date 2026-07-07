@@ -106,7 +106,7 @@ const TripScreenSkeleton = () => {
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SNAP_TOP = 0;
-const SNAP_BOTTOM = 400;
+const SNAP_BOTTOM = 220;
 const DRAG_THRESHOLD = 80;
 
 const PRE_TRIP_REASONS = [
@@ -535,6 +535,9 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
                 });
                 return true; // Prevent default behavior
             }
+            if (currentStatus === TripStatus.REQUESTED) {
+                return true; // Prevent default behavior without redirecting
+            }
             return false; // Let system handle it
         };
 
@@ -545,15 +548,18 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
 
         // Also handle navigation actions (header back button, swipe back gestures)
         const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
-            if (
-                (e.data.action.type === 'GO_BACK' || e.data.action.type === 'POP') &&
-                (currentStatus === TripStatus.LIVE ||
+            if (e.data.action.type === 'GO_BACK' || e.data.action.type === 'POP') {
+                if (
+                    currentStatus === TripStatus.LIVE ||
                     currentStatus === TripStatus.ACCEPTED ||
                     currentStatus === TripStatus.ARRIVING ||
-                    currentStatus === TripStatus.ARRIVED)
-            ) {
-                e.preventDefault();
-                handleBackAction();
+                    currentStatus === TripStatus.ARRIVED
+                ) {
+                    e.preventDefault();
+                    handleBackAction();
+                } else if (currentStatus === TripStatus.REQUESTED) {
+                    e.preventDefault();
+                }
             }
         });
 

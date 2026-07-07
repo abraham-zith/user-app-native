@@ -171,7 +171,7 @@ export function DailyComponent() {
                 style={[
                     styles.heroCard,
                     {
-                        backgroundColor: appColors.primary,
+                        backgroundColor: appColors.button,
                         borderColor: appColors.border,
                     }
                 ]}
@@ -223,7 +223,7 @@ export function DailyComponent() {
             </View>
 
             {/* Schedule Options */}
-            <View style={styles.scheduleSection}>
+            {/* <View style={styles.scheduleSection}>
                 <Text style={[fonts.bold, styles.sectionTitle, { color: appColors.text }]}>
                     Choose Your Schedule
                 </Text>
@@ -241,7 +241,7 @@ export function DailyComponent() {
                         <ScheduleCard key={option.id} option={option} appColors={appColors} isDark={isDark} />
                     ))}
                 </ScrollView>
-            </View>
+            </View> */}
 
             {/* Driver Features Grid */}
             <View style={styles.featuresSection}>
@@ -321,7 +321,7 @@ export function DailyComponent() {
                 </View>
                 <Button
                     style={styles.footerBtn}
-                    onPress={() => console.log('Book Now')}
+                    onPress={() => navigation.navigate(LocationSearch_Nav, { screenName: 'Schedule' })}
                 >
                     <Text style={[fonts.bold, styles.footerBtnText]}>Book Now</Text>
                 </Button>
@@ -680,6 +680,7 @@ const styles = StyleSheet.create({
     heroImageContainer: {
         justifyContent: 'center',
         alignItems: 'center',
+        transform: [{ translateY: -35 }],
     },
 
     // Schedule Section

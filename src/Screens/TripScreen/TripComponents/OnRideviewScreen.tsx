@@ -100,7 +100,7 @@ const OnRideView: React.FC<OnRideViewProps> = ({
     const onShareTrip = async () => {
         try {
             await Share.share({
-                message: `I'm on a VDrive trip to ${destination}. Track me here: vdriveapp://trips/${tripData.trip_id}`,
+                message: `I'm on a T2Drive trip to ${destination}. Track me here: t2driveapp://trips/${tripData.trip_id}`,
                 title: 'Share Trip Status',
             });
         } catch (error: any) {

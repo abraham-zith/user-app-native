@@ -48,7 +48,7 @@ const OfferCard = ({ item, index, isDark, colors, userId }: any) => {
     }
 
     Clipboard.setString(item.code);
-    
+
     try {
       const fcmToken = await messaging().getToken();
       if (userId && fcmToken) {
@@ -126,18 +126,18 @@ const OffersScreen: React.FC = () => {
 
   const mappedCoupons = React.useMemo(() => {
     if (!availableCoupons) return [];
-    
+
     // Safely extract the array whether it's directly returned or wrapped in a data object
-    const couponsArray = Array.isArray(availableCoupons) 
-      ? availableCoupons 
+    const couponsArray = Array.isArray(availableCoupons)
+      ? availableCoupons
       : (availableCoupons.data || availableCoupons.coupons || []);
-      
+
     if (!Array.isArray(couponsArray)) return [];
 
     return couponsArray.map((coupon: any) => ({
       id: coupon.id || coupon._id || coupon.code || Math.random().toString(),
       title: coupon.discount_type === 'PERCENTAGE' ? 'Percentage Discount' : 'Flat Discount',
-      description: `Min. ride amount: ₹${coupon.min_ride_amount || 0}. Enjoy your ride with VDrive!`,
+      description: `Min. ride amount: ₹${coupon.min_ride_amount || 0}. Enjoy your ride with T2Drive!`,
       code: coupon.code || '',
       discount: coupon.discount_type === 'PERCENTAGE' ? `${coupon.discount_value}%` : `₹${coupon.discount_value}`,
       expiry: coupon.valid_until ? `Valid until ${new Date(coupon.valid_until).toLocaleDateString()}` : 'No Expiry',

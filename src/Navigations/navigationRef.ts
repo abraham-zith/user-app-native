@@ -41,7 +41,8 @@ export const waitForNavigation = (timeoutMs = 5000): Promise<boolean> => {
 // nestedRoute: if screen is inside a nested navigator
 export const safeReset = async (
     routeName: string,
-    nestedRoute?: string
+    nestedRoute?: string,
+    params?: any
 ) => {
     const isReady = await waitForNavigation();
 
@@ -56,10 +57,11 @@ export const safeReset = async (
             routes: [
                 {
                     name: routeName,
+                    params,
                     // ✅ If screen is nested — set initial route of nested navigator
                     ...(nestedRoute && {
                         state: {
-                            routes: [{ name: nestedRoute }],
+                            routes: [{ name: nestedRoute, params }],
                         },
                     }),
                 },

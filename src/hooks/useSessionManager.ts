@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Alert, AppState, AppStateStatus } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 
-import { RootState } from '../redux/store';
+import { RootState, AppDispatch } from '../redux/store';
 import { logout, setUser, setSuspensionData } from '../redux/userSlice';
 import { clearActiveTrip, setTrips } from '../redux/tripSlice';
 import { useGetActiveTripbyUserIdQuery, useUpdateFcmTokenMutation, userApi } from '../service/userApi';
@@ -16,7 +16,9 @@ import {
   SignUpScreen_Nav,
   TabNavigation_Nav,
   WelcomeScreen_Nav,
+  BookedTripScreen_Nav,
 } from '../Navigations/navigations';
+import { getActiveTripId, clearActiveTrip as clearActiveTripStorage } from '../service/utils/tripstorage';
 import {
   requestNotificationPermission,
   syncFcmToken,
@@ -32,7 +34,7 @@ import {
  * - FCM token sync and refresh
  */
 export const useSessionManager = () => {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const [checkingToken, setCheckingToken] = useState(true);
 
   const [updateFcmToken] = useUpdateFcmTokenMutation();
@@ -79,29 +81,46 @@ export const useSessionManager = () => {
   };
 
   // ─── Route User Based on Onboarding Status ────────────────────────────────
-  const routeUser = (userData: any) => {
+  const routeUser = async (userData: any) => {
     const onboarding_status = userData?.onboarding_status?.toLowerCase();
     const status = userData?.status?.toLowerCase();
     const phone_verified = userData?.phone_verified;
 
+    if (
+      (onboarding_status === OnboardingStatus.COMPLETED || 
+      (onboarding_status === OnboardingStatus.PROFILE_COMPLETED && phone_verified === true)) &&
+      (status === 'active' || (suspensionData && activeTrips.length > 0))
+    ) {
+      const savedId = await getActiveTripId();
+      if (savedId) {
+          try {
+              const result = await dispatch(userApi.endpoints.getByTripId.initiate(savedId)).unwrap();
+              if (result.success && (
+                  result.data.trip_status === 'LIVE' || 
+                  result.data.trip_status === 'REQUESTED' ||
+                  result.data.trip_status === 'ACCEPTED' ||
+                  result.data.trip_status === 'ARRIVING' ||
+                  result.data.trip_status === 'ARRIVED' ||
+                  result.data.trip_status === 'DESTINATION_REACHED' ||
+                  result.data.trip_status === 'COMPLETED'
+              )) {
+                  safeReset(BookedTripScreen_Nav, undefined, { ...result.data });
+                  setCheckingToken(false);
+                  return;
+              } else {
+                  await clearActiveTripStorage();
+              }
+          } catch (err) {
+              console.error("Session Resume Error:", err);
+          }
+      }
+      
+      safeReset(TabNavigation_Nav);
+      setCheckingToken(false);
+      return;
+    }
+
     setCheckingToken(false);
-
-    if (
-      onboarding_status === OnboardingStatus.COMPLETED &&
-      (status === 'active' || (suspensionData && activeTrips.length > 0))
-    ) {
-      safeReset(TabNavigation_Nav);
-      return;
-    }
-
-    if (
-      onboarding_status === OnboardingStatus.PROFILE_COMPLETED &&
-      phone_verified === true &&
-      (status === 'active' || (suspensionData && activeTrips.length > 0))
-    ) {
-      safeReset(TabNavigation_Nav);
-      return;
-    }
     if (onboarding_status === OnboardingStatus.PHONE_VERIFIED) {
       safeReset(SignUpScreen_Nav);
       return;

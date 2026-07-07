@@ -47,6 +47,69 @@ const ActivityCardSkeleton = ({ isDark, appColors }: any) => (
     </View>
 );
 
+const AnimatedListItem = ({ index, children }: { index: number, children: React.ReactNode }) => {
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const slideAnim = useRef(new Animated.Value(20)).current;
+
+    useEffect(() => {
+        // Cap the delay so items further down the list don't wait forever to appear
+        const staggerDelay = Math.min(index, 8) * 100;
+        Animated.parallel([
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 500,
+                delay: staggerDelay,
+                useNativeDriver: true,
+            }),
+            Animated.timing(slideAnim, {
+                toValue: 0,
+                duration: 500,
+                delay: staggerDelay,
+                useNativeDriver: true,
+            }),
+        ]).start();
+    }, []);
+
+    return (
+        <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+            {children}
+        </Animated.View>
+    );
+};
+
+const ActivityScreenSkeleton = ({ appColors, isDark }: any) => (
+    <View style={{ flex: 1, backgroundColor: appColors.background }}>
+        {/* Search & Filter Skeleton */}
+        <View style={{
+            backgroundColor: appColors.card,
+            paddingTop: 10,
+            paddingBottom: 20,
+            paddingHorizontal: 16,
+            borderBottomLeftRadius: 24,
+            borderBottomRightRadius: 24,
+        }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <Skeleton width="35%" height={48} borderRadius={12} />
+                <Skeleton width="62%" height={48} borderRadius={12} />
+            </View>
+        </View>
+
+        {/* Tab Switcher Skeleton */}
+        <View style={{
+            flexDirection: 'row',
+            marginHorizontal: 16,
+            marginVertical: 20,
+        }}>
+            <Skeleton width="100%" height={48} borderRadius={14} />
+        </View>
+
+        {/* Ride List Skeleton */}
+        <View style={{ paddingHorizontal: 16 }}>
+            {[1, 2, 3, 4, 5].map(i => <ActivityCardSkeleton key={i} isDark={isDark} appColors={appColors} />)}
+        </View>
+    </View>
+);
+
 const Activity: React.FC<ScreenProps> = ({ navigation }) => {
     // const { data: trips, isLoading, isFetching, refetch } = useGetAllTripsQuery();
     const localuser = useSelector((state: RootState) => state?.userSlice?.user);
@@ -55,6 +118,7 @@ const Activity: React.FC<ScreenProps> = ({ navigation }) => {
     const [searchBy, setSearchBy] = useState(null);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [isScreenLoading, setIsScreenLoading] = useState(true);
     const [filteredData, setFilteredData] = useState<Trip[]>([]);
     const [startDate, setStartDate] = useState<string | null>(null);
     const [endDate, setEndDate] = useState<string | null>(null);
@@ -91,6 +155,27 @@ const Activity: React.FC<ScreenProps> = ({ navigation }) => {
         // No need to set a local "refreshing" state if you use isFetching from RTK Query
         await refetch();
     }, [refetch]);
+
+    // ==================== ANIMATIONS ====================
+    const screenFadeAnim = useRef(new Animated.Value(0)).current;
+    const screenSlideAnim = useRef(new Animated.Value(20)).current;
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setIsScreenLoading(false);
+        }, 1500);
+        return () => clearTimeout(timer);
+    }, []);
+
+    // Trigger animations only after the skeleton has finished loading
+    useEffect(() => {
+        if (!isScreenLoading) {
+            Animated.parallel([
+                Animated.timing(screenFadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+                Animated.timing(screenSlideAnim, { toValue: 0, duration: 800, useNativeDriver: true }),
+            ]).start();
+        }
+    }, [isScreenLoading, screenFadeAnim, screenSlideAnim]);
 
     // useFocusEffect(
     //     useCallback(() => {
@@ -237,11 +322,15 @@ const Activity: React.FC<ScreenProps> = ({ navigation }) => {
         return dateStr.split('-').reverse().join('-');
     };
 
-    return (
+    if (isScreenLoading) {
+        return <ActivityScreenSkeleton appColors={appColors} isDark={isDark} />;
+    }
 
+    return (
         <View style={{ flex: 1, backgroundColor: appColors.background }}>
-            {/* ───────────────────── SEARCH & FILTER SECTION ───────────────────── */}
-            <View style={{
+            <Animated.View style={{ flex: 1, opacity: screenFadeAnim, transform: [{ translateY: screenSlideAnim }] }}>
+                {/* ───────────────────── SEARCH & FILTER SECTION ───────────────────── */}
+                <View style={{
                 backgroundColor: appColors.card,
                 paddingTop: 10,
                 paddingBottom: 20,
@@ -512,7 +601,7 @@ const Activity: React.FC<ScreenProps> = ({ navigation }) => {
                     style={{ paddingHorizontal: 16 }}
                     data={filteredData}
                     keyExtractor={(item) => item.trip_id.toString()}
-                    removeClippedSubviews={true}
+                    removeClippedSubviews={false}
                     initialNumToRender={10}
                     maxToRenderPerBatch={5}
                     refreshControl={
@@ -569,7 +658,8 @@ const Activity: React.FC<ScreenProps> = ({ navigation }) => {
                             </View>
                         ) : null
                     }
-                    renderItem={({ item }) => (
+                    renderItem={({ item, index }) => (
+                        <AnimatedListItem index={index}>
                         <TouchableOpacity
                             activeOpacity={0.9}
                             onPress={() => {
@@ -667,9 +757,11 @@ const Activity: React.FC<ScreenProps> = ({ navigation }) => {
                             </View>
                             <MaterialCommunityIcons name="chevron-right" size={20} color="#CBD5E1" />
                         </TouchableOpacity>
+                        </AnimatedListItem>
                     )}
                 />
             )}
+            </Animated.View>
         </View>
     );
 };

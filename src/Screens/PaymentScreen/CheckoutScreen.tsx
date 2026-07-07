@@ -123,7 +123,7 @@ const CheckoutScreen = () => {
     }, [trip?.discount, trip?.total_fare, calculatedPayable]);
 
     const product = {
-        name: 'VDrive Premium',
+        name: 'T2Drive Premium',
         description: `${trip?.ride_type?.replace(/[-_]/g, ' ').toUpperCase()} Trip`,
         Bprice: trip?.base_fare || 0,
         allowances: trip?.driver_allowance || (trip?.total_fare || 0) - (trip?.base_fare || 0) + (trip?.discount || 0),
@@ -158,7 +158,7 @@ const CheckoutScreen = () => {
                 currency: orderData.currency,
                 key: 'rzp_test_SCjewpaZ96XBWa',
                 amount: orderData.amount,
-                name: 'VDRIVE',
+                name: 'T2Drive',
                 order_id: orderData.order_id,
                 prefill: {
                     email: 'user@example.com',

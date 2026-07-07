@@ -242,7 +242,7 @@ const SignUpScreen: React.FC<any> = ({ navigation }) => {
       >
         {/* --- PREMIUM HEADER SECTION --- */}
         <View style={styles.headerContainer}>
-          <Text style={[styles.welcomeText, { color: appColors.primary }]}>Welcome to V-Drive</Text>
+          <Text style={[styles.welcomeText, { color: appColors.primary }]}>Welcome to T2Drive</Text>
           <Text style={[styles.titleText, { color: appColors.text }]}>Create Your Profile</Text>
           <Text style={[styles.descriptionText, { color: appColors.lightTextColor }]}>
             Join our community for a seamless travel experience. Just a few more details to get you started!
@@ -438,7 +438,7 @@ const SignUpScreen: React.FC<any> = ({ navigation }) => {
             {agreedToTerms ? <CheckedIcon width={mS(18)} height={mS(18)} fill={appColors.primary} /> : <UnCheckedIcon width={mS(18)} height={mS(18)} stroke={appColors.lightTextColor} />}
           </TouchableOpacity>
           <Text style={[styles.termsText, { color: appColors.lightTextColor }]}>
-            By signing up, you agree to VDrive's
+            By signing up, you agree to T2Drive's
             <Text style={[fonts.bold, { color: appColors.text }]}> Terms & Conditions </Text>
             and <Text style={[fonts.bold, { color: appColors.text }]}>Privacy Policy</Text>.
           </Text>

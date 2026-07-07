@@ -25,7 +25,7 @@ export default function AnimationWithImperativeApi() {
         style={{ width: '100%', height: '100%' }}
       />
       <View style={styles.textWrapper}>
-        <Text style={[styles.title, { color: appColors.text }]}>VDrive</Text>
+        <Text style={[styles.title, { color: appColors.text }]}>T2Drive</Text>
       </View>
     </SafeAreaView>
   );

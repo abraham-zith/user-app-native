@@ -259,7 +259,8 @@ export function OutstationComponent() {
                 <FlatList
                     data={outstationTrips.slice(0, 5)}
                     keyExtractor={(item) => item.trip_id}
-                    scrollEnabled={false}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
                     renderItem={({ item }) => {
                         let mappedStatus: 'active' | 'completed' | 'upcoming' = 'upcoming';
                         if (['ARRIVING', 'ARRIVED', 'LIVE', 'DESTINATION_REACHED'].includes(item.trip_status)) {
@@ -295,7 +296,7 @@ export function OutstationComponent() {
                             <Text style={[styles.emptyText, { color: appColors.text }]}>No round trips found</Text>
                         </View>
                     }
-                    contentContainerStyle={styles.listContent}
+                    contentContainerStyle={styles.scrollContent}
                 />
             </View>
 

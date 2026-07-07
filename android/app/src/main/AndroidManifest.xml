@@ -68,7 +68,7 @@
             <action android:name="android.intent.action.VIEW" />
             <category android:name="android.intent.category.DEFAULT" />
             <category android:name="android.intent.category.BROWSABLE" />
-            <data android:scheme="vdriveapp" android:host="trip" />
+            <data android:scheme="t2driveapp" android:host="trip" />
         </intent-filter>
 
   <!-- Universal link -->
