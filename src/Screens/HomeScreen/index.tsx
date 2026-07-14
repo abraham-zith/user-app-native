@@ -41,6 +41,7 @@ import { ScheduledTripBadge } from "../TripScreen/TripComponents/ScheduledRideBa
 import { BookedTripScreen_Nav } from "../../Navigations/navigations";
 import { useLazyGetByTripIdQuery } from "../../service/tripApi";
 import Skeleton from "../../Components/Skeleton";
+import SidebarModal from "./HomeScreenComponents/SidebarModal";
 
 let initialLoadChecked = false;
 
@@ -134,6 +135,7 @@ const HomeScreen: React.FC<any> = ({ navigation }) => {
     const [screenName, setscreenName] = useState('OneWay');
     const [active, setActive] = useState<number>(0);
     const [isScreenLoading, setIsScreenLoading] = useState(true);
+    const [isSidebarVisible, setIsSidebarVisible] = useState(false);
 
     const [triggerGetTrip] = useLazyGetByTripIdQuery();
 
@@ -293,8 +295,11 @@ const HomeScreen: React.FC<any> = ({ navigation }) => {
                             <ActiveTripBadge />
                             <ScheduledTripBadge />
                         </View>
-                        <TouchableOpacity style={[style.settingsButton, { backgroundColor: isDark ? '#333' : '#F1F5F9' }]}>
-                            <MaterialCommunityIcons name="tune-variant" size={mS(20)} color={appColors.text} />
+                        <TouchableOpacity 
+                            style={[style.settingsButton, { backgroundColor: isDark ? '#333' : '#F1F5F9' }]}
+                            onPress={() => setIsSidebarVisible(true)}
+                        >
+                            <MaterialCommunityIcons name="menu" size={mS(20)} color={appColors.text} />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -444,6 +449,13 @@ const HomeScreen: React.FC<any> = ({ navigation }) => {
                     </View>
                 </ScrollView>
             </View>
+
+            <SidebarModal
+                visible={isSidebarVisible}
+                onClose={() => setIsSidebarVisible(false)}
+                appColors={appColors}
+                isDark={isDark}
+            />
         </View>
     );
 };

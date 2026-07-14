@@ -73,6 +73,7 @@ export interface ISocketContext {
     onDestinationReached: (callback: (data: any) => void) => () => void;
     onTripCompleted: (callback: (data: any) => void) => () => void;
     onTripCancelled: (callback: (data: any) => void) => () => void;
+    onRideReassigning: (callback: (data: any) => void) => () => void;
     onTripMidCancelled: (callback: (data: any) => void) => () => void;
     onTripStatusUpdated: (callback: (data: any) => void) => () => void;
     onTripStatusChanged: (callback: (data: any) => void) => () => void;

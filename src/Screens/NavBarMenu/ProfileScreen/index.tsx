@@ -412,6 +412,23 @@ const ProfileScreen: React.FC<ScreenProps> = ({ navigation }) => {
     }, []);
 
 
+    useEffect(() => {
+        const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
+            if (!isUploading) {
+                return;
+            }
+
+            // Prevent default behavior of leaving the screen
+            e.preventDefault();
+
+            if (Platform.OS === 'android') {
+                ToastAndroid.show('Please wait while profile is updating...', ToastAndroid.SHORT);
+            }
+        });
+
+        return unsubscribe;
+    }, [navigation, isUploading]);
+
     if (loading) {
         return <ProfileScreenSkeleton />;
     }
@@ -541,6 +558,18 @@ const ProfileScreen: React.FC<ScreenProps> = ({ navigation }) => {
             />
 
             <FullScreenImageModal />
+
+            {/* --- UPLOADING OVERLAY --- */}
+            {isUploading && (
+                <Modal transparent={true} animationType="fade" visible={isUploading} statusBarTranslucent navigationBarTranslucent onRequestClose={() => {}}>
+                    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+                        <View style={{ backgroundColor: colors.card, padding: hS(24), borderRadius: mS(16), alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 10, elevation: 5 }}>
+                            <ActivityIndicator size="large" color={colors.primary} />
+                            <Text style={{ marginTop: vS(12), color: colors.text, fontSize: mS(16), fontWeight: '600' }}>Updating profile...</Text>
+                        </View>
+                    </View>
+                </Modal>
+            )}
         </View>
     );
 };

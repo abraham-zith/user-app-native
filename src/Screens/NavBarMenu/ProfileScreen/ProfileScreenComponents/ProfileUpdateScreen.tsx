@@ -1,4 +1,4 @@
-import { ActivityIndicator, Alert, Animated, Modal, Pressable, ScrollView, StyleSheet, TextInput, ToastAndroid, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native"
+import { ActivityIndicator, Alert, Animated, Modal, Platform, Pressable, ScrollView, StyleSheet, TextInput, ToastAndroid, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native"
 import { Text } from "../../../../Components"
 import { Styles } from "../../../../lib/styles"
 import Button from "../../../../Components/Button"
@@ -33,7 +33,19 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
 
 
 
+    const [isUpdating, setIsUpdating] = useState(false);
     const [visible, setVisible] = useState(false);
+
+    useEffect(() => {
+        const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
+            if (!isUpdating) return;
+            e.preventDefault();
+            if (Platform.OS === 'android') {
+                ToastAndroid.show('Please wait while information is updating...', ToastAndroid.SHORT);
+            }
+        });
+        return unsubscribe;
+    }, [navigation, isUpdating]);
     const [clickedLabel, setClickedLabel] = useState('')
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
@@ -120,6 +132,7 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
 
 
     const handleNameUpdate = async (firstName?: string, lastName?: string) => {
+        setIsUpdating(true);
         try {
             const userId = user.id; // from context / redux / api call
 
@@ -144,10 +157,13 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
 
         } catch (error) {
             ToastAndroid.show('Something Went Wrong!!!', ToastAndroid.SHORT);
+        } finally {
+            setIsUpdating(false);
         }
     };
 
     const handleEmailUpdate = async (email: string) => {
+        setIsUpdating(true);
         try {
             const userId = user.id; // from context / redux / api call
 
@@ -170,10 +186,13 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
             setVisible(false);
 
         } catch (error) {
+        } finally {
+            setIsUpdating(false);
         }
     };
 
     const handleDobUpdate = async (selectedDate: Date) => {
+        setIsUpdating(true);
         try {
             const userId = user.id;
 
@@ -204,12 +223,15 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
             setClickedLabel("");
 
         } catch (error) {
+        } finally {
+            setIsUpdating(false);
         }
     };
 
 
 
     const handleGenderUpdate = async (gender: string) => {
+        setIsUpdating(true);
         try {
             const userId = user.id; // from context / redux / api call
 
@@ -232,6 +254,8 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
             setVisible(false);
 
         } catch (error) {
+        } finally {
+            setIsUpdating(false);
         }
     };
 
@@ -239,6 +263,8 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
         navigation.navigate(ContactScreen_Nav, {
             onSelectContact: async (SelectedContact: any) => {
                 if (SelectedContact) {
+                    navigation.goBack();
+                    setIsUpdating(true);
 
                     const incomingPhone = SelectedContact.phone?.replace(/[^0-9]/g, '') || '';
                     const cleanphone = SelectedContact.phone?.replace(/\+91|\s/g, '');
@@ -279,8 +305,9 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
                         // console.error("Update failed:", error);
                         ToastAndroid.show("Something Went Wrong!!! Try Later...", ToastAndroid.SHORT);
                         // Alert.alert("Error", "Failed to sync contacts with the server.");
+                    } finally {
+                        setIsUpdating(false);
                     }
-                    navigation.goBack();
                 }
             },
         });
@@ -562,6 +589,18 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
                     minimumDate={minDate}
                 />
             }
+
+            {/* --- UPDATING OVERLAY --- */}
+            {isUpdating && (
+                <Modal transparent={true} animationType="fade" visible={isUpdating} statusBarTranslucent navigationBarTranslucent onRequestClose={() => {}}>
+                    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+                        <View style={{ backgroundColor: colors.card, padding: hS(24), borderRadius: mS(16), alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 10, elevation: 5 }}>
+                            <ActivityIndicator size="large" color={colors.primary} />
+                            <Text style={{ marginTop: vS(12), color: colors.text, fontSize: mS(16), fontWeight: '600' }}>Updating information...</Text>
+                        </View>
+                    </View>
+                </Modal>
+            )}
         </View>
     );
 }

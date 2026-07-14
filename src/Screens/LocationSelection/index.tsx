@@ -1,7 +1,7 @@
 
 import { useRoute } from '@react-navigation/native';
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated, Platform, Modal, Pressable, ScrollView, Alert, ToastAndroid, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated, Platform, Modal, Pressable, ScrollView, Alert, ToastAndroid, ActivityIndicator, Switch } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Dropdown } from 'react-native-element-dropdown';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -31,6 +31,7 @@ import { useAppTheme } from '../../hooks/useAppTheme';
 import SearchableCarPicker from './Components/SearchableCarPicker';
 import { ALL_CARS, CarModel } from '../../constant/cars';
 import { TransmissionType, VehicleType } from '../../enums/trip.enum';
+import { useDirections } from '../../hooks/useDirections';
 
 const RECENT_LOCATIONS_KEY = '@recent_locations';
 const RECENT_CONTACTS_KEY = '@recent_contacts';
@@ -69,6 +70,7 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
 
     const { pickContact } = useContactPicker();
     const { getCurrentLocation, getAddressFromCoords, loading } = useLocation();
+    const { distance, duration, calculateRoute } = useDirections(GOOGLE_P_API_KEY ?? "");
 
     const { screenName, selectedDropOff, dropoffLocation } = route.params;
     const localuser = useSelector((state: RootState) => state.userSlice.user);
@@ -131,6 +133,39 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
         return null;
     });
     const [transmission, setTransmission] = useState<TransmissionType>(sTransmission || TransmissionType.MANUAL);
+    const [packageHours, setPackageHours] = useState<number | null>(null);
+    const packageHourOptions = [
+        { label: '2 Hours', value: 2 },
+        { label: '4 Hours', value: 4 },
+        { label: '6 Hours', value: 6 },
+        { label: '8 Hours', value: 8 },
+        { label: '12 Hours', value: 12 },
+    ];
+    const outstationTripTypeOptions = [
+        { label: 'One Way', value: 'oneway' },
+        { label: 'Round Trip', value: 'roundedTrip' }
+    ];
+    const outstationOneWayPackageHourOptions = [
+        { label: '4 Hrs', value: 4 },
+        { label: '6 Hrs', value: 6 },
+        { label: '8 Hrs', value: 8 },
+        { label: '10 Hrs', value: 10 },
+        { label: '12 Hrs', value: 12 },
+        { label: '14 Hrs', value: 14 },
+        { label: '16 Hrs', value: 16 },
+        { label: '18 Hrs', value: 18 },
+    ];
+    const outstationRoundTripPackageHourOptions = [
+        { label: '12 Hrs', value: 12 },
+        { label: '16 Hrs', value: 16 },
+        { label: '20 Hrs', value: 20 },
+        { label: '1 Day', value: 24 },
+        { label: '2 Days', value: 48 },
+        { label: '3 Days', value: 72 },
+        { label: '4 Days', value: 96 },
+        { label: '5 Days', value: 120 },
+    ];
+    const [outstationTripType, setOutstationTripType] = useState('oneway');
     // 2. Add refs to clear or control inputs if needed
 
     const [tripPayload, setTripPayload] = useState<Partial<Trip>>({
@@ -245,6 +280,20 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                 drop_lng: lng
             });
         }
+    };
+
+    const handlePackageSelect = (packageHours: number) => {
+
+        console.log('Selected package hours:', packageHours);
+        setPackageHours(packageHours);
+        setTripPayload(prev => ({
+            ...prev,
+            package_hours: packageHours
+        }));
+
+        onDataChange?.({
+            package_hours: packageHours
+        });
     };
 
     const handleCarSelect = (car: CarModel, trans: TransmissionType) => {
@@ -465,6 +514,14 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
     }
 
     const handleToggleAdvanceBooking = () => {
+        if (selectedRide === RideType.OUTSTATION) {
+            Alert.alert(
+                "Advance Booking",
+                "You cannot disable advance booking because outstation trips must be scheduled."
+            );
+            return;
+        }
+
         const newAdvanceBooking = !advancebooking;
         setAdvanceBooking(newAdvanceBooking);
         setTripPayload(prev => ({
@@ -516,10 +573,49 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
     }, [screenName])
 
     useEffect(() => {
-        if (startLocation && destination && !advancebooking && selectedVehicle && transmission) {
-            setNext(true);
+        if (selectedRide === RideType.OUTSTATION) {
+            setAdvanceBooking(true);
+            setTripPayload(prev => ({
+                ...prev,
+                booking_type: BookingType.SCHEDULED,
+                outstation_trip_type: outstationTripType
+            }));
         }
-    }, [startLocation, destination, advancebooking, selectedVehicle, transmission])
+    }, [selectedRide]);
+
+    useEffect(() => {
+        const { pickup_lat, pickup_lng, drop_lat, drop_lng } = tripPayload;
+
+        if (pickup_lat && pickup_lng && drop_lat && drop_lng) {
+            const fetchRoute = async () => {
+                const pickup = { lat: pickup_lat, lng: pickup_lng };
+                const drop = { lat: drop_lat, lng: drop_lng };
+
+                const result = await calculateRoute(pickup, drop);
+                let DistanceKm = 0;
+                let DurationMin = 0;
+
+                if (result) {
+                    const { distanceText, durationText } = result as any;
+                    if (distanceText) {
+                        DistanceKm = parseFloat(distanceText.replace(/[^\d.]/g, ''));
+                    }
+                    if (durationText) {
+                        DurationMin = parseInt(durationText.replace(/[^\d.]/g, ''));
+                    }
+
+                    setTripPayload((prev) => ({
+                        ...prev,
+                        distance_km: DistanceKm,
+                        trip_duration_minutes: DurationMin
+                    }));
+                }
+            };
+            fetchRoute();
+        }
+    }, [tripPayload.pickup_lat, tripPayload.pickup_lng, tripPayload.drop_lat, tripPayload.drop_lng]);
+
+    // Removed auto-navigation so user can manually confirm
 
     // Validation constants
     const anyDataPresent = !!(startLocation || destination || selectedVehicle);
@@ -527,6 +623,19 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
     const destinationError = anyDataPresent && !destination;
     const vehicleError = (startLocation && destination) && !selectedVehicle;
     const advanceError = advancebooking && (startLocation && destination && selectedVehicle) && (!scheduledDate || !scheduledTime || !selectedRide);
+
+    const getCityFromAddress = (address: string) => {
+        if (!address) return '';
+        const parts = address.split(',').map(s => s.trim());
+        return parts.length >= 3 ? parts[parts.length - 3] : address;
+    };
+    const pickupCity = getCityFromAddress(tripPayload.pickup_address || startLocation);
+    const dropCity = getCityFromAddress(tripPayload.drop_address || destination);
+    // Relaxed city matching: we only throw an error if it's a very long one-way trip (>= 4 hours)
+    const isDifferentCity = !!(startLocation && destination && pickupCity !== dropCity);
+    const isLongOneWay = tripPayload.trip_duration_minutes !== undefined && tripPayload.trip_duration_minutes >= 240;
+    const showCityError = selectedRide === RideType.ONE_WAY && isLongOneWay;
+
     return (
         <View style={[styles.maincontainer, { paddingTop: insets.top, backgroundColor: colors.background }]}>
             {/* HEADER */}
@@ -549,16 +658,50 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                         paddingVertical: vS(14),
                     }}>
                         {/* LEFT SECTION */}
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: hS(10) }}>
                             <TouchableOpacity
                                 onPress={() => navigation.goBack()}
                                 style={{ padding: mS(4), marginRight: hS(10) }}
                             >
                                 <MaterialCommunityIcons name="arrow-left" size={mS(26)} color={colors.text} />
                             </TouchableOpacity>
-                            <Text style={{ fontSize: mS(20), fontWeight: '700', color: colors.text }}>
-                                {rideDetails.find(r => r.value === selectedRide)?.label || screenName}
-                            </Text>
+                            <Dropdown
+                                style={{
+                                    width: mS(160),
+                                    height: vS(40),
+                                    backgroundColor: '#F1F5F9',
+                                    paddingHorizontal: hS(10),
+                                    borderColor: colors.border,
+                                    borderWidth: 1,
+                                    borderRadius: mS(10),
+                                }}
+                                placeholderStyle={{ color: colors.secondaryText, fontSize: mS(18), fontWeight: '700' }}
+                                selectedTextStyle={{ fontSize: mS(18), fontWeight: '700', color: colors.text }}
+                                itemTextStyle={{ color: colors.text, fontSize: mS(16) }}
+                                itemContainerStyle={{ backgroundColor: colors.card }}
+                                activeColor={isDark ? 'rgba(255, 255, 255, 0.08)' : '#F1F5F9'}
+                                containerStyle={{
+                                    backgroundColor: colors.card,
+                                    borderColor: colors.border,
+                                    borderWidth: isDark ? 1 : 0,
+                                    borderRadius: mS(12),
+                                    marginTop: vS(5),
+                                    overflow: 'hidden',
+                                    width: 200,
+                                }}
+                                iconColor={colors.text}
+                                data={rideDetails}
+                                labelField="label"
+                                valueField="value"
+                                placeholder="Ride Type"
+                                value={selectedRide}
+                                onChange={(item) => {
+                                    setSelectedRide(item.value);
+                                    onDataChange?.({
+                                        ride_type: item.value as any
+                                    });
+                                }}
+                            />
                         </View>
 
                         {/* RIGHT SECTION: Selector Pill */}
@@ -742,7 +885,124 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                         </TouchableOpacity>
                     </Animated.View>
 
-                    <View style={{ marginBottom: vS(10) }}>
+                    {showCityError && (
+                        <Text style={{ color: '#EF4444', fontSize: mS(12), marginTop: vS(8), marginLeft: hS(16) }}>
+                            OneWay rides are limited to 4 hours. Please select Outstation.
+                        </Text>
+                    )}
+
+                    {selectedRide === RideType.ROUND_TRIP && (
+                        <View style={{
+                            marginHorizontal: hS(16),
+                            marginTop: vS(16),
+                            marginBottom: vS(12),
+                        }}>
+                            <Text style={{ color: colors.secondaryText, fontSize: mS(14), fontWeight: '700', marginBottom: vS(8), marginLeft: hS(4) }}>Select Package</Text>
+                            <Dropdown
+                                style={{
+                                    height: vS(50),
+                                    backgroundColor: colors.card,
+                                    borderRadius: mS(12),
+                                    paddingHorizontal: hS(16),
+                                    borderWidth: 1,
+                                    borderColor: colors.border,
+                                    ...Platform.select({
+                                        ios: { shadowColor: '#000', shadowOffset: { width: 0, height: vS(2) }, shadowOpacity: 0.05, shadowRadius: 8 },
+                                        android: { elevation: 2 },
+                                    }),
+                                }}
+                                placeholderStyle={{ color: colors.secondaryText, fontSize: mS(14) }}
+                                selectedTextStyle={{ color: colors.text, fontSize: mS(14), fontWeight: '600' }}
+                                itemTextStyle={{ color: colors.text }}
+                                itemContainerStyle={{ backgroundColor: colors.card }}
+                                activeColor={isDark ? 'rgba(255, 255, 255, 0.08)' : '#F1F5F9'}
+                                data={packageHourOptions}
+                                labelField="label"
+                                valueField="value"
+                                placeholder="Package Hours"
+                                value={packageHours}
+                                onChange={(item) => {
+                                    handlePackageSelect(item.value);
+                                }}
+                            />
+                        </View>
+                    )}
+
+                    {selectedRide === RideType.OUTSTATION && (
+                        <View style={{
+                            marginHorizontal: hS(16),
+                            marginTop: vS(16),
+                            marginBottom: vS(12),
+                        }}>
+                            <Text style={{ color: colors.secondaryText, fontSize: mS(14), fontWeight: '700', marginBottom: vS(8), marginLeft: hS(4) }}>Select Trip Type and Estimated Usage</Text>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                                <Dropdown
+                                    style={{
+                                        flex: 1,
+                                        height: vS(50),
+                                        backgroundColor: colors.card,
+                                        borderRadius: mS(12),
+                                        paddingHorizontal: hS(16),
+                                        borderWidth: 1,
+                                        borderColor: colors.border,
+                                        marginRight: hS(4),
+                                        ...Platform.select({
+                                            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: vS(2) }, shadowOpacity: 0.05, shadowRadius: 8 },
+                                            android: { elevation: 2 },
+                                        }),
+                                    }}
+                                    placeholderStyle={{ color: colors.secondaryText, fontSize: mS(14) }}
+                                    selectedTextStyle={{ color: colors.text, fontSize: mS(14), fontWeight: '600' }}
+                                    itemTextStyle={{ color: colors.text }}
+                                    itemContainerStyle={{ backgroundColor: colors.card }}
+                                    activeColor={isDark ? 'rgba(255, 255, 255, 0.08)' : '#F1F5F9'}
+                                    data={outstationTripTypeOptions}
+                                    labelField="label"
+                                    valueField="value"
+                                    placeholder="Trip Type"
+                                    value={outstationTripType}
+                                    onChange={(item) => {
+                                        setOutstationTripType(item.value);
+                                        setTripPayload(prev => ({
+                                            ...prev,
+                                            outstation_trip_type: item.value
+                                        }));
+                                    }}
+                                />
+                                <Dropdown
+                                    style={{
+                                        flex: 1,
+                                        height: vS(50),
+                                        backgroundColor: colors.card,
+                                        borderRadius: mS(12),
+                                        paddingHorizontal: hS(16),
+                                        borderWidth: 1,
+                                        borderColor: colors.border,
+                                        marginLeft: hS(4),
+                                        ...Platform.select({
+                                            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: vS(2) }, shadowOpacity: 0.05, shadowRadius: 8 },
+                                            android: { elevation: 2 },
+                                        }),
+                                    }}
+                                    placeholderStyle={{ color: colors.secondaryText, fontSize: mS(14) }}
+                                    selectedTextStyle={{ color: colors.text, fontSize: mS(14), fontWeight: '600' }}
+                                    itemTextStyle={{ color: colors.text }}
+                                    itemContainerStyle={{ backgroundColor: colors.card }}
+                                    activeColor={isDark ? 'rgba(255, 255, 255, 0.08)' : '#F1F5F9'}
+                                    data={outstationTripType === 'oneway' ? outstationOneWayPackageHourOptions : outstationRoundTripPackageHourOptions}
+                                    labelField="label"
+                                    valueField="value"
+                                    placeholder="Package Hours"
+                                    value={packageHours}
+                                    onChange={(item) => {
+                                        handlePackageSelect(item.value);
+                                    }}
+                                />
+                            </View>
+                        </View>
+                    )}
+
+                    <View style={{ marginBottom: vS(2) }}>
                         <SearchableCarPicker
                             onSelect={handleCarSelect}
                             placeholder="Search for your car (e.g., Hyundai Creta)"
@@ -779,7 +1039,7 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                                 backgroundColor: colors.card,
                                 borderRadius: mS(20),
                                 marginHorizontal: hS(16),
-                                marginTop: vS(14),
+                                marginTop: vS(2),
                                 padding: mS(16),
                                 borderWidth: 1,
                                 borderColor: colors.border,
@@ -839,8 +1099,8 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                                         </TouchableOpacity>
                                     </View>
 
-                                    {/* RIDE SELECTOR & CONFIRM ROW */}
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: mS(10) }}>
+                                    {/* RIDE SELECTOR ROW */}
+                                    {/* <View style={{ flexDirection: 'row', alignItems: 'center', gap: mS(10) }}>
                                         <Dropdown
                                             style={{
                                                 flex: 1,
@@ -879,28 +1139,7 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                                                 <MaterialCommunityIcons name="car-hatchback" size={mS(22)} color={isDark ? colors.primary : colors.button} style={{ marginRight: hS(8) }} />
                                             )}
                                         />
-                                        {!isadvancebooking && (
-                                            <TouchableOpacity
-                                                disabled={!scheduledDate || !scheduledTime || !selectedRide}
-                                                onPress={() => {
-                                                    if (scheduledDate && scheduledTime && selectedRide) {
-                                                        handleSave(scheduledDate, scheduledTime, selectedRide);
-                                                    }
-                                                }}
-                                                style={{
-                                                    backgroundColor: colors.button,
-                                                    paddingHorizontal: hS(20),
-                                                    height: vS(50),
-                                                    borderRadius: mS(12),
-                                                    justifyContent: 'center',
-                                                    alignItems: 'center',
-                                                    opacity: (!scheduledDate || !scheduledTime || !selectedRide) ? 0.6 : 1,
-                                                }}
-                                            >
-                                                <Text style={{ color: '#FFF', fontWeight: '800', fontSize: mS(14) }}>Confirm</Text>
-                                            </TouchableOpacity>
-                                        )}
-                                    </View>
+                                    </View> */}
                                 </View>
                             </View>
                         )}
@@ -910,23 +1149,65 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                             {!isadvancebooking && (
 
                                 <>
+                                    <View style={{
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        backgroundColor: colors.card,
+                                        padding: mS(14),
+                                        borderRadius: mS(15),
+                                        marginBottom: vS(12),
+                                        borderWidth: 1,
+                                        borderColor: colors.border
+                                    }}>
+                                        <Text style={{ color: colors.text, fontWeight: '700', fontSize: mS(15) }}>Advance Booking</Text>
+                                        {selectedRide === RideType.OUTSTATION ? (
+                                            <Pressable onPress={handleToggleAdvanceBooking}>
+                                                <View pointerEvents="none">
+                                                    <Switch
+                                                        value={advancebooking}
+                                                        onValueChange={handleToggleAdvanceBooking}
+                                                        trackColor={{ false: '#767577', true: colors.primary }}
+                                                        thumbColor={Platform.OS === 'ios' ? '#FFFFFF' : advancebooking ? '#FFFFFF' : '#f4f3f4'}
+                                                        disabled={true}
+                                                    />
+                                                </View>
+                                            </Pressable>
+                                        ) : (
+                                            <Switch
+                                                value={advancebooking}
+                                                onValueChange={handleToggleAdvanceBooking}
+                                                trackColor={{ false: '#767577', true: colors.primary }}
+                                                thumbColor={Platform.OS === 'ios' ? '#FFFFFF' : advancebooking ? '#FFFFFF' : '#f4f3f4'}
+                                                disabled={false}
+                                            />
+                                        )}
+                                    </View>
+
                                     <TouchableOpacity
+                                        disabled={advancebooking ? (!startLocation || !destination || !selectedVehicle || !scheduledDate || !scheduledTime || !selectedRide) : (!startLocation || !destination || !selectedVehicle)}
+                                        onPress={() => {
+                                            if (advancebooking) {
+                                                if (scheduledDate && scheduledTime && selectedRide) {
+                                                    handleSave(scheduledDate, scheduledTime, selectedRide);
+                                                }
+                                            } else {
+                                                if (startLocation && destination && selectedVehicle && transmission) {
+                                                    setNext(true);
+                                                }
+                                            }
+                                        }}
                                         style={{
-                                            flexDirection: 'row',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            backgroundColor: isDark ? colors.card : colors.button,
+                                            backgroundColor: colors.button,
                                             padding: mS(14),
                                             borderRadius: mS(15),
                                             marginBottom: vS(12),
-                                            borderWidth: 1,
-                                            borderColor: colors.border
+                                            justifyContent: 'center',
+                                            alignItems: 'center',
+                                            opacity: (advancebooking ? (!startLocation || !destination || !selectedVehicle || !scheduledDate || !scheduledTime || !selectedRide) : (!startLocation || !destination || !selectedVehicle)) ? 0.6 : 1,
                                         }}
-                                        onPress={handleToggleAdvanceBooking}
                                     >
-
-                                        <Text style={{ color: isDark ? colors.text : '#FFFFFF', fontWeight: '700', fontSize: mS(15) }}>{advancebooking ? `Go Back to Live Booking` : `Advance Booking`}</Text>
-
+                                        <Text style={{ color: '#FFF', fontWeight: '800', fontSize: mS(15) }}>Confirm</Text>
                                     </TouchableOpacity>
                                     <TouchableOpacity
                                         disabled={loading}

@@ -5,7 +5,7 @@ import { Text } from "../../Components";
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import ServiceSelection from "./serviceSelection";
 import { Trip } from "../../types/trip";
-import { useDirections } from "../../hooks/useDirections";
+
 import Config from "react-native-config";
 
 // Import your responsive utilities
@@ -27,40 +27,17 @@ const SelectionPage: React.FC<ExtendedScreenProps> = ({ screenName, TripPayload,
     console.log("eligibilityRes", eligibilityRes);
     const isReferred = eligibilityRes?.data?.isReferred;
     const isEligible = eligibilityRes?.data?.isEligible;
-    const { distance, duration, calculateRoute } = useDirections(GOOGLE_MAPS_APIKEY ?? "");
     const [selectedService, setSelectedService] = useState('DRIVER_ONLY');
 
-    useEffect(() => {
-        const { pickup_lat, pickup_lng, drop_lat, drop_lng } = TripPayload;
+    const formatDuration = (minutes: number) => {
+        if (minutes < 60) return `${minutes} Min`;
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        return mins > 0 ? `${hours} Hr ${mins} Min` : `${hours} Hr`;
+    };
 
-        if (pickup_lat && pickup_lng && drop_lat && drop_lng) {
-            const fetchRoute = async () => {
-                const pickup = { lat: pickup_lat, lng: pickup_lng };
-                const drop = { lat: drop_lat, lng: drop_lng };
-
-                const result = await calculateRoute(pickup, drop);
-                let DistanceKm = 0;
-                let DurationMin = 0;
-
-                if (result) {
-                    const { distanceText, durationText } = result as any;
-                    if (distanceText) {
-                        DistanceKm = parseFloat(distanceText.replace(/[^\d.]/g, ''));
-                    }
-                    if (durationText) {
-                        DurationMin = parseInt(durationText.replace(/[^\d.]/g, ''));
-                    }
-
-                    setTripPayload((prev) => ({
-                        ...prev,
-                        distance_km: DistanceKm,
-                        trip_duration_minutes: DurationMin
-                    }));
-                }
-            };
-            fetchRoute();
-        }
-    }, [TripPayload.pickup_lat, TripPayload.drop_lat]);
+    const distance = TripPayload?.distance_km ? `${TripPayload.distance_km} KM` : null;
+    const duration = TripPayload?.trip_duration_minutes ? formatDuration(TripPayload.trip_duration_minutes) : null;
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>

@@ -153,8 +153,14 @@ const TrackingView: React.FC<TrackingViewProps> = ({
 
             {/* 2. DRIVER VERIFICATION (OTP) SECTION */}
             <View style={styles.otpSection}>
-                <View style={[styles.otpGlassCard, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255, 255, 255, 0.8)', borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.5)' }]}>
-                    <Text style={[styles.otpCode, { color: appColors.text }]}>{trip?.otp || driver?.driverOTP || '1234'}</Text>
+                <View style={[styles.otpGlassCard, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F4F6F9', borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'transparent' }]}>
+                    <View style={styles.otpDigitsContainer}>
+                        {(String(trip?.otp || driver?.driverOTP || '1234')).split('').map((digit, index) => (
+                            <View key={index} style={[styles.otpDigitCircle, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#FFFFFF' }]}>
+                                <Text style={[styles.otpCode, { color: isDark ? '#FFFFFF' : '#475569' }]}>{digit}</Text>
+                            </View>
+                        ))}
+                    </View>
                     <Text style={[styles.otpLabel, { color: appColors.secondaryText }]}>OTP FOR DRIVER</Text>
                 </View>
             </View>
@@ -312,30 +318,38 @@ const styles = StyleSheet.create({
         marginBottom: vS(20),
     },
     otpGlassCard: {
-        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-        paddingHorizontal: hS(24),
-        paddingVertical: vS(10),
-        borderRadius: mS(16),
+        width: '100%',
+        paddingVertical: vS(16),
+        borderRadius: mS(24),
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.5)',
+    },
+    otpDigitsContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: hS(12),
+        marginBottom: vS(12),
+    },
+    otpDigitCircle: {
+        width: mS(46),
+        height: mS(46),
+        borderRadius: mS(23),
+        justifyContent: 'center',
+        alignItems: 'center',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
+        shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
-        shadowRadius: 8,
+        shadowRadius: 4,
+        elevation: 2,
     },
     otpCode: {
-        fontSize: mS(28),
-        fontWeight: '900',
-        color: '#111827',
-        letterSpacing: 4,
+        fontSize: mS(24),
+        fontWeight: '700',
     },
     otpLabel: {
-        fontSize: mS(9),
-        fontWeight: '800',
-        color: '#9CA3AF',
-        letterSpacing: 1,
-        marginTop: vS(4),
+        fontSize: mS(10),
+        fontWeight: '700',
+        letterSpacing: 1.5,
     },
 
     // 3. Premium Driver Card

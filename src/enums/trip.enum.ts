@@ -18,6 +18,14 @@ export enum TripStatus {
     ARRIVED = 'ARRIVED',
     LIVE = 'LIVE',
     DESTINATION_REACHED = 'DESTINATION_REACHED',
+
+    // --- NEW: round-trip / outstation only ---
+    WAITING = 'WAITING',                 // driver waiting at destination, timer running
+    DAY_HALT = 'DAY_HALT',               // outstation only — overnight pause within WAITING
+    RETURN_STARTED = 'RETURN_STARTED',
+    RETURN_REACHED = 'RETURN_REACHED',
+    // -----------------------------------------
+
     COMPLETED = 'COMPLETED',
     CANCELLED = 'CANCELLED',
     MID_CANCELLED = 'MID_CANCELLED',

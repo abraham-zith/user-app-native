@@ -74,6 +74,13 @@ export const tripApi = createApi({
             }),
             providesTags: ['Trip']
         }),
+        getActiveTrip: builder.query<TripApiResponse, void>({
+            query: () => ({
+                url: `/trips/active`,
+                method: "GET",
+            }),
+            providesTags: ['Trip']
+        }),
         updateTrip: builder.mutation({
             query: ({ trip_id, ...data }) => ({
                 url: `/trips/update/${trip_id}`,
@@ -114,6 +121,8 @@ export const {
     useLazyGetByTripIdQuery,
     useGetActiveTripbyUserIdQuery,
     useLazyGetActiveTripbyUserIdQuery,
+    useGetActiveTripQuery,
+    useLazyGetActiveTripQuery,
     useUpdateTripMutation,
     useUpdateTripChangesMutation,
     useCancelTripMutation,
