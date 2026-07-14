@@ -47,7 +47,7 @@ const RideCompletedScreen = ({ navigation }: any) => {
     const { colors: appColors, isDark } = useAppTheme();
     const [isRated, setIsRated] = useState(trip?.isRated || false);
     const Ridedata = {
-        name: 'VDrive',
+        name: 'T2Drive',
         description: `Payment for ${trip?.ride_type?.replace(/[-_]/g, ' ').toUpperCase()} Trip`,
         Bprice: trip?.base_fare || 0,
         allowances: trip?.driver_allowance || 0,

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Alert, StyleSheet, View, ActivityIndicator } from 'react-native';
+import { Alert, StyleSheet, View, ActivityIndicator, Modal } from 'react-native';
+import { Text } from '../../Components';
 import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { requestLocationPermission } from '../../service/utils/permissions';
 import Geolocation from 'react-native-geolocation-service';
@@ -50,7 +51,7 @@ export default function MapViewComponent({ pickup, dropLocation }: LocationProps
                     setLoading(false);
                 },
                 (error) => {
-
+                    console.log(error, "error123");
                     Alert.alert("Error", "Could not get your location.");
                     setLoading(false);
                 },
@@ -78,13 +79,7 @@ export default function MapViewComponent({ pickup, dropLocation }: LocationProps
         return () => { isMounted = false; };
     }, []);
 
-    if (loading) {
-        return (
-            <View style={[styles.center, { backgroundColor: appColors.background }]}>
-                <ActivityIndicator size="large" color={appColors.primary} />
-            </View>
-        );
-    }
+    // We removed the early return so the map renders immediately behind the loader
 
     return (
         <View style={[styles.container, { backgroundColor: appColors.background }]}>
@@ -110,6 +105,17 @@ export default function MapViewComponent({ pickup, dropLocation }: LocationProps
                 )}
             </MapView>
 
+            {/* --- GETTING LOCATION OVERLAY --- */}
+            {loading && (
+                <Modal transparent={true} animationType="fade" visible={loading} statusBarTranslucent navigationBarTranslucent onRequestClose={() => {}}>
+                    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+                        <View style={{ backgroundColor: appColors.card, padding: 24, borderRadius: 16, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 10, elevation: 5 }}>
+                            <ActivityIndicator size="large" color={appColors.primary} />
+                            <Text style={{ marginTop: 12, color: appColors.text, fontSize: 16, fontWeight: '600' }}>Getting location...</Text>
+                        </View>
+                    </View>
+                </Modal>
+            )}
         </View>
     );
 }

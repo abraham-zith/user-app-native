@@ -61,6 +61,9 @@ export const SOCKET_EVENTS = {
     DRIVER_ACCEPTED: TripSocketEvent.TRIP_ACCEPTED,
     DRIVER_LOCATION: TripSocketEvent.DRIVER_LOCATION,
 
+    // ==================== USER UPDATES ====================
+    USER_LOCATION_UPDATE: "user_location_update",
+
     // ==================== NOTIFICATIONS ====================
     NOTIFICATION: "notification",
     ERROR: "error",

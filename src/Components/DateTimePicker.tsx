@@ -47,11 +47,16 @@ const DateTimePickerComponent: React.FC<DateTimePickerProps> = ({
             absoluteMinimumTime.setMinutes(now.getMinutes() + 30);
 
 
-            const selectedDateIsToday = newDate!.toDateString() === now.toDateString();
+            // Use the `value` prop (which holds the currently selected date) to determine if we're picking for today.
+            // On Android, newDate might have today's date even if a future date was passed.
+            const selectedDateIsToday = value.toDateString() === now.toDateString();
             const isTimeMode = mode === 'time';
 
+            // Create a Date object combining the original date (`value`) and the newly picked time (`newDate`)
+            const combinedDateTime = new Date(value);
+            combinedDateTime.setHours(newDate!.getHours(), newDate!.getMinutes(), 0, 0);
 
-            if (selectedDateIsToday && isTimeMode && newDate!.getTime() < absoluteMinimumTime.getTime()) {
+            if (selectedDateIsToday && isTimeMode && combinedDateTime.getTime() < absoluteMinimumTime.getTime()) {
 
                 Alert.alert("Invalid Time", "Please select a time at least 30 minutes from now.");
 

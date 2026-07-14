@@ -63,7 +63,7 @@ const WelcomeScreen: React.FC<ScreenProps> = ({ navigation }) => {
         ]}>
           Ride Your Way with{' '}
           <Text style={{ color: appColors.primary, fontWeight: '400' }}>
-            VDrive
+            T2Drive
           </Text>
         </Text>
         <Car />

@@ -101,8 +101,8 @@ const SafetyToolkitModal: React.FC<SafetyToolkitModalProps> = ({
 
     const handleShareWithContact = (contact: { name: string; phone: string }) => {
         const destination = tripData?.drop_address || "destination";
-        const tripUrl = `vdriveapp://trips/${tripData?.trip_id}`;
-        const message = `I'm on a VDrive trip to ${destination}. Track my journey here: ${tripUrl}`;
+        const tripUrl = `t2driveapp://trips/${tripData?.trip_id}`;
+        const message = `I'm on a T2Drive trip to ${destination}. Track my journey here: ${tripUrl}`;
 
         Alert.alert(
             "Share Trip Status",
@@ -146,7 +146,7 @@ const SafetyToolkitModal: React.FC<SafetyToolkitModalProps> = ({
             bgColor: '#EFF6FF',
             onPress: () => {
                 const destination = tripData?.drop_address || "destination";
-                const message = `I'm on a VDrive trip to ${destination}. Track my journey here: vdriveapp://trips/${tripData?.trip_id}`;
+                const message = `I'm on a T2Drive trip to ${destination}. Track my journey here: t2driveapp://trips/${tripData?.trip_id}`;
                 Alert.alert("Share Trip", "Opening share sheet...");
             },
         },

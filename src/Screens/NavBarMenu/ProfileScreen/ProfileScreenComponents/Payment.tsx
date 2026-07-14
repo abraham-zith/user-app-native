@@ -13,9 +13,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '../../../../hooks/useAppTheme';
 import { hS, vS, mS } from '../../../../lib/responsive';
 import colors from '../../../../constant/colors';
+import { HelpContactScreen_Nav } from '../../../../Navigations/navigations';
 
 const Payment = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const { colors: appColors, isDark } = useAppTheme();
 
@@ -108,7 +109,7 @@ const Payment = () => {
         </View>
 
         {/* Support Link */}
-        <TouchableOpacity style={styles.supportButton}>
+        <TouchableOpacity style={styles.supportButton} onPress={() => navigation.navigate(HelpContactScreen_Nav)}>
           <Text style={[styles.supportText, { color: isDark ? appColors.text : colors.button }]}>Payment Issues? Contact Support</Text>
         </TouchableOpacity>
       </ScrollView>

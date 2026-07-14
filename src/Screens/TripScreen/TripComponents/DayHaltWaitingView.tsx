@@ -16,6 +16,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useSocket } from '../../../Socket/SocketContext';
 import { TripStatus } from '../../../enums/trip.enum';
 import { useOptimization } from '../../../context/OptimizationContext';
+import { Easing } from 'react-native';
 
 // Utils
 import { hS, vS, mS } from '../../../lib/responsive';
@@ -61,9 +62,49 @@ const pulseStyles = StyleSheet.create({
     core: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#2563EB' },
 });
 
+const BigPulse = () => {
+    const pulseAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        Animated.loop(
+            Animated.timing(pulseAnim, {
+                toValue: 1,
+                duration: 2000,
+                easing: Easing.out(Easing.ease),
+                useNativeDriver: true,
+            })
+        ).start();
+    }, [pulseAnim]);
+
+    const activeScale = pulseAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0.5, 3],
+    });
+
+    const activeOpacity = pulseAnim.interpolate({
+        inputRange: [0, 0.8, 1],
+        outputRange: [0.6, 0, 0],
+    });
+
+    return (
+        <View style={{ alignItems: 'center', justifyContent: 'center', marginVertical: 70, height: 150 }}>
+            <Animated.View style={{
+                position: 'absolute',
+                width: 120, height: 120, borderRadius: 60,
+                backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                transform: [{ scale: activeScale }],
+                opacity: activeOpacity
+            }} />
+            <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#2563EB', justifyContent: 'center', alignItems: 'center', elevation: 5, shadowColor: '#2563EB', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 4 }}>
+                <MaterialCommunityIcons name="clock-outline" size={40} color="#FFF" />
+            </View>
+        </View>
+    );
+};
+
 import { TripPhase } from '../../MapTrackingScreen/UserMapScreen';
 
-interface OnRideViewProps {
+interface DayHaltWaitingViewProps {
     pickup: string;
     destination: string;
     eta: number;
@@ -74,7 +115,7 @@ interface OnRideViewProps {
     status?: TripStatus; // ✅ Added reactive status
 }
 
-const OnRideView: React.FC<OnRideViewProps> = ({
+const DayHaltWaitingView: React.FC<DayHaltWaitingViewProps> = ({
     pickup,
     destination,
     eta,
@@ -143,52 +184,27 @@ const OnRideView: React.FC<OnRideViewProps> = ({
 
     return (
         <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
-            {/* 1. PROGRESS TRACKER */}
+            {/* BIG PULSE HEADER */}
+            <BigPulse />
+
+            {/* 1. DAY HALT TRACKER */}
             <View style={[styles.progressSection, { backgroundColor: isDark ? appColors.iconBox : appColors.card, borderColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F3F4F6', borderWidth: isDark ? 1 : 0 }]}>
                 <View style={styles.progressHeader}>
-                    <Text style={[styles.statusLabel, { color: appColors.text }]}>
-                        {status === TripStatus.ARRIVED ? 'DRIVER ARRIVED' :
-                            status === TripStatus.LIVE ? 'TRIP IN PROGRESS' :
-                                status === TripStatus.WAITING ? 'DRIVER WAITING' :
-                                    status === TripStatus.DAY_HALT ? 'TRIP HALTED (OVERNIGHT)' :
-                                        status === TripStatus.RETURN_STARTED ? 'RETURN TRIP IN PROGRESS' :
-                                            'HEADING TO PICKUP'}
+                    <Text style={[styles.statusLabel, { color: appColors.text, fontSize: mS(18) }]}>
+                        TRIP HALTED (PAUSED)
                     </Text>
                     <LivePulse />
                 </View>
 
                 <View style={styles.timelineArea}>
-                    <View style={[styles.timelineLine, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#F3F4F6' }]}>
-                        <View style={[
-                            styles.timelineFill,
-                            {
-                                width: (status === TripStatus.LIVE || status === TripStatus.RETURN_STARTED) ? '75%' : (status === TripStatus.WAITING || status === TripStatus.DAY_HALT) ? '90%' : status === TripStatus.ARRIVED ? '50%' : '20%',
-                                backgroundColor: isDark ? 'rgba(59, 130, 246, 0.3)' : '#BFDBFE'
-                            }
-                        ]} />
-                        <View style={[
-                            styles.carIconWrapper,
-                            { left: (status === TripStatus.LIVE || status === TripStatus.RETURN_STARTED) ? '75%' : (status === TripStatus.WAITING || status === TripStatus.DAY_HALT) ? '90%' : status === TripStatus.ARRIVED ? '50%' : '20%' }
-                        ]}>
-                            <MaterialCommunityIcons name="car-side" size={mS(24)} color={appColors.primary} />
-                        </View>
-                    </View>
+                    <Text style={{ color: appColors.secondaryText, fontSize: mS(13), marginBottom: vS(10) }}>
+                        The driver has halted the trip for the day and will resume tomorrow.
+                    </Text>
                     <View style={styles.locationPoints}>
-                        {[TripStatus.LIVE, TripStatus.WAITING, TripStatus.DAY_HALT, TripStatus.RETURN_STARTED].includes(status as any) ? (
-                            <View style={styles.point}>
-                                <View style={[styles.dot, styles.pickupDot]} />
-                                <Text numberOfLines={1} style={[styles.pointText, { color: appColors.secondaryText }]}>{pickup}</Text>
-                            </View>
-                        ) : (
-                            <View style={styles.point}>
-                                <View style={[styles.dot, styles.pickupDot]} />
-                                <Text numberOfLines={1} style={[styles.pointText, { color: appColors.secondaryText }]}>{pickup}</Text>
-                            </View>
-                        )}
-                        {/* <View style={styles.point}>
-                            <Text numberOfLines={1} style={[styles.pointText, styles.destText]}>{destination}</Text>
-                            <View style={[styles.dot, styles.destDot]} />
-                        </View> */}
+                        <View style={styles.point}>
+                            <View style={[styles.dot, styles.pickupDot]} />
+                            <Text numberOfLines={2} style={[styles.pointText, { color: appColors.secondaryText }]}>{destination}</Text>
+                        </View>
                     </View>
                 </View>
             </View>
@@ -228,14 +244,14 @@ const OnRideView: React.FC<OnRideViewProps> = ({
                     </View>
                 </View>
 
-                {/* Right: Huge ETA and "On time" */}
+                {/* Right: Waiting duration/info */}
                 <View style={styles.glanceRight}>
-                    <Text style={[styles.hugeEta, { color: appColors.text }]}>
-                        {status === TripStatus.ACCEPTED ? '—' : `${eta} min`}
+                    <Text style={[styles.hugeEta, { color: appColors.text, fontSize: mS(18) }]}>
+                        Waiting
                     </Text>
                     <View style={styles.statusIndicator}>
-                        <View style={styles.onTimeDot} />
-                        <Text style={styles.onTimeText}>On time</Text>
+                        <View style={[styles.onTimeDot, { backgroundColor: '#F59E0B' }]} />
+                        <Text style={[styles.onTimeText, { color: '#F59E0B' }]}>Driver paused</Text>
                     </View>
                 </View>
             </View>
@@ -634,4 +650,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default OnRideView;
+export default DayHaltWaitingView;

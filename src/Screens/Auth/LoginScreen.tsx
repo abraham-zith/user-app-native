@@ -86,9 +86,9 @@ const LoginScreen: React.FC<any> = ({ navigation }) => {
               renderTrigger={(selectedItem) => (
                 <View style={localStyles.countryPickerTrigger}>
                   <FastImage
-                    source={{ 
+                    source={{
                       uri: `https://flagcdn.com/w40/${selectedItem?.code?.toLowerCase() || 'in'}.png`,
-                      priority: FastImage.priority.normal 
+                      priority: FastImage.priority.normal
                     }}
                     style={localStyles.flagIcon}
                   />
@@ -134,10 +134,10 @@ const LoginScreen: React.FC<any> = ({ navigation }) => {
         </View>
 
         {/* SOCIAL LOGIN SECTION */}
-        <View style={localStyles.socialSection}>
-          <TouchableOpacity 
+        {/* <View style={localStyles.socialSection}>
+          <TouchableOpacity
             style={[localStyles.socialCard, { backgroundColor: appColors.card, borderColor: appColors.border }]}
-            onPress={() => {}}
+            onPress={() => { }}
             activeOpacity={0.8}
           >
             <View style={[localStyles.socialIconCircle, { backgroundColor: appColors.background }]}>
@@ -146,9 +146,9 @@ const LoginScreen: React.FC<any> = ({ navigation }) => {
             <Text style={[localStyles.socialCardText, { color: appColors.text }]}>Continue with Google</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[localStyles.socialCard, { backgroundColor: appColors.card, borderColor: appColors.border }]}
-            onPress={() => {}}
+            onPress={() => { }}
             activeOpacity={0.8}
           >
             <View style={[localStyles.socialIconCircle, { backgroundColor: isDark ? appColors.background : '#F1F5F9' }]}>
@@ -156,12 +156,12 @@ const LoginScreen: React.FC<any> = ({ navigation }) => {
             </View>
             <Text style={[localStyles.socialCardText, { color: appColors.text }]}>Continue with Email</Text>
           </TouchableOpacity>
-        </View>
+        </View> */}
 
         {/* FOOTER LINK */}
         <View style={localStyles.footer}>
           <Text style={[localStyles.footerText, { color: appColors.lightTextColor }]}>
-            New to V-Drive?{' '}
+            New to T2Drive?{' '}
             <Text
               style={[localStyles.signUpLink, { color: appColors.primary }]}
               onPress={() => navigation.navigate(SignUpScreen_Nav)}

@@ -8,6 +8,10 @@ import {
     TripSocketEvent,
 } from "./socket.events";
 import { Alert } from "react-native";
+import { storage } from "../service/utils/storage";
+import { useDispatch } from "react-redux";
+import { tripApi } from "../service/tripApi";
+import { setActiveTrip } from "../redux/tripSlice";
 
 interface Props {
     children: React.ReactNode;
@@ -21,14 +25,34 @@ export const SocketProvider: React.FC<Props> = ({ children }) => {
     const [joinedRooms, setJoinedRooms] = useState<Map<string, JoinRidePayload>>(new Map());
     const [persistedUserId, setPersistedUserId] = useState<string | null>(null);
     const [persistedDriverId, setPersistedDriverId] = useState<string | null>(null);
+    const dispatch = useDispatch();
 
     // ==================== CONNECTION SETUP ====================
     useEffect(() => {
-        socket.connect();
+        const initConnection = async () => {
+            const token = await storage.getAccessToken();
+            if (token) {
+                socket.auth = { token };
+            }
+            if (!socket.connected) {
+                socket.connect();
+            }
+        };
+        initConnection();
 
-        const onConnect = () => {
+        const onConnect = async () => {
             setIsConnected(true);
             setSocketId(socket.id || null);
+
+            // Fetch active trip to synchronize state
+            try {
+                const response = await dispatch(tripApi.endpoints.getActiveTrip.initiate(undefined, { forceRefetch: true }) as any);
+                if (response?.data?.data) {
+                    dispatch(setActiveTrip(response.data.data));
+                }
+            } catch (err) {
+                console.log("Failed to sync active trip on connect", err);
+            }
         };
 
         const onDisconnect = () => {
@@ -246,6 +270,15 @@ export const SocketProvider: React.FC<Props> = ({ children }) => {
         return () => socket.off(SOCKET_EVENTS.TRIP_CANCELLED, handler);
     }, []);
 
+    const onRideReassigning = useCallback((callback: (data: any) => void) => {
+        const handler = (data: any) => {
+            const tripId = data.tripId || data.trip_id;
+            callback({ ...data, trip_id: tripId });
+        };
+        socket.on('RIDE_REASSIGNING', handler);
+        return () => socket.off('RIDE_REASSIGNING', handler);
+    }, []);
+
     const onTripMidCancelled = useCallback((callback: (data: any) => void) => {
         const handler = (data: any) => {
             const tripId = data.tripId || data.trip_id;
@@ -265,8 +298,22 @@ export const SocketProvider: React.FC<Props> = ({ children }) => {
     }, []);
 
     const onTripStatusChanged = useCallback((callback: (data: any) => void) => {
-        const handler = (data: any) => {
+        const handler = async (data: any) => {
             const tripId = data.tripId || data.trip_id || data.rideId || data.trip?.trip_id;
+
+            if (tripId) {
+                try {
+                    const response = await dispatch(tripApi.endpoints.getActiveTrip.initiate(undefined, { forceRefetch: true }) as any);
+                    if (response?.data?.data) {
+                        dispatch(setActiveTrip(response.data.data));
+                        callback(response.data.data);
+                        return;
+                    }
+                } catch (err) {
+                    console.log("Failed to sync active trip on status change", err);
+                }
+            }
+
             callback({ ...data, trip_id: tripId });
         };
 
@@ -356,6 +403,7 @@ export const SocketProvider: React.FC<Props> = ({ children }) => {
         onDestinationReached,
         onTripCompleted,
         onTripCancelled,
+        onRideReassigning,
         onTripMidCancelled,
         onTripStatusUpdated,
         onTripStatusChanged,

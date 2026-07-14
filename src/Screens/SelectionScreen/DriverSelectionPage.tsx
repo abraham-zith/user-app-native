@@ -1,4 +1,4 @@
-import { Modal, View, FlatList, TouchableOpacity, Platform, ToastAndroid, StyleSheet, Alert } from "react-native";
+import { Modal, View, FlatList, TouchableOpacity, Platform, ToastAndroid, StyleSheet, Alert, ActivityIndicator } from "react-native";
 import React, { useEffect, useState } from "react";
 import { Text } from "../../Components";
 import { Styles } from "../../lib/styles";
@@ -11,7 +11,7 @@ import { Trip } from "../../types/trip";
 import { useCreateTripMutation, useGetPricingMutation } from "../../service/userApi";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigation, NavigationProp } from "@react-navigation/native";
-import { BookedTripScreen_Nav, userMapTest_nav } from "../../Navigations/navigations";
+import { BookedTripScreen_Nav, SearchDriverScreen_Nav, userMapTest_nav } from "../../Navigations/navigations";
 import { hS, mS, vS } from "../../lib/responsive";
 // import PaymentModal from '../../Components/PaymentModal';
 import CouponModal from "../../Components/CouponModal";
@@ -50,6 +50,8 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
     const [createTrip] = useCreateTripMutation();
     const [getPricing] = useGetPricingMutation();
     const [visible, setVisible] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [isFetchingDrivers, setIsFetchingDrivers] = useState(true);
     const [selectedDriver, setSelectedDriver] = useState<string>("");
     const localuser = useSelector((state: RootState) => state.userSlice.user);
 
@@ -141,6 +143,8 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
     };
 
     const handleBookRide = async () => {
+        if (isLoading) return;
+        setIsLoading(true);
         try {
             const finalPayload = {
                 ...TripPayload,
@@ -171,6 +175,8 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
                 Alert.alert('Booking Failed!!!');
             }
             //console.log(error, "error");
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -272,47 +278,62 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
     useEffect(() => {
         const loadData = async () => {
             if (!TripPayload.distance_km || !TripPayload.trip_duration_minutes) return;
+            setIsFetchingDrivers(true);
+            try {
+                const fromAddress = await getAddressFromCoords(
+                    Number(TripPayload.pickup_lat),
+                    Number(TripPayload.pickup_lng)
+                );
 
-            const fromAddress = await getAddressFromCoords(
-                Number(TripPayload.pickup_lat),
-                Number(TripPayload.pickup_lng)
-            );
+                const toAddress = await getAddressFromCoords(
+                    Number(TripPayload.drop_lat),
+                    Number(TripPayload.drop_lng)
+                );
+                const actualStartDate = TripPayload?.booking_type === "LIVE" ? new Date() : new Date(TripPayload.scheduled_start_time || new Date());
+                const { day, time } = parseScheduledDate(actualStartDate);
 
-            const toAddress = await getAddressFromCoords(
-                Number(TripPayload.drop_lat),
-                Number(TripPayload.drop_lng)
-            );
-            const actualStartDate = TripPayload?.booking_type === "LIVE" ? new Date() : new Date(TripPayload.scheduled_start_time || new Date());
-            const { day, time } = parseScheduledDate(actualStartDate);
-            
-            const payload = {
-                distance_km: TripPayload.distance_km,
-                duration_min: TripPayload.trip_duration_minutes,
-                ride_type: TripPayload.ride_type,
-                // driver_type: TripPayload.,
-                scheduled_at: actualStartDate.toISOString(),
-                day,
-                time,
-                from_area: fromAddress?.area,
-                from_district: fromAddress?.district,
-                to_area: toAddress?.area,
-                to_district: toAddress?.district,
-            };
+                const payload = {
+                    distance_km: TripPayload.distance_km,
+                    duration_min: TripPayload.trip_duration_minutes,
+                    ride_type: TripPayload.ride_type,
+                    // driver_type: TripPayload.,
+                    scheduled_at: actualStartDate.toISOString(),
+                    day,
+                    time,
+                    from_area: fromAddress?.area,
+                    from_district: fromAddress?.district,
+                    to_area: toAddress?.area,
+                    to_district: toAddress?.district,
+                };
 
-            const result = await getPricing(payload).unwrap();
-            console.log(result, TripPayload, "result", payload);
-            setOptions(result.data.ride_options.map((item: any, index: number) => ({
-                id: index.toString(),
-                name: item.ride_type,
-                Description: item.vehicle_type_description,
-                Price: item.fare_details?.total_fare || item.total_fare,
-                allowance: item.fare_details?.time_charge || item.allowance
-            })));
+                const result = await getPricing(payload).unwrap();
+                console.log(result, TripPayload, "result", payload);
+                setOptions(result.data.ride_options.map((item: any, index: number) => ({
+                    id: index.toString(),
+                    name: item.ride_type,
+                    Description: item.vehicle_type_description,
+                    Price: item.fare_details?.total_fare || item.total_fare,
+                    allowance: item.fare_details?.time_charge || item.allowance
+                })));
+            } catch (error) {
+                console.error("Error fetching pricing:", error);
+            } finally {
+                setIsFetchingDrivers(false);
+            }
         };
 
         loadData();
-    }, [TripPayload]);
-
+    }, [
+        TripPayload.distance_km,
+        TripPayload.trip_duration_minutes,
+        TripPayload.pickup_lat,
+        TripPayload.pickup_lng,
+        TripPayload.drop_lat,
+        TripPayload.drop_lng,
+        TripPayload.booking_type,
+        TripPayload.scheduled_start_time,
+        TripPayload.ride_type
+    ]);
     return (
         <View style={[styles.mainContainer, {
             marginHorizontal: insets.left,
@@ -323,73 +344,80 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
             <View style={styles.listSection}>
                 <Text style={[styles.headerTitle, { color: appColors.text, borderBottomColor: appColors.border }]}>Choose a Driver</Text>
 
-                <FlatList
-                    data={options}
-                    keyExtractor={(item) => item.id}
-                    showsVerticalScrollIndicator={false}
-                    style={styles.flatListStyle}
-                    contentContainerStyle={styles.flatListContent}
-                    renderItem={({ item }) => {
-                        const isSelected = selectedDriver === item.id;
-                        return (
-                            <TouchableOpacity
-                                style={[
-                                    styles.driverCard,
-                                    { backgroundColor: appColors.card, borderColor: appColors.border },
-                                    isSelected && { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.1)' : '#EFF6FF', borderColor: appColors.primary, borderWidth: 1.5 }
-                                ]}
-                                onPress={() => {
-                                    setSelectedDriver(item.id);
-                                    const discount = appliedCoupon?.discount || 0;
-                                    const totalFare = item.Price + item.allowance + (updatedTip || 0) - discount;
-                                    setTripPayload((prev) => ({
-                                        ...prev,
-                                        driver_allowance: item.allowance,
-                                        base_fare: item.Price,
-                                        discount: discount,
-                                        total_fare: Math.max(0, totalFare),
-                                        applied_coupon_id: appliedCoupon?.id
-                                    }));
-                                }}
-                            >
-                                <View style={[styles.driverIconContainer, { backgroundColor: isDark ? appColors.background : '#F8FAFC' }]}>
-                                    {item.name === 'Pro' ? <ProDriverIcon width={mS(30)} height={mS(30)} /> : <DriverIcon width={mS(30)} height={mS(30)} />}
-                                </View>
-
-                                <View style={styles.driverInfoContainer}>
-                                    <View style={styles.rowBetween}>
-                                        <Text style={[styles.driverLabel, { color: appColors.text }]}>
-                                            DriveV <Text style={{ color: item.name === 'Classic' ? (isDark ? appColors.primary : '#152D5E') : '#185BE5' }}>{item.name}</Text>
-                                        </Text>
-                                        <Text style={[styles.priceLabel, { color: appColors.text }]}>₹{(
-                                            item.Price +
-                                            item.allowance +
-                                            (selectedDriver === item.id ? (updatedTip || 0) : 0) -
-                                            (selectedDriver === item.id ? (appliedCoupon?.discount || 0) : 0)
-                                        ).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+                {isFetchingDrivers ? (
+                    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                        <ActivityIndicator size="large" color={appColors.primary} />
+                        <Text style={{ marginTop: vS(12), color: appColors.secondaryText, fontSize: mS(14) }}>Finding the best drivers for you...</Text>
+                    </View>
+                ) : (
+                    <FlatList
+                        data={options}
+                        keyExtractor={(item) => item.id}
+                        showsVerticalScrollIndicator={false}
+                        style={styles.flatListStyle}
+                        contentContainerStyle={styles.flatListContent}
+                        renderItem={({ item }) => {
+                            const isSelected = selectedDriver === item.id;
+                            return (
+                                <TouchableOpacity
+                                    style={[
+                                        styles.driverCard,
+                                        { backgroundColor: appColors.card, borderColor: appColors.border },
+                                        isSelected && { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.1)' : '#EFF6FF', borderColor: appColors.primary, borderWidth: 1.5 }
+                                    ]}
+                                    onPress={() => {
+                                        setSelectedDriver(item.id);
+                                        const discount = appliedCoupon?.discount || 0;
+                                        const totalFare = item.Price + item.allowance + (updatedTip || 0) - discount;
+                                        setTripPayload((prev) => ({
+                                            ...prev,
+                                            driver_allowance: item.allowance,
+                                            base_fare: item.Price,
+                                            discount: discount,
+                                            total_fare: Math.max(0, totalFare),
+                                            applied_coupon_id: appliedCoupon?.id
+                                        }));
+                                    }}
+                                >
+                                    <View style={[styles.driverIconContainer, { backgroundColor: isDark ? appColors.background : '#F8FAFC' }]}>
+                                        {item.name === 'Pro' ? <ProDriverIcon width={mS(30)} height={mS(30)} /> : <DriverIcon width={mS(30)} height={mS(30)} />}
                                     </View>
-                                    {selectedDriver === item.id && appliedCoupon && (
-                                        <Text style={{ fontSize: mS(12), color: colors.primary, fontWeight: '700', textAlign: 'right' }}>
-                                            Coupon Applied: -₹{appliedCoupon.discount.toFixed(2)}
-                                        </Text>
-                                    )}
 
-                                    <View style={styles.rowBetween}>
-                                        <Text style={[styles.descText, { color: appColors.secondaryText }]} numberOfLines={2}>{item.Description}</Text>
-                                        <TouchableOpacity style={[styles.allowanceBadge, { backgroundColor: isDark ? 'rgba(22, 163, 74, 0.1)' : '#F0FDF4' }]} onPress={() => {
-                                            setVisible(true)
-                                            setModalData(item)
-                                        }}>
-                                            <MaterialCommunityIcons name="check-circle" color={'#29AE46'} size={mS(14)} />
-                                            <Text style={styles.allowanceText}> Allowance</Text>
-                                            <MaterialCommunityIcons name="information-outline" color={'#29AE46'} size={mS(14)} />
-                                        </TouchableOpacity>
+                                    <View style={styles.driverInfoContainer}>
+                                        <View style={styles.rowBetween}>
+                                            <Text style={[styles.driverLabel, { color: appColors.text }]}>
+                                                DriveV <Text style={{ color: item.name === 'Classic' ? (isDark ? appColors.primary : '#152D5E') : '#185BE5' }}>{item.name}</Text>
+                                            </Text>
+                                            <Text style={[styles.priceLabel, { color: appColors.text }]}>₹{(
+                                                item.Price +
+                                                item.allowance +
+                                                (selectedDriver === item.id ? (updatedTip || 0) : 0) -
+                                                (selectedDriver === item.id ? (appliedCoupon?.discount || 0) : 0)
+                                            ).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+                                        </View>
+                                        {selectedDriver === item.id && appliedCoupon && (
+                                            <Text style={{ fontSize: mS(12), color: colors.primary, fontWeight: '700', textAlign: 'right' }}>
+                                                Coupon Applied: -₹{appliedCoupon.discount.toFixed(2)}
+                                            </Text>
+                                        )}
+
+                                        <View style={styles.rowBetween}>
+                                            <Text style={[styles.descText, { color: appColors.secondaryText }]} numberOfLines={2}>{item.Description}</Text>
+                                            <TouchableOpacity style={[styles.allowanceBadge, { backgroundColor: isDark ? 'rgba(22, 163, 74, 0.1)' : '#F0FDF4' }]} onPress={() => {
+                                                setVisible(true)
+                                                setModalData(item)
+                                            }}>
+                                                <MaterialCommunityIcons name="check-circle" color={'#29AE46'} size={mS(14)} />
+                                                <Text style={styles.allowanceText}> Allowance</Text>
+                                                <MaterialCommunityIcons name="information-outline" color={'#29AE46'} size={mS(14)} />
+                                            </TouchableOpacity>
+                                        </View>
                                     </View>
-                                </View>
-                            </TouchableOpacity>
-                        );
-                    }}
-                />
+                                </TouchableOpacity>
+                            );
+                        }}
+                    />
+                )}
             </View>
 
             {/* --- FOOTER SECTION (STAYS AT BOTTOM) --- */}
@@ -459,9 +487,10 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
 
                 {/* Action Button */}
                 <Button
-                    disabled={!selectedDriver}
+                    disabled={!selectedDriver || isLoading}
+                    loading={isLoading}
                     onPress={handleBookRide}
-                    style={[styles.bookBtn, { opacity: !selectedDriver ? 0.6 : 1 }]}
+                    style={[styles.bookBtn, { opacity: (!selectedDriver || isLoading) ? 0.6 : 1 }]}
                 >
                     <Text style={styles.bookBtnText}>Book a Ride</Text>
                 </Button>
@@ -472,11 +501,13 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
                 <View style={[styles.modalOverlay, { backgroundColor: "rgba(0,0,0,0.6)" }]}>
                     <View style={[styles.modalContent, { backgroundColor: appColors.card, borderColor: appColors.border, borderWidth: isDark ? 1 : 0 }]}>
                         <View style={styles.rowBetween}>
-                            <Text style={[styles.modalTitle, { color: appColors.text }]}>Allowance Detail {updatedTip ? updatedTip : "₹59.95"}</Text>
+                            <Text style={[styles.modalTitle, { color: appColors.text }]}>
+                                Allowance Detail ₹{((modalData?.allowance || 0) + (selectedDriver === modalData?.id ? (updatedTip || 0) : 0)).toFixed(2)}
+                            </Text>
                             <MaterialCommunityIcons name="close" size={mS(22)} color={appColors.text} onPress={() => setVisible(false)} />
                         </View>
                         <Text style={[styles.modalBody, { color: appColors.secondaryText }]}>
-                            Cab Ride cost (₹{modalData?.Price.toFixed(2)}) + Allowance (₹{(modalData?.allowance + updatedTip || 59.95).toFixed(2)})
+                            Cab Ride cost (₹{(modalData?.Price || 0).toFixed(2)}) + Allowance (₹{((modalData?.allowance || 0) + (selectedDriver === modalData?.id ? (updatedTip || 0) : 0)).toFixed(2)})
                             {"\n"}(driver’s return travel to ensure fair pricing).
                         </Text>
                     </View>

@@ -212,6 +212,14 @@ export const INDIAN_CAR_DATABASE: Record<string, { model: string; type: VehicleT
     { model: 'Model X', type: VehicleType.SUV },
     { model: 'Model S', type: VehicleType.SEDAN },
     { model: 'Model Y', type: VehicleType.SUV }
+  ],
+  'Other Vehicles': [
+    { model: 'Bike / Scooter', type: VehicleType.BIKE },
+    { model: 'Auto Rickshaw', type: VehicleType.AUTO },
+    { model: 'Van / Minivan', type: VehicleType.VAN },
+    { model: 'Tempo Traveller', type: VehicleType.TEMPO_TRAVELLER },
+    { model: 'Truck / Mini Truck', type: VehicleType.TRUCK },
+    { model: 'Other Custom Vehicle', type: VehicleType.CAR }
   ]
 };
 

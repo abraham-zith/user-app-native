@@ -23,6 +23,7 @@ import {
     BackHandler
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Geolocation from 'react-native-geolocation-service';
 
 // Components
 import MapLocationPolyline from './TripComponents/MapLocationPolyline';
@@ -30,6 +31,8 @@ import SearchingDriver from './TripComponents/SearchingForDriver';
 import OnRideView from './TripComponents/OnRideviewScreen';
 import RatingView from './TripComponents/RatingviewScreen';
 import TrackingView from './TripComponents/TrackingScreen';
+import RoundTripWaitingView from './TripComponents/RoundTripWaitingView';
+import DayHaltWaitingView from './TripComponents/DayHaltWaitingView';
 import RideClosurePreview from './TripComponents/RideClosurePreview';
 import SafetyToolkitModal from './TripComponents/SafetyToolkitModal';
 import { UserAppUI, TripPhase } from '../MapTrackingScreen/UserMapScreen';
@@ -105,7 +108,7 @@ const TripScreenSkeleton = () => {
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SNAP_TOP = 0;
-const SNAP_BOTTOM = 400;
+const SNAP_BOTTOM = 220;
 const DRAG_THRESHOLD = 80;
 
 const PRE_TRIP_REASONS = [
@@ -156,10 +159,22 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
     const [driverLocationHistory, setDriverLocationHistory] = useState<any[]>([]);
     const [selectedReason, setSelectedReason] = useState<{ value: CancelReason | null, label: string }>({ value: null, label: '' });
     const [otherReason, setOtherReason] = useState('');
+    const [isCancelling, setIsCancelling] = useState(false);
     const localUser = useSelector((state: RootState) => state?.userSlice?.user);
     const emergencyContacts = localUser?.emergency_contacts || [];
     const [isRated, setIsRated] = useState(tripfromroute?.isRated || false);
     console.log("tripfromroute", tripfromroute);
+
+    // Prevent navigation while cancelling
+    useEffect(() => {
+        const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
+            if (!isCancelling) {
+                return;
+            }
+            e.preventDefault();
+        });
+        return unsubscribe;
+    }, [navigation, isCancelling]);
     // ==================== SOCKET SETUP ====================
     const {
         socket,
@@ -176,6 +191,7 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
         onTripMidCancelled,
         onTripStatusChanged,
         onDriverLocationUpdated,
+        emit,
     } = useSocket();
 
     // ==================== API QUERIES & MUTATIONS ====================
@@ -387,6 +403,39 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
         return () => unsubscribe();
     }, [currentTrip?.trip_id]);
 
+    // ==================== USER LOCATION TRACKER (LIVE SHARING) ====================
+    useEffect(() => {
+        let watchId: number | null = null;
+        if (currentStatus === TripStatus.LIVE && currentTrip?.trip_id && localUser?.id) {
+            // console.log("🚀 Trip went live, starting user location share...");
+            watchId = Geolocation.watchPosition(
+                (position) => {
+                    emit(SOCKET_EVENTS.USER_LOCATION_UPDATE, {
+                        tripId: currentTrip.trip_id,
+                        userId: localUser.id,
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        heading: position.coords.heading,
+                    });
+                },
+                (error) => {
+                    console.error("❌ Geolocation watch error:", error);
+                },
+                {
+                    enableHighAccuracy: true,
+                    distanceFilter: 10,
+                    interval: 5000,
+                    fastestInterval: 2000,
+                }
+            );
+        }
+
+        return () => {
+            if (watchId !== null) {
+                Geolocation.clearWatch(watchId);
+            }
+        };
+    }, [currentStatus, currentTrip?.trip_id, localUser?.id]);
 
 
     const pickup = {
@@ -488,6 +537,7 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
     // ==================== NAVIGATION: SMART BACK ACTION ====================
     useEffect(() => {
         const handleBackAction = () => {
+            if (isCancelling) return true; // Prevent default behavior while cancelling
             if (
                 currentStatus === TripStatus.LIVE ||
                 currentStatus === TripStatus.ACCEPTED ||
@@ -500,6 +550,9 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
                 });
                 return true; // Prevent default behavior
             }
+            if (currentStatus === TripStatus.REQUESTED) {
+                return true; // Prevent default behavior without redirecting
+            }
             return false; // Let system handle it
         };
 
@@ -510,15 +563,22 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
 
         // Also handle navigation actions (header back button, swipe back gestures)
         const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
-            if (
-                (e.data.action.type === 'GO_BACK' || e.data.action.type === 'POP') &&
-                (currentStatus === TripStatus.LIVE ||
+            if (isCancelling) {
+                e.preventDefault();
+                return;
+            }
+            if (e.data.action.type === 'GO_BACK' || e.data.action.type === 'POP') {
+                if (
+                    currentStatus === TripStatus.LIVE ||
                     currentStatus === TripStatus.ACCEPTED ||
                     currentStatus === TripStatus.ARRIVING ||
-                    currentStatus === TripStatus.ARRIVED)
-            ) {
-                e.preventDefault();
-                handleBackAction();
+                    currentStatus === TripStatus.ARRIVED
+                ) {
+                    e.preventDefault();
+                    handleBackAction();
+                } else if (currentStatus === TripStatus.REQUESTED) {
+                    e.preventDefault();
+                }
             }
         });
 
@@ -526,7 +586,7 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
             backHandler.remove();
             unsubscribe();
         };
-    }, [currentStatus, navigation]);
+    }, [currentStatus, navigation, isCancelling]);
 
     // ==================== NAVIGATION: TRIP COMPLETED ====================
     // useEffect(() => {
@@ -543,6 +603,7 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
      */
     const handleCancelRide = useCallback(
         async (reason: CancelReason, notes: string) => {
+            setIsCancelling(true);
             try {
                 const finalNotes = reason === CancelReason.OTHER ? `Other: ${otherReason}` : `Cancelled by User: ${notes}`;
                 const rawData = {
@@ -583,6 +644,9 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
                 }
             } catch (error) {
                 Alert.alert('Failed to cancel trip. Please try again.');
+                console.error('❌ Cancel Trip Error:', error);
+            } finally {
+                setIsCancelling(false);
             }
         },
         [currentTrip, socket, otherReason]
@@ -693,6 +757,7 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
                 );
 
             case TripStatus.LIVE:
+            case TripStatus.RETURN_STARTED:
                 return (
                     <OnRideView
                         pickup={currentTrip.pickup_address}
@@ -706,24 +771,12 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
                     />
                 );
 
+            case TripStatus.WAITING:
+            case TripStatus.DAY_HALT:
             case TripStatus.DESTINATION_REACHED:
-                return (
-                    <RideClosurePreview
-                        tripData={currentTrip}
-                        fare={currentTrip.total_fare}
-                        navigation={navigation}
-                    />
-                );
-
+            case TripStatus.RETURN_REACHED:
             case TripStatus.COMPLETED:
-                return (
-                    <RatingView
-                        tripData={currentTrip}
-                        fare={currentTrip.total_fare}
-                        navigation={navigation}
-                        isRated={!!currentTrip.rating}
-                    />
-                );
+                return null;
 
             case TripStatus.CANCELLED:
                 return null;
@@ -743,6 +796,68 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
 
     if (isLoading) {
         return <TripScreenSkeleton />;
+    }
+
+    // ==================== EARLY RETURNS (NO MAP) ====================
+    // These states represent the "End of Trip" flows where the map isn't needed
+
+    if (currentStatus === TripStatus.WAITING) {
+        return (
+            <View style={{ flex: 1, backgroundColor: appColors.background, paddingTop: insets.top }}>
+                <RoundTripWaitingView
+                    pickup={currentTrip.pickup_address}
+                    destination={currentTrip.drop_address}
+                    eta={eta}
+                    tripPhase={tripPhase}
+                    tripData={currentTrip}
+                    driver={activeDriver}
+                    navigation={navigation}
+                    status={currentStatus} 
+                />
+            </View>
+        );
+    }
+
+    if (currentStatus === TripStatus.DAY_HALT) {
+        return (
+            <View style={{ flex: 1, backgroundColor: appColors.background, paddingTop: insets.top }}>
+                <DayHaltWaitingView
+                    pickup={currentTrip.pickup_address}
+                    destination={currentTrip.drop_address}
+                    eta={eta}
+                    tripPhase={tripPhase}
+                    tripData={currentTrip}
+                    driver={activeDriver}
+                    navigation={navigation}
+                    status={currentStatus} 
+                />
+            </View>
+        );
+    }
+
+    if (currentStatus === TripStatus.DESTINATION_REACHED || currentStatus === TripStatus.RETURN_REACHED) {
+        return (
+            <View style={{ flex: 1, backgroundColor: appColors.background, paddingTop: insets.top }}>
+                <RideClosurePreview
+                    tripData={currentTrip}
+                    fare={currentTrip.total_fare}
+                    navigation={navigation}
+                />
+            </View>
+        );
+    }
+
+    if (currentStatus === TripStatus.COMPLETED) {
+        return (
+            <View style={{ flex: 1, backgroundColor: appColors.background, paddingTop: insets.top }}>
+                <RatingView
+                    tripData={currentTrip}
+                    fare={currentTrip.total_fare}
+                    navigation={navigation}
+                    isRated={!!currentTrip.rating}
+                />
+            </View>
+        );
     }
 
     return (
@@ -774,7 +889,7 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
                     </View>
 
                     {/* SOS BUTTON - Only during active trip phases */}
-                    {[TripStatus.ACCEPTED, TripStatus.ARRIVING, TripStatus.ARRIVED, TripStatus.LIVE].includes(currentStatus as any) && (
+                    {[TripStatus.ACCEPTED, TripStatus.ARRIVING, TripStatus.ARRIVED, TripStatus.LIVE, TripStatus.WAITING, TripStatus.DAY_HALT, TripStatus.RETURN_STARTED].includes(currentStatus as any) && (
                         <TouchableOpacity
                             style={[styles.sosButton, { top: insets.top + vS(10) }]}
                             onPress={() => setShowSafetyModal(true)}
@@ -809,7 +924,7 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
                         >
                             <View style={[styles.handle, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.2)' : '#E5E7EB' }]} />
                             {/* MORE OPTIONS BUTTON (Only for non-REQUESTED trips) */}
-                            {currentStatus !== TripStatus.COMPLETED && currentStatus !== TripStatus.REQUESTED && (
+                            {currentStatus !== TripStatus.REQUESTED && (
                                 <TouchableOpacity
                                     style={styles.moreOptionsButton}
                                     onPress={() => {
@@ -912,8 +1027,8 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
                                 />
 
                                 <TouchableOpacity
-                                    style={[styles.submitReasonBtn, { opacity: otherReason.trim().length > 3 ? 1 : 0.6 }]}
-                                    disabled={otherReason.trim().length <= 3}
+                                    style={[styles.submitReasonBtn, { opacity: (otherReason.trim().length > 3 && !isCancelling) ? 1 : 0.6 }]}
+                                    disabled={otherReason.trim().length <= 3 || isCancelling}
                                     onPress={() => handleCancelRide(CancelReason.OTHER, otherReason)}
                                 >
                                     <Text style={styles.submitReasonText}>Confirm Cancellation</Text>
@@ -927,40 +1042,71 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
                                 </TouchableOpacity>
                             </View>
                         ) : (
-                            <ScrollView
-                                showsVerticalScrollIndicator={false}
-                                style={{ marginVertical: vS(10) }}
-                                contentContainerStyle={{ paddingBottom: vS(20) }}
-                            >
-                                {(currentStatus === TripStatus.LIVE ? MID_TRIP_REASONS : PRE_TRIP_REASONS).map((reason, index) => (
+                            <>
+                                <ScrollView
+                                    showsVerticalScrollIndicator={false}
+                                    style={{ marginVertical: vS(10) }}
+                                    contentContainerStyle={{ paddingBottom: vS(20) }}
+                                >
+                                    {(currentStatus === TripStatus.LIVE ? MID_TRIP_REASONS : PRE_TRIP_REASONS).map((reason, index) => {
+                                        const isSelected = selectedReason.value === reason.value;
+                                        return (
+                                            <TouchableOpacity
+                                                key={index}
+                                                disabled={isCancelling}
+                                                style={[
+                                                    styles.reasonOption,
+                                                    {
+                                                        borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F5F5F5',
+                                                        opacity: isCancelling ? 0.6 : 1,
+                                                        backgroundColor: isSelected ? (isDark ? 'rgba(255, 255, 255, 0.1)' : '#F3F4F6') : 'transparent'
+                                                    }
+                                                ]}
+                                                onPress={() => setSelectedReason(reason)}
+                                            >
+                                                <Text style={[styles.reasonText, { color: appColors.secondaryText, fontWeight: isSelected ? '700' : '500' }]}>{reason.label}</Text>
+                                                <MaterialCommunityIcons
+                                                    name={isSelected ? "check-circle" : "circle-outline"}
+                                                    size={20}
+                                                    color={isSelected ? appColors.primary : (isDark ? 'rgba(255, 255, 255, 0.2)' : "#CCC")}
+                                                />
+                                            </TouchableOpacity>
+                                        )
+                                    })}
+                                </ScrollView>
+
+                                {selectedReason.value && (
                                     <TouchableOpacity
-                                        key={index}
-                                        style={[styles.reasonOption, { borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F5F5F5' }]}
-                                        onPress={() => {
-                                            if (reason.value === CancelReason.OTHER) {
-                                                setSelectedReason(reason);
-                                            } else {
-                                                handleCancelRide(reason.value, reason.label);
-                                            }
-                                        }}
+                                        style={[styles.submitReasonBtn, { opacity: isCancelling ? 0.6 : 1 }]}
+                                        disabled={isCancelling}
+                                        onPress={() => handleCancelRide(selectedReason.value as CancelReason, selectedReason.label)}
                                     >
-                                        <Text style={[styles.reasonText, { color: appColors.secondaryText, fontWeight: '500' }]}>{reason.label}</Text>
-                                        <MaterialCommunityIcons
-                                            name="chevron-right"
-                                            size={20}
-                                            color={isDark ? 'rgba(255, 255, 255, 0.2)' : "#CCC"}
-                                        />
+                                        <Text style={styles.submitReasonText}>Confirm Cancellation</Text>
                                     </TouchableOpacity>
-                                ))}
-                            </ScrollView>
+                                )}
+                            </>
                         )}
 
                         <TouchableOpacity
                             style={[styles.keepBookingBtn, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.1)' : '#F0F4FF' }]}
-                            onPress={() => setShowReasons(false)}
+                            onPress={() => {
+                                setSelectedReason({ value: null, label: '' });
+                                setOtherReason('');
+                                setShowReasons(false);
+                            }}
                         >
                             <Text style={[styles.keepBookingText, { color: appColors.primary }]}>Don't Cancel</Text>
                         </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* CANCELLING LOADER */}
+            <Modal transparent visible={isCancelling} animationType="fade">
+                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+                    <View style={{ backgroundColor: appColors.card, padding: 24, borderRadius: 16, alignItems: 'center' }}>
+                        <ActivityIndicator size="large" color={appColors.primary} />
+                        <Text style={{ marginTop: 12, color: appColors.text, fontWeight: '600' }}>Cancelling Trip...</Text>
                     </View>
                 </View>
             </Modal>

@@ -44,8 +44,8 @@ const ReferAndEarn = () => {
     try {
       await Share.open({
         title: 'Refer & Earn',
-        message: `Join me on V-Drive and get ₹50 off your first ride! Use my referral code: ${referralCode}`,
-        url: 'https://vdrive.com/download',
+        message: `Join me on T2Drive and get ₹50 off your first ride! Use my referral code: ${referralCode}`,
+        url: 'https://t2drive.com/download',
       });
     } catch (error) {
     }
@@ -78,7 +78,7 @@ const ReferAndEarn = () => {
           </View>
           <Text style={[styles.heroTitle, { color: appColors.text }]}>Refer Friends & Earn Cash</Text>
           <Text style={[styles.heroDesc, { color: appColors.lightTextColor }]}>
-            Spread the word about V-Drive and get rewarded for every friend who joins.
+            Spread the word about T2Drive and get rewarded for every friend who joins.
           </Text>
         </View>
 

@@ -304,7 +304,7 @@ export const OneWayComponent: React.FC<OneWayProps> = ({ onSelectLocation }) => 
                                 >
                                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: hS(10) }}>
                                         <View style={[styles.routeIconBox, { backgroundColor: appColors.primary + '15' }]}>
-                                            <MaterialCommunityIcons name="history" size={mS(22)} color={appColors.primary} />
+                                            <MaterialCommunityIcons name="history" size={mS(22)} color={appColors.icon} />
                                         </View>
                                         <View style={styles.routeContent}>
                                             <Text style={[styles.routeLabel, { color: appColors.text }]}>To</Text>
@@ -312,7 +312,7 @@ export const OneWayComponent: React.FC<OneWayProps> = ({ onSelectLocation }) => 
                                         </View>
                                         <TouchableOpacity
                                             onPress={() => handleBookAgain(trip)}
-                                            style={[styles.bookAgainBtn, { backgroundColor: appColors.primary }]}
+                                            style={[styles.bookAgainBtn, { backgroundColor: appColors.button }]}
                                         >
                                             <Text style={styles.bookAgainText}>Book Again</Text>
                                         </TouchableOpacity>
@@ -341,12 +341,12 @@ export const OneWayComponent: React.FC<OneWayProps> = ({ onSelectLocation }) => 
                             { icon: 'wallet-outline', title: 'Transparent Pricing', desc: 'No hidden charges' },
                             { icon: 'headset', title: '24/7 Support', desc: 'Always here to help' },
                         ].map((benefit, idx) => (
-                            <View key={idx} style={styles.benefitCard}>
+                            <View key={idx} style={[styles.benefitCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF' }]}>
                                 <View style={[styles.benefitIcon, { backgroundColor: appColors.primary + '15' }]}>
                                     <MaterialCommunityIcons name={benefit.icon} size={mS(20)} color={appColors.primary} />
                                 </View>
                                 <Text style={[styles.benefitTitle, { color: appColors.text }]}>{benefit.title}</Text>
-                                <Text style={[styles.benefitDesc, { color: appColors.text }]}>{benefit.desc}</Text>
+                                <Text style={[styles.benefitDesc, { color: appColors.secondaryText }]}>{benefit.desc}</Text>
                             </View>
                         ))}
                     </View>
@@ -658,7 +658,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: hS(12),
         borderRadius: mS(14),
         alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.6)',
         gap: vS(8),
     },
     benefitIcon: {

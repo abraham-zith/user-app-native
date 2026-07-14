@@ -68,6 +68,8 @@ export interface Trip {
     applied_coupon_id?: string;
     discount?: number;
     otp?: string;
+    package_hours?: number;
+    outstation_trip_type?: string;
 }
 
 export interface TripChangesPayload {

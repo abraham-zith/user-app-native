@@ -224,7 +224,7 @@ const Settings = ({ navigation }: ScreenProps) => {
                     />
                     <ActionRow
                         icon="information-outline"
-                        title="About VDrive"
+                        title="About T2Drive"
                         onPress={() => handleNavigation(AboutVdriveScreen_Nav)}
                     />
                 </View>

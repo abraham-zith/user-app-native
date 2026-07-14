@@ -37,7 +37,7 @@ const FareSummaryScreen = ({ navigation }: ScreenProps) => {
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Trip Ended</Text>
-        <Text style={styles.subTitle}>Hope you had a comfortable ride with vDrive</Text>
+        <Text style={styles.subTitle}>Hope you had a comfortable ride with T2Drive</Text>
 
         <View style={styles.fareCard}>
           <Text style={styles.totalLabel}>Total Fare</Text>

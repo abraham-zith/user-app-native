@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, StatusBar } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, StatusBar, ActivityIndicator } from 'react-native';
 import { useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -9,11 +9,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // Replace with your actual navigation constant for Scheduled details if different
 import { BookedTripScreen_Nav } from '../../../../Navigations/navigations';
 import { useAppTheme } from '../../../../hooks/useAppTheme';
+import { useGetActiveTripbyUserIdQuery } from '../../../../service/userApi';
 
 const ScheduledTripsList = () => {
     const insets = useSafeAreaInsets();
     const navigation = useNavigation<any>();
     const { colors: appColors, isDark } = useAppTheme();
+
+    const localuser = useSelector((state: RootState) => state.userSlice.user);
+    const { refetch, isFetching } = useGetActiveTripbyUserIdQuery(localuser?.id, {
+        skip: !localuser?.id,
+    });
 
     // Select the scheduledTrips array we set up in Redux
     const scheduledTrips = useSelector((state: RootState) => state.tripSlice.scheduledTrips);
@@ -125,7 +131,15 @@ const ScheduledTripsList = () => {
                     <MaterialCommunityIcons name="arrow-left" size={24} color={isDark ? appColors.text : "#111"} />
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: appColors.text }]}>Scheduled Bookings</Text>
-                <View style={{ width: 40 }} />
+                {isFetching ? (
+                    <View style={{ width: 40, alignItems: 'center' }}>
+                        <ActivityIndicator size="small" color={appColors.text} />
+                    </View>
+                ) : (
+                    <TouchableOpacity onPress={() => refetch()} style={{ width: 40, alignItems: 'center' }}>
+                        <MaterialCommunityIcons name="refresh" size={24} color={appColors.text} />
+                    </TouchableOpacity>
+                )}
             </View>
 
             <FlatList

@@ -59,6 +59,13 @@ const SearchableCarPicker: React.FC<SearchableCarPickerProps> = ({ onSelect, pla
             }
         });
 
+        if (search.trim().length > 0) {
+            sections.push({
+                title: "Custom Vehicle",
+                data: [{ brand: "Custom Entry", model: search.trim(), type: VehicleType.CAR }]
+            });
+        }
+
         return sections;
     }, [search]);
 

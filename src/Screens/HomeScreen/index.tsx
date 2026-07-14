@@ -9,10 +9,14 @@ import {
     Platform,
     TouchableOpacity,
     Animated,
+    Image,
 } from "react-native";
+import { useSelector } from 'react-redux';
+import { RootState } from '../../redux/store';
 import { useTheme, useRoute } from "@react-navigation/native";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AntDesign from 'react-native-vector-icons/AntDesign';
+import Config from 'react-native-config';
 import { useAppTheme } from "../../hooks/useAppTheme";
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -31,11 +35,64 @@ import { RoundedTrip } from "./HomeScreenComponents/RoundedTripComponent";
 import { OutstationComponent } from './HomeScreenComponents/OutStationcomponent';
 import { DailyComponent } from './HomeScreenComponents/DailyComponent';
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { clearActiveTrip, getActiveTripId } from "../../service/utils/tripstorage";
-import { useLazyGetByTripIdQuery } from "../../service/userApi";
 import GlobalRideCard from "../TripScreen/TripComponents/GlobalRideCard";
 import { ActiveTripBadge } from "../TripScreen/TripComponents/LiveRideBadge/ActiveTripBadge";
 import { ScheduledTripBadge } from "../TripScreen/TripComponents/ScheduledRideBadge/ScheduledTripBadge";
+import { BookedTripScreen_Nav } from "../../Navigations/navigations";
+import { useLazyGetByTripIdQuery } from "../../service/tripApi";
+import Skeleton from "../../Components/Skeleton";
+import SidebarModal from "./HomeScreenComponents/SidebarModal";
+
+let initialLoadChecked = false;
+
+const HomeScreenSkeleton = ({ insets, appColors, isDark }: any) => {
+    return (
+        <View style={{ flex: 1, backgroundColor: appColors.background, paddingTop: insets.top, paddingHorizontal: insets.left }}>
+            {/* Header Skeleton */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: hS(20), paddingTop: vS(10), paddingBottom: vS(10) }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: hS(10) }}>
+                    <Skeleton width={mS(45)} height={mS(45)} borderRadius={mS(22.5)} />
+                    <View style={{ gap: vS(4) }}>
+                        <Skeleton width={120} height={16} />
+                        <Skeleton width={80} height={14} />
+                    </View>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: hS(10) }}>
+                    <Skeleton width={mS(40)} height={mS(40)} borderRadius={mS(20)} />
+                    <Skeleton width={mS(40)} height={mS(40)} borderRadius={mS(10)} />
+                </View>
+            </View>
+
+            {/* Map Skeleton */}
+            <View style={{ height: SCREEN_HEIGHT * 0.45, width: '100%', paddingHorizontal: hS(10) }}>
+                <Skeleton width="100%" height="100%" borderRadius={24} />
+            </View>
+
+            {/* Tabs Skeleton */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginVertical: vS(20) }}>
+                {[1, 2, 3, 4].map((i) => (
+                    <View key={i} style={{ alignItems: 'center', gap: vS(8) }}>
+                        <Skeleton width={hS(65)} height={hS(65)} borderRadius={hS(16)} />
+                        <Skeleton width={50} height={12} />
+                    </View>
+                ))}
+            </View>
+
+            {/* Dynamic Content Area Skeleton */}
+            <View style={{ paddingHorizontal: hS(20), gap: vS(16) }}>
+                <Skeleton width="100%" height={hS(50)} borderRadius={25} />
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: hS(10) }}>
+                    {[1, 2, 3].map((i) => (
+                        <View key={i} style={{ flex: 1, gap: vS(8) }}>
+                            <Skeleton width="100%" height={hS(100)} borderRadius={16} />
+                        </View>
+                    ))}
+                </View>
+            </View>
+        </View>
+    );
+};
+
 
 const bookingSteps = [
     {
@@ -77,8 +134,24 @@ const HomeScreen: React.FC<any> = ({ navigation }) => {
     const [isHomepage, setIsHomepage] = useState(true);
     const [screenName, setscreenName] = useState('OneWay');
     const [active, setActive] = useState<number>(0);
+    const [isScreenLoading, setIsScreenLoading] = useState(true);
+    const [isSidebarVisible, setIsSidebarVisible] = useState(false);
 
     const [triggerGetTrip] = useLazyGetByTripIdQuery();
+
+    const localUser = useSelector((state: RootState) => state?.userSlice?.user);
+    // console.log("localUser", localUser);
+
+    const imageSource = localUser?.profile_url;
+    const BASE_URL = `${Config.DEV_BACKEND_URL}/api`;
+    const proxiedImageSource = imageSource ? (imageSource.startsWith('http') ? `${BASE_URL}/media/proxy?url=${encodeURIComponent(imageSource)}` : imageSource) : null;
+
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour < 12) return 'Good Morning';
+        if (hour < 18) return 'Good Afternoon';
+        return 'Good Evening';
+    };
 
     const buttons = [
         { name: 'OneWay', iconName: 'man' },
@@ -103,35 +176,47 @@ const HomeScreen: React.FC<any> = ({ navigation }) => {
         buttonsAnim.forEach(anim => anim.setValue(0));
         stepsAnim.forEach(anim => anim.setValue(0));
 
-        // Main entrance
-        Animated.parallel([
-            Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
-            Animated.timing(slideAnim, { toValue: 0, duration: 800, useNativeDriver: true }),
-        ]).start();
+        // Simulate initial skeleton load for heavy map/components
+        const timer = setTimeout(() => {
+            setIsScreenLoading(false);
+        }, 1500);
 
-        // Staggered buttons
-        const buttonAnims = buttonsAnim.map((anim, i) =>
-            Animated.spring(anim, {
-                toValue: 1,
-                tension: 50,
-                friction: 7,
-                delay: 300 + (i * 100),
-                useNativeDriver: true,
-            })
-        );
-
-        // Staggered steps
-        const stepAnims = stepsAnim.map((anim, i) =>
-            Animated.timing(anim, {
-                toValue: 1,
-                duration: 600,
-                delay: 600 + (i * 150),
-                useNativeDriver: true,
-            })
-        );
-
-        Animated.parallel([...buttonAnims, ...stepAnims]).start();
+        return () => clearTimeout(timer);
     }, []);
+
+    // Trigger animations only after the skeleton has finished loading
+    useEffect(() => {
+        if (!isScreenLoading) {
+            // Main entrance
+            Animated.parallel([
+                Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+                Animated.timing(slideAnim, { toValue: 0, duration: 800, useNativeDriver: true }),
+            ]).start();
+
+            // Staggered buttons
+            const buttonAnims = buttonsAnim.map((anim, i) =>
+                Animated.spring(anim, {
+                    toValue: 1,
+                    tension: 50,
+                    friction: 7,
+                    delay: 300 + (i * 100),
+                    useNativeDriver: true,
+                })
+            );
+
+            // Staggered steps
+            const stepAnims = stepsAnim.map((anim, i) =>
+                Animated.timing(anim, {
+                    toValue: 1,
+                    duration: 600,
+                    delay: 600 + (i * 150),
+                    useNativeDriver: true,
+                })
+            );
+
+            Animated.parallel([...buttonAnims, ...stepAnims]).start();
+        }
+    }, [isScreenLoading, fadeAnim, slideAnim, buttonsAnim, stepsAnim]);
 
 
     // Inside your Home.tsx or App.tsx
@@ -171,17 +256,61 @@ const HomeScreen: React.FC<any> = ({ navigation }) => {
         }
     };
 
+    if (isScreenLoading) {
+        return <HomeScreenSkeleton insets={insets} appColors={appColors} isDark={isDark} />;
+    }
+
     return (
         <View style={{ flex: 1 }}>
 
             <View style={{ flex: 1, backgroundColor: appColors.background, paddingTop: insets.top, paddingHorizontal: insets.left }}>
+
+                {/* --- HEADER SECTION --- */}
+                <View style={[style.headerContainer, { paddingHorizontal: hS(20), paddingTop: vS(10), paddingBottom: vS(10), zIndex: 9999 }]}>
+                    <View style={style.headerLeft}>
+                        <View style={[style.profileImageContainer, { backgroundColor: isDark ? '#333' : '#E2E8F0' }]}>
+                            <Image
+                                source={{ uri: proxiedImageSource || 'https://via.placeholder.com/150' }}
+                                style={style.profileImage}
+                            />
+                            <View style={style.onlineDot} />
+                        </View>
+                        <View style={style.headerTextContainer}>
+                            <Text style={[style.greetingText, { color: appColors.text }]}>
+                                {getGreeting()}, <Text style={[style.userNameText, { color: appColors.secondaryText }]}>{localUser?.full_name?.split(' ')[0] || localUser?.name?.split(' ')[0] || 'User'}</Text>
+                            </Text>
+                            <View style={style.ratingContainer}>
+                                <AntDesign name="star" size={mS(12)} color="#F59E0B" />
+                                <Text style={[style.ratingText, { color: appColors.text }]}>{localUser?.rating || '4.0'} <Text style={[style.ridesText, { color: appColors.secondaryText }]}>({localUser?.total_rides || '0'})</Text></Text>
+                                {/* <View style={[style.eliteBadge, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.2)' : '#E0E7FF' }]}>
+                                    <MaterialCommunityIcons name="diamond-stone" size={mS(10)} color={isDark ? '#93C5FD' : '#3730A3'} />
+                                    <Text style={[style.eliteText, { color: isDark ? '#93C5FD' : '#3730A3' }]}>ELITE</Text>
+                                </View> */}
+                            </View>
+                        </View>
+                    </View>
+
+                    <View style={style.headerRight}>
+                        <View style={style.badgesContainer}>
+                            <ActiveTripBadge />
+                            <ScheduledTripBadge />
+                        </View>
+                        <TouchableOpacity 
+                            style={[style.settingsButton, { backgroundColor: isDark ? '#333' : '#F1F5F9' }]}
+                            onPress={() => setIsSidebarVisible(true)}
+                        >
+                            <MaterialCommunityIcons name="menu" size={mS(20)} color={appColors.text} />
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
                 <ScrollView
                     bounces={false}
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={{ flexGrow: 1 }}
                 >
                     {/* --- SECTION 1: MAP SECTION --- */}
-                    <Animated.View style={{ height: SCREEN_HEIGHT * 0.5, width: '100%', opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+                    <Animated.View style={{ height: SCREEN_HEIGHT * 0.45, width: '100%', opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
                         <MapViewComponent />
 
                         {/* Floating Branding Icon */}
@@ -321,11 +450,12 @@ const HomeScreen: React.FC<any> = ({ navigation }) => {
                 </ScrollView>
             </View>
 
-            {/* FLOAT BADGES CONTAINER */}
-            <View style={style.badgesRowContainer}>
-                <ActiveTripBadge />
-                <ScheduledTripBadge />
-            </View>
+            <SidebarModal
+                visible={isSidebarVisible}
+                onClose={() => setIsSidebarVisible(false)}
+                appColors={appColors}
+                isDark={isDark}
+            />
         </View>
     );
 };
@@ -519,6 +649,92 @@ const style = StyleSheet.create({
         gap: hS(12),
         pointerEvents: 'box-none',
         zIndex: 9999,
+    },
+    headerContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        width: '100%',
+    },
+    headerLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    profileImageContainer: {
+        width: mS(45),
+        height: mS(45),
+        borderRadius: mS(22.5),
+        marginRight: hS(10),
+    },
+    profileImage: {
+        width: '100%',
+        height: '100%',
+        borderRadius: mS(22.5),
+        resizeMode: 'cover',
+    },
+    onlineDot: {
+        position: 'absolute',
+        bottom: 2,
+        right: 2,
+        width: mS(10),
+        height: mS(10),
+        borderRadius: mS(5),
+        backgroundColor: '#10B981',
+        borderWidth: 2,
+        borderColor: '#FFF',
+    },
+    headerTextContainer: {
+        justifyContent: 'center',
+    },
+    greetingText: {
+        fontSize: mS(14),
+        fontWeight: 'bold',
+        marginBottom: vS(2),
+    },
+    userNameText: {
+        fontWeight: '400',
+    },
+    ratingContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: hS(4),
+    },
+    ratingText: {
+        fontSize: mS(12),
+        fontWeight: 'bold',
+    },
+    ridesText: {
+        fontWeight: '400',
+        fontSize: mS(11),
+    },
+    eliteBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: hS(6),
+        paddingVertical: vS(2),
+        borderRadius: mS(10),
+        marginLeft: hS(6),
+        gap: hS(2),
+    },
+    eliteText: {
+        fontSize: mS(9),
+        fontWeight: 'bold',
+    },
+    headerRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: hS(10),
+    },
+    badgesContainer: {
+        flexDirection: 'row',
+        gap: hS(8),
+    },
+    settingsButton: {
+        width: mS(36),
+        height: mS(36),
+        borderRadius: mS(18),
+        alignItems: 'center',
+        justifyContent: 'center',
     },
 });
 

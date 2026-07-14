@@ -17,7 +17,7 @@ const FAQ_CATEGORIES = [
         title: 'Ride Related Queries',
         icon: 'car-connected',
         faqs: [
-            { id: 'r1', question: 'How do I track my Vdrive?', answer: 'You can track your ride in real-time from the active bookings tab.' },
+            { id: 'r1', question: 'How do I track my T2Drive?', answer: 'You can track your ride in real-time from the active bookings tab.' },
             { id: 'r2', question: 'Can I change my destination mid-ride?', answer: 'Yes, you can update the destination in-app during an active ride.' }
         ]
     },
@@ -54,7 +54,7 @@ const HelpScreen: React.FC<ScreenProps> = () => {
     };
 
     const handleEmail = () => {
-        Linking.openURL('mailto:support@vdrive.com?subject=Help Request').catch(() =>
+        Linking.openURL('mailto:support@t2drive.com?subject=Help Request').catch(() =>
             Alert.alert('Error', 'Email feature is not supported on this device')
         );
     };
@@ -161,17 +161,17 @@ const HelpScreen: React.FC<ScreenProps> = () => {
             </ScrollView>
 
             {/* --- FLOATING CHATBOT BUTTON --- */}
-            <TouchableOpacity 
-                style={[styles.fab, { backgroundColor: '#10B981' }]} 
+            <TouchableOpacity
+                style={[styles.fab, { backgroundColor: '#10B981' }]}
                 onPress={() => setIsChatbotVisible(true)}
                 activeOpacity={0.8}
             >
                 <MaterialCommunityIcons name="chat-processing-outline" size={mS(32)} color="#FFFFFF" />
             </TouchableOpacity>
 
-            <FaqChatbotModal 
-                visible={isChatbotVisible} 
-                onClose={() => setIsChatbotVisible(false)} 
+            <FaqChatbotModal
+                visible={isChatbotVisible}
+                onClose={() => setIsChatbotVisible(false)}
             />
         </View>
     );

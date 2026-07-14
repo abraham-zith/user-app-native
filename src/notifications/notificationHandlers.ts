@@ -69,10 +69,12 @@ const NotificationHandler: React.FC = () => {
     const displayBanner = async (remoteMessage: any) => {
         const type = remoteMessage.data?.type || '';
         const channelId = getChannelForType(type);
+        const tripId = remoteMessage.data?.tripId || remoteMessage.data?.trip_id || remoteMessage.data?.bookingId;
 
         await notifee.displayNotification({
-            title: remoteMessage.notification?.title,
-            body: remoteMessage.notification?.body,
+            id: tripId ? String(tripId) : undefined,
+            title: remoteMessage.data?.title || remoteMessage.notification?.title || 'Notification',
+            body: remoteMessage.data?.message || remoteMessage.data?.body || remoteMessage.notification?.body || '',
             data: remoteMessage.data,
             android: {
                 channelId,

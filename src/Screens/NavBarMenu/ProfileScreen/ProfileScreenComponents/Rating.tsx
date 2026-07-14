@@ -63,7 +63,7 @@ const RatingInfoScreen = () => {
                             <Icon name="star-face" size={mS(48)} color="#FFF" />
                         </View>
                         <Text style={styles.heroTitle}>Your Community Reputation</Text>
-                        <Text style={styles.heroSubtitle}>Understanding how ratings empower the VDrive network</Text>
+                        <Text style={styles.heroSubtitle}>Understanding how ratings empower the T2Drive network</Text>
                     </View>
                 </Animated.View>
 

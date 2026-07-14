@@ -13,6 +13,7 @@ import {
     Image,
     Modal,
     TextInput,
+    ActivityIndicator
 } from 'react-native';
 import { Text } from "../../../Components";
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -77,6 +78,19 @@ const SearchingDriver: React.FC<SearchDriverProps> = ({
     const [isPopupVisible, setIsPopupVisible] = useState(false);
     const [selectedTip, setSelectedTip] = useState<number>(0);
     const [customTip, setCustomTip] = useState<string>('');
+    const [isCancelling, setIsCancelling] = useState(false);
+
+    // Prevent navigation while cancelling
+    useEffect(() => {
+        if (!navigation) return;
+        const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
+            if (!isCancelling) {
+                return;
+            }
+            e.preventDefault();
+        });
+        return unsubscribe;
+    }, [navigation, isCancelling]);
 
     // ✅ Reset local state when trip_id changes
     useEffect(() => {
@@ -114,6 +128,7 @@ const SearchingDriver: React.FC<SearchDriverProps> = ({
 
     const handleCancelBooking = async () => {
         setIsPopupVisible(false);
+        setIsCancelling(true);
         try {
             await cancelTrip({
                 trip_id: tripData?.trip_id,
@@ -127,6 +142,8 @@ const SearchingDriver: React.FC<SearchDriverProps> = ({
             }
         } catch (error) {
             console.error('Failed to cancel trip:', error);
+        } finally {
+            setIsCancelling(false);
         }
     };
 
@@ -278,7 +295,7 @@ const SearchingDriver: React.FC<SearchDriverProps> = ({
             <View style={styles.header}>
                 <Text style={[styles.title, { color: appColors.text }]}>Finding your Captain</Text>
                 <Text style={[styles.subtitle, { color: appColors.secondaryText }]}>
-                    Connecting you to the nearest VDrive driver...
+                    Connecting you to the nearest T2Drive driver...
                 </Text>
             </View>
             <View style={styles.progressBarsRow}>
@@ -412,7 +429,7 @@ const SearchingDriver: React.FC<SearchDriverProps> = ({
     const renderTimeoutPopup = () => {
         const minutes = Math.floor(popupTimer / 60);
         const seconds = (popupTimer % 60).toString().padStart(2, '0');
-        
+
         return (
             <Modal
                 visible={isPopupVisible}
@@ -428,11 +445,11 @@ const SearchingDriver: React.FC<SearchDriverProps> = ({
                         <View style={styles.modalIconWrapper}>
                             <MaterialCommunityIcons name="alert-circle-outline" size={mS(36)} color="#EF4444" />
                         </View>
-                        
+
                         <Text style={[styles.modalTitle, { color: appColors.text }]}>
                             No Driver Found Yet
                         </Text>
-                        
+
                         <Text style={[styles.modalSubtitle, { color: appColors.secondaryText }]}>
                             Would you like to customize your tip to find a driver quickly, or cancel the request?
                         </Text>
@@ -497,6 +514,7 @@ const SearchingDriver: React.FC<SearchDriverProps> = ({
                         <View style={styles.modalActions}>
                             <TouchableOpacity
                                 style={[styles.modalButton, styles.cancelButton]}
+                                disabled={isCancelling}
                                 onPress={handleCancelBooking}
                             >
                                 <Text style={styles.cancelButtonText}>Cancel Ride</Text>
@@ -523,6 +541,16 @@ const SearchingDriver: React.FC<SearchDriverProps> = ({
             {renderRadiusTrackingUI()}
             {renderSafetyFooter()}
             {renderTimeoutPopup()}
+
+            {/* CANCELLING LOADER */}
+            <Modal transparent visible={isCancelling} animationType="fade">
+                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+                    <View style={{ backgroundColor: appColors.card, padding: hS(24), borderRadius: mS(16), alignItems: 'center' }}>
+                        <ActivityIndicator size="large" color={appColors.primary} />
+                        <Text style={{ marginTop: vS(12), color: appColors.text, fontWeight: '600' }}>Cancelling Trip...</Text>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 };
