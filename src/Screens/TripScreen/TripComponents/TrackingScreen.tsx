@@ -155,7 +155,7 @@ const TrackingView: React.FC<TrackingViewProps> = ({
             <View style={styles.otpSection}>
                 <View style={[styles.otpGlassCard, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F4F6F9', borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'transparent' }]}>
                     <View style={styles.otpDigitsContainer}>
-                        {(String(trip?.otp || driver?.driverOTP || '1234')).split('').map((digit, index) => (
+                        {(String(trip?.otp || driver?.driverOTP || '1234').padStart(4, '0')).split('').map((digit, index) => (
                             <View key={index} style={[styles.otpDigitCircle, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#FFFFFF' }]}>
                                 <Text style={[styles.otpCode, { color: isDark ? '#FFFFFF' : '#475569' }]}>{digit}</Text>
                             </View>

@@ -59,7 +59,7 @@ interface LocationInputProps extends ScreenProps {
 const SCREEN_TO_RIDE_TYPE: Record<string, RideType> = {
     'OneWay': RideType.ONE_WAY,
     'RoundedTrip': RideType.ROUND_TRIP,
-    'Outstation': RideType.OUTSTATION,
+    'Outstation': RideType.OUTSTATION_ONE_WAY,
     'Schedule': RideType.SCHEDULED,
 };
 
@@ -95,7 +95,7 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
     const rideDetails = [
         { label: 'OneWay', value: RideType.ONE_WAY, iconName: 'directions' },
         { label: 'RoundedTrip', value: RideType.ROUND_TRIP, iconName: 'autorenew' },
-        { label: 'Outstation', value: RideType.OUTSTATION, iconName: 'map-marker-radius-outline' },
+        { label: 'Outstation', value: RideType.OUTSTATION_ONE_WAY, iconName: 'map-marker-radius-outline' },
         { label: 'Schedule', value: RideType.SCHEDULED, iconName: 'select-marker' },
     ];
 
@@ -142,8 +142,8 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
         { label: '12 Hours', value: 12 },
     ];
     const outstationTripTypeOptions = [
-        { label: 'One Way', value: 'oneway' },
-        { label: 'Round Trip', value: 'roundedTrip' }
+        { label: 'One Way', value: RideType.OUTSTATION_ONE_WAY },
+        { label: 'Round Trip', value: RideType.OUTSTATION_ROUND_TRIP }
     ];
     const outstationOneWayPackageHourOptions = [
         { label: '4 Hrs', value: 4 },
@@ -245,6 +245,7 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
             ride_type: selectedRide as any
         });
         setNext(true)
+        console.log(tripPayload, "tripPayload");
     }
 
 
@@ -514,7 +515,7 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
     }
 
     const handleToggleAdvanceBooking = () => {
-        if (selectedRide === RideType.OUTSTATION) {
+        if (selectedRide === RideType.OUTSTATION_ONE_WAY || selectedRide === RideType.OUTSTATION_ROUND_TRIP) {
             Alert.alert(
                 "Advance Booking",
                 "You cannot disable advance booking because outstation trips must be scheduled."
@@ -573,12 +574,12 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
     }, [screenName])
 
     useEffect(() => {
-        if (selectedRide === RideType.OUTSTATION) {
+        if (selectedRide === RideType.OUTSTATION_ONE_WAY || selectedRide === RideType.OUTSTATION_ROUND_TRIP) {
             setAdvanceBooking(true);
             setTripPayload(prev => ({
                 ...prev,
                 booking_type: BookingType.SCHEDULED,
-                outstation_trip_type: outstationTripType
+                ride_type: selectedRide
             }));
         }
     }, [selectedRide]);
@@ -928,7 +929,7 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                         </View>
                     )}
 
-                    {selectedRide === RideType.OUTSTATION && (
+                    {(selectedRide === RideType.OUTSTATION_ONE_WAY || selectedRide === RideType.OUTSTATION_ROUND_TRIP) && (
                         <View style={{
                             marginHorizontal: hS(16),
                             marginTop: vS(16),
@@ -963,9 +964,11 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                                     value={outstationTripType}
                                     onChange={(item) => {
                                         setOutstationTripType(item.value);
+                                        const newRideType = item.value as RideType;
+                                        setSelectedRide(newRideType);
                                         setTripPayload(prev => ({
                                             ...prev,
-                                            outstation_trip_type: item.value
+                                            ride_type: newRideType
                                         }));
                                     }}
                                 />
@@ -1161,7 +1164,7 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                                         borderColor: colors.border
                                     }}>
                                         <Text style={{ color: colors.text, fontWeight: '700', fontSize: mS(15) }}>Advance Booking</Text>
-                                        {selectedRide === RideType.OUTSTATION ? (
+                                        {(selectedRide === RideType.OUTSTATION_ONE_WAY || selectedRide === RideType.OUTSTATION_ROUND_TRIP) ? (
                                             <Pressable onPress={handleToggleAdvanceBooking}>
                                                 <View pointerEvents="none">
                                                     <Switch

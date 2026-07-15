@@ -3,10 +3,10 @@ import { Text } from "../../../../Components";
 import { Styles } from "../../../../lib/styles";
 import Activity from "../../ActivityScreen";
 
-export default function ActivityScreen() {
+export default function ActivityScreen({ navigation }: any) {
     return (
         <View style={[Styles.flex]}>
-            <Activity />
+            <Activity navigation={navigation} />
         </View>
 
     )

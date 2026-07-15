@@ -33,6 +33,7 @@ import RatingView from './TripComponents/RatingviewScreen';
 import TrackingView from './TripComponents/TrackingScreen';
 import RoundTripWaitingView from './TripComponents/RoundTripWaitingView';
 import DayHaltWaitingView from './TripComponents/DayHaltWaitingView';
+import ReturnStartedView from './TripComponents/ReturnStartedView';
 import RideClosurePreview from './TripComponents/RideClosurePreview';
 import SafetyToolkitModal from './TripComponents/SafetyToolkitModal';
 import { UserAppUI, TripPhase } from '../MapTrackingScreen/UserMapScreen';
@@ -63,6 +64,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { hS, vS, mS } from '../../lib/responsive';
 import colors from '../../constant/colors';
 import Skeleton from '../../Components/Skeleton';
+import Config from 'react-native-config';
+
+const getProxiedImageUrl = (url: string | undefined | null) => {
+    if (!url) return null;
+    if (url.startsWith('http')) {
+        const BASE_URL = `${Config.DEV_BACKEND_URL}/api`;
+        return `${BASE_URL}/media/proxy?url=${encodeURIComponent(url)}`;
+    }
+    return url;
+};
+
 
 const TripScreenSkeleton = () => {
     const { colors: appColors, isDark } = useAppTheme();
@@ -155,6 +167,8 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
         tripfromroute?.trip_status || TripStatus.REQUESTED
     );
     const [showReasons, setShowReasons] = useState(false);
+    const [showTripOptions, setShowTripOptions] = useState(false);
+    const [showPolicyModal, setShowPolicyModal] = useState(false);
     const [showSafetyModal, setShowSafetyModal] = useState(false);
     const [driverLocationHistory, setDriverLocationHistory] = useState<any[]>([]);
     const [selectedReason, setSelectedReason] = useState<{ value: CancelReason | null, label: string }>({ value: null, label: '' });
@@ -253,7 +267,7 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
         driverName: driverSrc.full_name || driverSrc.driverName || driverSrc.name,
         driverPhone: driverSrc.phone_number || driverSrc.phone || driverSrc.driverPhone,
         driverRating: driverSrc.rating || 5,
-        driverProfilePic: driverSrc.profile_pic_url || driverSrc.profile_pic || driverSrc.avatar || driverSrc.profilePic,
+        driverProfilePic: getProxiedImageUrl(driverSrc.profile_pic_url || driverSrc.profile_pic || driverSrc.avatar || driverSrc.profilePic),
         driverOTP: currentTrip.otp || currentTrip.driver_otp || driverSrc.otp || driverSrc.driverOTP,
         carModel: driverSrc.vehicle_model || driverSrc.car_model || currentTrip.vehicle_model || currentTrip.car_model || currentTrip.car,
         carPlate: driverSrc.vehicle_plate || driverSrc.car_plate || currentTrip.vehicle_plate || currentTrip.car_plate || currentTrip.plate,
@@ -320,7 +334,7 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
                 driverName: driverData.full_name || driverData.name || driverData.driverName,
                 driverPhone: driverData.phone_number || driverData.phone || driverData.driverPhone,
                 driverRating: driverData.rating || driverData.driverRating || 5,
-                driverProfilePic: driverData.profile_pic_url || driverData.profile_pic || driverData.avatar || driverData.profilePic,
+                driverProfilePic: getProxiedImageUrl(driverData.profile_pic_url || driverData.profile_pic || driverData.avatar || driverData.profilePic),
                 driverOTP: data.driverOTP || data.otp || driverData.otp,
                 carModel: driverData.vehicle_model || driverData.car_model || driverData.carModel,
                 carPlate: driverData.vehicle_plate || driverData.car_plate || driverData.carPlate,
@@ -705,7 +719,7 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
             driverName: driver.driverName || driver.full_name || driver.driver_name || driver.name,
             driverPhone: driver.driverPhone || driver.phone_number || driver.phone,
             driverRating: driver.driverRating || driver.rating,
-            driverProfilePic: driver.driverProfilePic || driver.profile_pic || driver.profilePic,
+            driverProfilePic: getProxiedImageUrl(driver.driverProfilePic || driver.profile_pic || driver.profilePic),
             driverOTP: driver.driverOTP || driver.otp,
             carModel: driver.carModel || driver.car_model || driver.vehicle_model,
             carPlate: driver.carPlate || driver.car_plate || driver.vehicle_plate,
@@ -757,7 +771,6 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
                 );
 
             case TripStatus.LIVE:
-            case TripStatus.RETURN_STARTED:
                 return (
                     <OnRideView
                         pickup={currentTrip.pickup_address}
@@ -768,6 +781,20 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
                         driver={activeDriver}
                         navigation={navigation}
                         status={currentStatus} // ✅ Pass reactive status
+                    />
+                );
+
+            case TripStatus.RETURN_STARTED:
+                return (
+                    <ReturnStartedView
+                        pickup={currentTrip.pickup_address}
+                        destination={currentTrip.drop_address}
+                        eta={eta}
+                        tripPhase={tripPhase}
+                        tripData={currentTrip}
+                        driver={activeDriver}
+                        navigation={navigation}
+                        status={currentStatus}
                     />
                 );
 
@@ -802,6 +829,17 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
     // These states represent the "End of Trip" flows where the map isn't needed
 
     if (currentStatus === TripStatus.WAITING) {
+        if (currentTrip?.ride_type === 'OUTSTATION_ONE_WAY') {
+            return (
+                <View style={{ flex: 1, backgroundColor: appColors.background, paddingTop: insets.top }}>
+                    <RideClosurePreview
+                        tripData={currentTrip}
+                        fare={currentTrip.total_fare}
+                        navigation={navigation}
+                    />
+                </View>
+            );
+        }
         return (
             <View style={{ flex: 1, backgroundColor: appColors.background, paddingTop: insets.top }}>
                 <RoundTripWaitingView
@@ -812,7 +850,7 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
                     tripData={currentTrip}
                     driver={activeDriver}
                     navigation={navigation}
-                    status={currentStatus} 
+                    status={currentStatus}
                 />
             </View>
         );
@@ -829,19 +867,34 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
                     tripData={currentTrip}
                     driver={activeDriver}
                     navigation={navigation}
-                    status={currentStatus} 
+                    status={currentStatus}
                 />
             </View>
         );
     }
 
+
+
     if (currentStatus === TripStatus.DESTINATION_REACHED || currentStatus === TripStatus.RETURN_REACHED) {
+        if (currentTrip?.ride_type === 'OUTSTATION_ONE_WAY') {
+            return (
+                <View style={{ flex: 1, backgroundColor: appColors.background, paddingTop: insets.top }}>
+                    <RideClosurePreview
+                        tripData={currentTrip}
+                        fare={currentTrip.total_fare}
+                        navigation={navigation}
+                        driver={activeDriver}
+                    />
+                </View>
+            );
+        }
         return (
             <View style={{ flex: 1, backgroundColor: appColors.background, paddingTop: insets.top }}>
                 <RideClosurePreview
                     tripData={currentTrip}
                     fare={currentTrip.total_fare}
                     navigation={navigation}
+                    driver={activeDriver}
                 />
             </View>
         );
@@ -927,33 +980,7 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
                             {currentStatus !== TripStatus.REQUESTED && (
                                 <TouchableOpacity
                                     style={styles.moreOptionsButton}
-                                    onPress={() => {
-                                        Alert.alert(
-                                            "Trip Options",
-                                            "What would you like to do?",
-                                            [
-                                                {
-                                                    text: "Cancel Ride",
-                                                    onPress: () => {
-                                                        Alert.alert(
-                                                            "Cancel Ride",
-                                                            "Are you sure you want to cancel this ride?",
-                                                            [
-                                                                { text: "No", style: "cancel" },
-                                                                {
-                                                                    text: "Yes, Cancel",
-                                                                    style: "destructive",
-                                                                    onPress: () => setShowReasons(true)
-                                                                }
-                                                            ]
-                                                        );
-                                                    },
-                                                    style: "destructive"
-                                                },
-                                                { text: "Close", style: "cancel" }
-                                            ]
-                                        );
-                                    }}
+                                    onPress={() => setShowTripOptions(true)}
                                 >
                                     <MaterialCommunityIcons name="dots-vertical" size={24} color="#64748B" />
                                 </TouchableOpacity>
@@ -963,17 +990,28 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
 
                             {/* CANCEL BUTTON (Only for REQUESTED trips) */}
                             {currentStatus === TripStatus.REQUESTED && (
-                                <TouchableOpacity
-                                    style={[
-                                        styles.cancelButton,
-                                        { marginBottom: insets.bottom + vS(10), marginTop: vS(10), marginHorizontal: hS(20), width: '90%' },
-                                    ]}
-                                    onPress={() => setShowReasons(true)}
-                                >
-                                    <Text style={styles.cancelText}>
-                                        Cancel Request
-                                    </Text>
-                                </TouchableOpacity>
+                                <View style={{ alignItems: 'center', width: '100%', marginBottom: insets.bottom + vS(10), marginTop: vS(10) }}>
+                                    <TouchableOpacity
+                                        style={{ flexDirection: 'row', alignItems: 'center', marginBottom: vS(8) }}
+                                        onPress={() => setShowPolicyModal(true)}
+                                    >
+                                        <MaterialCommunityIcons name="information" size={mS(16)} color="#64748B" />
+                                        <Text style={{ marginLeft: hS(4), fontSize: mS(12), color: '#64748B', textDecorationLine: 'underline' }}>
+                                            View cancellation policy
+                                        </Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.cancelButton,
+                                            { marginHorizontal: hS(20), width: '90%' },
+                                        ]}
+                                        onPress={() => setShowReasons(true)}
+                                    >
+                                        <Text style={styles.cancelText}>
+                                            Cancel Request
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
                             )}
                         </Animated.View>
                         <SafeAreaView style={{ backgroundColor: appColors.card }} />
@@ -983,6 +1021,7 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
                 // SCHEDULED TRIP
                 <ScheduledWaitingView
                     tripData={currentTrip}
+                    driver={activeDriver}
                     onCancel={() => setShowReasons(true)}
                     onTransition={() => setHasManuallyTransitioned(true)}
                 />
@@ -995,6 +1034,50 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
                 tripData={currentTrip}
                 emergencyContacts={emergencyContacts}
             />
+
+            {/* TRIP OPTIONS MODAL */}
+            <Modal statusBarTranslucent navigationBarTranslucent visible={showTripOptions}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowTripOptions(false)}
+            >
+                <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }]}>
+                    <View style={[{ backgroundColor: appColors.card, width: '85%', borderRadius: 14, overflow: 'hidden' }]}>
+                        <View style={{ padding: 20, alignItems: 'center' }}>
+                            <Text style={{ fontSize: mS(17), fontWeight: '600', color: appColors.text, marginBottom: 4 }}>Trip Options</Text>
+                            <Text style={{ fontSize: mS(13), color: appColors.secondaryText, textAlign: 'center' }}>What would you like to do?</Text>
+                        </View>
+                        <View style={{ borderTopWidth: StyleSheet.hairlineWidth, borderColor: '#D1D5DB' }} />
+                        <TouchableOpacity 
+                            style={{ padding: 16, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}
+                            onPress={() => {
+                                setShowTripOptions(false);
+                                setTimeout(() => setShowPolicyModal(true), 150);
+                            }}
+                        >
+                            <MaterialCommunityIcons name="information" size={18} color="#007AFF" style={{ marginRight: 6 }} />
+                            <Text style={{ fontSize: mS(16), color: '#007AFF', textDecorationLine: 'underline', fontWeight: '500' }}>View Cancellation Policy</Text>
+                        </TouchableOpacity>
+                        <View style={{ borderTopWidth: StyleSheet.hairlineWidth, borderColor: '#D1D5DB' }} />
+                        <TouchableOpacity 
+                            style={{ padding: 16, alignItems: 'center' }}
+                            onPress={() => {
+                                setShowTripOptions(false);
+                                setTimeout(() => setShowReasons(true), 150);
+                            }}
+                        >
+                            <Text style={{ fontSize: mS(16), color: '#FF3B30', fontWeight: '500' }}>Cancel Ride</Text>
+                        </TouchableOpacity>
+                        <View style={{ borderTopWidth: StyleSheet.hairlineWidth, borderColor: '#D1D5DB' }} />
+                        <TouchableOpacity 
+                            style={{ padding: 16, alignItems: 'center' }}
+                            onPress={() => setShowTripOptions(false)}
+                        >
+                            <Text style={{ fontSize: mS(16), color: '#8E8E93', fontWeight: '600' }}>Close</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
 
             {/* CANCEL MODAL */}
             <Modal statusBarTranslucent navigationBarTranslucent visible={showReasons}
@@ -1109,6 +1192,37 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
                         <Text style={{ marginTop: 12, color: appColors.text, fontWeight: '600' }}>Cancelling Trip...</Text>
                     </View>
                 </View>
+            </Modal>
+
+            {/* POLICY MODAL */}
+            <Modal statusBarTranslucent={false} visible={showPolicyModal} animationType="slide" onRequestClose={() => setShowPolicyModal(false)}>
+                <SafeAreaView style={{ flex: 1, backgroundColor: appColors.background }}>
+                    <View style={{ flex: 1, padding: hS(20) }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: vS(20), paddingTop: vS(10) }}>
+                            <TouchableOpacity onPress={() => setShowPolicyModal(false)} style={{ padding: mS(5), marginLeft: -mS(5) }}>
+                                <MaterialCommunityIcons name="arrow-left" size={mS(28)} color={appColors.text} />
+                            </TouchableOpacity>
+                            <Text style={[styles.modalTitle, { color: appColors.text, marginBottom: 0, marginLeft: hS(10) }]}>
+                                Cancellation Policy
+                            </Text>
+                        </View>
+                        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: vS(20) }}>
+                            <Text style={{ color: appColors.secondaryText, fontSize: mS(16), lineHeight: vS(24) }}>
+                                • You can cancel your request free of charge before a driver accepts.{"\n\n"}
+                                • If you cancel after a driver is assigned and has started moving towards you, a cancellation fee may apply to compensate the driver for their time and fuel.{"\n\n"}
+                                • Cancellations due to driver delays (exceeding the estimated time of arrival significantly) will not incur any fees.{"\n\n"}
+                                • Habitual cancellations may result in temporary account restrictions.{"\n\n"}
+                                Please be considerate of our drivers' time.
+                            </Text>
+                        </ScrollView>
+                        <TouchableOpacity
+                            style={[styles.submitReasonBtn, { backgroundColor: appColors.primary, marginTop: vS(10) }]}
+                            onPress={() => setShowPolicyModal(false)}
+                        >
+                            <Text style={styles.submitReasonText}>Close</Text>
+                        </TouchableOpacity>
+                    </View>
+                </SafeAreaView>
             </Modal>
         </View>
     );

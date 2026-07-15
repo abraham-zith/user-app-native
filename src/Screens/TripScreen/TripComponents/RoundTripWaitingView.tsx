@@ -8,6 +8,7 @@ import {
     TouchableOpacity,
     Alert,
     Linking,
+    Image,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import Skeleton from '../../../Components/Skeleton';
@@ -216,13 +217,14 @@ const RoundTripWaitingView: React.FC<RoundTripWaitingViewProps> = ({
                 {/* Left: Driver and Car info */}
                 <View style={styles.glanceLeft}>
                     <View style={[styles.avatar, styles.avatarContainer, { backgroundColor: isDark ? '#1E293B' : '#F1F5F9', borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0' }]}>
-                        {driver?.driverImage ? (
+                        {driver?.driverProfilePic ? (
                             <>
-                                <FastImage
-                                    source={{ uri: driver.driverImage, priority: FastImage.priority.normal }}
-                                    style={styles.avatarImage}
+                                <Image
+                                    source={{ uri: driver.driverProfilePic }}
+                                    style={styles.avatarImage as any}
                                     onLoadStart={() => setIsImageLoading(true)}
                                     onLoadEnd={() => setIsImageLoading(false)}
+                                    onError={() => setIsImageLoading(false)}
                                 />
                                 {isImageLoading && (
                                     <View style={[StyleSheet.absoluteFillObject, { backgroundColor: isDark ? '#1E293B' : '#F1F5F9' }]}>
@@ -308,6 +310,30 @@ const RoundTripWaitingView: React.FC<RoundTripWaitingViewProps> = ({
                         <Text style={[styles.routeLabel, { color: appColors.secondaryText }]} numberOfLines={1}>Drop-off: </Text>
                         <Text style={[styles.routeValue, { color: appColors.text }]} numberOfLines={1}>{destination.split(',')[0]}</Text>
                     </View>
+                </View>
+
+                {/* Additional Trip Info - Pill UI */}
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: mS(8), marginTop: vS(4), marginBottom: vS(16) }}>
+                    {tripData?.ride_type && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? '#1E293B' : '#F1F5F9', paddingHorizontal: hS(10), paddingVertical: vS(6), borderRadius: mS(8) }}>
+                            <MaterialCommunityIcons name="car-info" size={mS(14)} color={appColors.secondaryText} />
+                            <Text style={{ fontSize: mS(11), fontWeight: '700', color: appColors.text, marginLeft: hS(4) }}>{tripData.ride_type}</Text>
+                        </View>
+                    )}
+                    {tripData?.trip_type && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? '#1E293B' : '#F1F5F9', paddingHorizontal: hS(10), paddingVertical: vS(6), borderRadius: mS(8) }}>
+                            <MaterialCommunityIcons name="swap-horizontal" size={mS(14)} color={appColors.secondaryText} />
+                            <Text style={{ fontSize: mS(11), fontWeight: '700', color: appColors.text, marginLeft: hS(4) }}>{tripData.trip_type}</Text>
+                        </View>
+                    )}
+                    {tripData?.created_at && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? '#1E293B' : '#F1F5F9', paddingHorizontal: hS(10), paddingVertical: vS(6), borderRadius: mS(8) }}>
+                            <MaterialCommunityIcons name="calendar-clock" size={mS(14)} color={appColors.secondaryText} />
+                            <Text style={{ fontSize: mS(11), fontWeight: '700', color: appColors.text, marginLeft: hS(4) }}>
+                                {new Date(tripData.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                            </Text>
+                        </View>
+                    )}
                 </View>
 
                 <View style={styles.fareInfo}>

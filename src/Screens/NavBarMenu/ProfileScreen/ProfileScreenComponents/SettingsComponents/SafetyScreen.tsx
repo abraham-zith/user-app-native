@@ -115,7 +115,7 @@ const SafetyScreen = ({ navigation }: any) => {
         navigation.navigate(ContactScreen_Nav, {
             onSelectContact: async (SelectedContact: any) => {
                 if (SelectedContact) {
-                    const cleanphone = SelectedContact.phone?.replace(/\+91|\s/g, '');
+                    const cleanphone = SelectedContact.phone?.replace(/\+91/g, '').replace(/[^0-9]/g, '');
 
                     const isDuplicate = (emergencyContacts || []).some(contact => {
                         const existingPhone = contact.phone?.replace(/[^0-9]/g, '');

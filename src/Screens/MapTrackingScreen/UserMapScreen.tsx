@@ -114,13 +114,15 @@ const styles = StyleSheet.create({
         borderWidth: 3, borderColor: 'white', elevation: 5
     },
     statusBadge: {
-        position: 'absolute', top: 50, alignSelf: 'center', backgroundColor: 'white',
-        paddingHorizontal: 16, paddingVertical: 10, borderRadius: 30, elevation: 5,
-        flexDirection: 'column', alignItems: 'center', borderColor: '#F3F4F6', borderWidth: 1
+        position: 'absolute', top: 50, left: 16, backgroundColor: 'white',
+        paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16, elevation: 8,
+        shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12,
+        flexDirection: 'column', alignItems: 'flex-start', borderColor: '#E5E7EB', borderWidth: 1,
+        maxWidth: '70%'
     },
-    etaContainer: { flexDirection: 'row', alignItems: 'center' },
-    arrivalBadgeText: { fontSize: 13, fontWeight: '800', color: '#111827', textTransform: 'uppercase' },
-    rideIdText: { fontSize: 9, color: '#9CA3AF', fontWeight: '500', marginTop: 2 }
+    etaContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+    arrivalBadgeText: { fontSize: 14, fontWeight: '700', color: '#111827', textTransform: 'uppercase', letterSpacing: 0.5 },
+    rideIdText: { fontSize: 11, color: '#6B7280', fontWeight: '600' }
 });
 
 // –––––––––––––––––––––––––––––––––––––––––

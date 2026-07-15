@@ -68,7 +68,8 @@ import { RootState } from "../../../redux/store";
 import { useGetTripQuery } from "../../../service/userApi";
 import { Trip } from "../../../types/trip";
 import formatDate from "../../../Components/FormatDate";
-
+import { useNavigation } from '@react-navigation/native';
+import { RideDetails_Nav } from "../../../Navigations/navigations";
 
 
 export function RoundedTrip() {
@@ -82,7 +83,10 @@ export function RoundedTrip() {
         { skip: !localuser?.id }
     );
 
-    const roundTrips = (tripsData?.data?.data || []).filter((trip: Trip) => trip.ride_type === 'ROUND_TRIP');
+    const roundTrips = (tripsData?.data?.data || []).filter((trip: Trip) =>
+        trip.ride_type === 'ROUND_TRIP' &&
+        ['COMPLETED', 'CANCELLED', 'MID_CANCELLED'].includes(trip.trip_status)
+    );
 
     // Calculate stats from completed round trips
     const completedRoundTrips = roundTrips.filter(t => t.trip_status === 'COMPLETED');
@@ -250,7 +254,7 @@ export function RoundedTrip() {
             <View style={styles.listContainer}>
                 <View style={styles.listHeader}>
                     <Text style={[fonts.bold, styles.listTitle, { color: appColors.text }]}>
-                        All Round Trips
+                        Recent Round Trips
                     </Text>
                     <Text style={[styles.listCount, { color: appColors.text }]}>
                         {roundTrips.length}
@@ -373,6 +377,8 @@ function RoundTripCard({
     getStatusColor: (status: string) => string;
     getStatusIcon: (status: string) => string;
 }) {
+    const navigation = useNavigation<any>();
+
     return (
         <TouchableOpacity
             style={[
@@ -453,6 +459,7 @@ function RoundTripCard({
                 <TouchableOpacity
                     style={[styles.detailsButton, { backgroundColor: appColors.button }]}
                     activeOpacity={0.7}
+                    onPress={() => navigation.navigate(RideDetails_Nav, { rideData: trip })}
                 >
                     <Text style={styles.detailsButtonText}>View Details</Text>
                     <Ionicons name="arrow-forward" size={14} color="#fff" />

@@ -13,7 +13,9 @@ import { RootState } from '../../../../redux/store';
 import { useDispatch, useSelector } from "react-redux";
 import { updateUserStore } from "../../../../redux/userSlice";
 import { useUpdateUserMutation } from "../../../../service/userApi";
+import { useAddTrustedContactMutation } from "../../../../service/sosApi";
 import DateTimePickerComponent from "../../../../Components/DateTimePicker";
+import RelationshipSelectionModal from "../../../../Components/RelationshipSelectionModal";
 import { hS, mS, vS } from "../../../../lib/responsive";
 import { ContactScreen_Nav } from "../../../../Navigations/navigations";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -24,6 +26,7 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
     const { colors, isDark } = useAppTheme();
     const route = useRoute<any>();
     const [updateUser] = useUpdateUserMutation();
+    const [addTrustedContact] = useAddTrustedContactMutation();
     const dispatch = useDispatch()
 
     const minDate = new Date();
@@ -35,6 +38,8 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
 
     const [isUpdating, setIsUpdating] = useState(false);
     const [visible, setVisible] = useState(false);
+    const [relationshipModalVisible, setRelationshipModalVisible] = useState(false);
+    const [selectedContact, setSelectedContact] = useState<{ name: string, phone: string } | null>(null);
 
     useEffect(() => {
         const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
@@ -267,7 +272,7 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
                     setIsUpdating(true);
 
                     const incomingPhone = SelectedContact.phone?.replace(/[^0-9]/g, '') || '';
-                    const cleanphone = SelectedContact.phone?.replace(/\+91|\s/g, '');
+                    const cleanphone = SelectedContact.phone?.replace(/\+91/g, '').replace(/[^0-9]/g, '');
 
                     const isDuplicate = emergencyContacts.some(contact => {
                         const existingPhone = contact.phone?.replace(/[^0-9]/g, '');
@@ -279,42 +284,64 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
                         return;
                     }
 
-                    const newContact = {
+                    setSelectedContact({
                         name: SelectedContact.name,
                         phone: cleanphone || 'No Number',
-                    };
-
-
-                    const updatedList = [...emergencyContacts, newContact].slice(0, 5);
-                    try {
-                        const payload = {
-                            id: user.id,
-                            emergency_contacts: updatedList
-                        };
-
-                        const response = await updateUser(payload).unwrap();
-                        if (response.success) {
-                            dispatch(updateUserStore({ emergency_contacts: response.data.emergency_contacts }));
-                            ToastAndroid.show("Emergency contact updated successfully", ToastAndroid.SHORT);
-                        }
-
-                        setEmergencyContacts(updatedList);
-                        await AsyncStorage.setItem('@emergency_contacts', JSON.stringify(updatedList));
-                        // Alert.alert("Success", `${newContact.name} saved to your Emergency Contacts.`);
-                    } catch (error) {
-                        // console.error("Update failed:", error);
-                        ToastAndroid.show("Something Went Wrong!!! Try Later...", ToastAndroid.SHORT);
-                        // Alert.alert("Error", "Failed to sync contacts with the server.");
-                    } finally {
-                        setIsUpdating(false);
-                    }
+                    });
+                    setRelationshipModalVisible(true);
                 }
             },
         });
         // navigation.goBack();
-
     }
 
+    const handleRelationshipSelect = async (relationship: string) => {
+        if (!selectedContact) return;
+        setIsUpdating(true);
+
+        const newContact = {
+            name: selectedContact.name,
+            phone: selectedContact.phone,
+            relationship: relationship,
+        };
+
+        const updatedList = [...emergencyContacts, newContact].slice(0, 5);
+        try {
+            const payload = {
+                id: user.id,
+                emergency_contacts: updatedList
+            };
+
+            const response = await updateUser(payload).unwrap();
+            if (response.success) {
+                dispatch(updateUserStore({ emergency_contacts: response.data.emergency_contacts }));
+                ToastAndroid.show("Emergency contact updated successfully", ToastAndroid.SHORT);
+            }
+
+            const trustedcontacts = {
+                id: user.id,
+                name: newContact.name,
+                phone: newContact.phone,
+                relationship: newContact.relationship,
+                user_type: 'customer'
+            };
+
+            try {
+                await addTrustedContact(trustedcontacts).unwrap();
+            } catch (err) {
+                console.log(err, "error adding trusted contact");
+            }
+
+            setEmergencyContacts(updatedList);
+            await AsyncStorage.setItem('@emergency_contacts', JSON.stringify(updatedList));
+        } catch (error) {
+            ToastAndroid.show("Something Went Wrong!!! Try Later...", ToastAndroid.SHORT);
+        } finally {
+            setIsUpdating(false);
+            setRelationshipModalVisible(false);
+            setSelectedContact(null);
+        }
+    };
 
     return (
         <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -601,6 +628,13 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
                     </View>
                 </Modal>
             )}
+
+            <RelationshipSelectionModal
+                visible={relationshipModalVisible}
+                onClose={() => setRelationshipModalVisible(false)}
+                contact={selectedContact}
+                onSelectRelationship={handleRelationshipSelect}
+            />
         </View>
     );
 }
