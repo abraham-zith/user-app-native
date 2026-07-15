@@ -1,4 +1,4 @@
-import { StatusBar, View } from 'react-native';
+import { StatusBar, View, Alert } from 'react-native';
 import React from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
@@ -21,6 +21,12 @@ import { SocketProvider } from './src/Socket/SocketProvider';
 import { useAppTheme } from './src/hooks/useAppTheme';
 import { useSessionManager } from './src/hooks/useSessionManager';
 import NetworkStatusIndicator from './src/Components/NetworkStatusIndicator';
+import GlobalAlert from './src/Components/GlobalAlert';
+import GlobalAlertManager from './src/utils/GlobalAlertManager';
+
+Alert.alert = (title, message, buttons, options) => {
+  GlobalAlertManager.show(title, message, buttons, options);
+};
 
 notifee.onBackgroundEvent(async ({ type, detail }) => {
   const { notification, pressAction } = detail;
@@ -60,6 +66,7 @@ const AppContent = () => {
           </View>
         </RootProvider>
       </NavigationContainer>
+      <GlobalAlert />
     </SafeAreaProvider>
   );
 };

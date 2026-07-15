@@ -198,10 +198,10 @@ const OnRideView: React.FC<OnRideViewProps> = ({
                 {/* Left: Driver and Car info */}
                 <View style={styles.glanceLeft}>
                     <View style={[styles.avatar, styles.avatarContainer, { backgroundColor: isDark ? '#1E293B' : '#F1F5F9', borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0' }]}>
-                        {driver?.driverImage ? (
+                        {driver?.driverProfilePic ? (
                             <>
                                 <FastImage
-                                    source={{ uri: driver.driverImage, priority: FastImage.priority.normal }}
+                                    source={{ uri: driver.driverProfilePic, priority: FastImage.priority.normal }}
                                     style={styles.avatarImage}
                                     onLoadStart={() => setIsImageLoading(true)}
                                     onLoadEnd={() => setIsImageLoading(false)}

@@ -282,9 +282,12 @@ const Activity: React.FC<ScreenProps> = ({ navigation }) => {
 
         // 5. Apply Ride Type Filter if it exists
         if (selectedRideType) {
-            baseData = baseData.filter(item =>
-                item.ride_type === selectedRideType
-            );
+            baseData = baseData.filter(item => {
+                if (selectedRideType === 'OUTSTATION') {
+                    return item.ride_type === 'OUTSTATION_ONE_WAY' || item.ride_type === 'OUTSTATION_ROUND_TRIP';
+                }
+                return item.ride_type === selectedRideType;
+            });
         }
 
         setFilteredData(baseData);

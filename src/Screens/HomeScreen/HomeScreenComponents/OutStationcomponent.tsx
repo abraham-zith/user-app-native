@@ -86,8 +86,10 @@ export function OutstationComponent() {
         { id: localuser?.id, limit: 20 },
         { skip: !localuser?.id }
     );
-    const outstationTrips = (tripsData?.data?.data || []).filter((trip: Trip) => trip.ride_type === 'OUTSTATION');
-
+    const outstationTrips = (tripsData?.data?.data || []).filter((trip: Trip) => 
+        (trip.ride_type === 'OUTSTATION_ONE_WAY' || trip.ride_type === 'OUTSTATION_ROUND_TRIP') && 
+        ['COMPLETED', 'CANCELLED', 'MID_CANCELLED'].includes(trip.trip_status)
+    );
 
     // Mock data - replace with actual data from props
     const recentOutstations: OutstationData[] = [

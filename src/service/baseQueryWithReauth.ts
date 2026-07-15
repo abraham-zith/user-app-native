@@ -72,7 +72,7 @@ const staggeredBaseQuery = retry(
         // Check if there's an error
         if (result.error) {
             const status = result.error.status;
-            
+
             // Bail out of retries for Client Errors (4xx) and Parsing Errors
             // We only want to retry on 5xx Server Errors or network timeouts (FETCH_ERROR)
             if (status === 'PARSING_ERROR' || (typeof status === 'number' && status >= 400 && status < 500)) {

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, TouchableOpacity, Easing, Platform, ScrollView, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, Animated, TouchableOpacity, Easing, Platform, ScrollView, StatusBar, Image } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,10 +10,12 @@ import { useAppTheme } from '../../../../hooks/useAppTheme';
 
 export const ScheduledWaitingView = ({
     tripData,
+    driver,
     onCancel,
     onTransition
 }: {
     tripData: any,
+    driver?: any,
     onCancel: () => void,
     onTransition: () => void
 }) => {
@@ -24,6 +26,7 @@ export const ScheduledWaitingView = ({
     const fadeAnim = useRef(new Animated.Value(0)).current;
 
     const isAccepted = !!tripData.driver_id;
+    console.log(driver, "driverdriver");
 
     useEffect(() => {
         // Entrance animation
@@ -72,7 +75,7 @@ export const ScheduledWaitingView = ({
                 >
                     <View style={styles.badgeContent}>
                         <View style={[styles.checkCircle, { backgroundColor: isDark ? '#10B981' : '#10B981' }]}>
-                             <MaterialCommunityIcons name="check" size={mS(14)} color="white" />
+                            <MaterialCommunityIcons name="check" size={mS(14)} color="white" />
                         </View>
                         <View style={styles.badgeTextContainer}>
                             <Text style={[styles.badgeTitle, { color: isDark ? '#34D399' : '#065F46' }]}>Driver Found!</Text>
@@ -84,6 +87,7 @@ export const ScheduledWaitingView = ({
             )}
 
             <ScrollView
+                style={{ flex: 1 }}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
             >
@@ -104,19 +108,73 @@ export const ScheduledWaitingView = ({
                             : "Relax! We're matching you with the best driver for your scheduled trip."}
                     </Text>
 
-                    {/* Glass Trip Card */}
+                    {/* Card 1: Schedule & Ride Type */}
                     <View style={[styles.tripCard, { backgroundColor: appColors.card, borderColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F3F4F6' }]}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <View style={[styles.tripRow, { flex: 1 }]}>
+                                <View style={[styles.iconBg, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.1)' : '#EFF6FF' }]}>
+                                    <MaterialCommunityIcons name="calendar-clock" size={mS(20)} color={isDark ? '#60A5FA' : colors.primary} />
+                                </View>
+                                <View style={[styles.tripInfo, { marginLeft: hS(10) }]}>
+                                    <Text style={[styles.tripLabel, { color: appColors.secondaryText }]}>Scheduled For</Text>
+                                    <Text style={[styles.tripValue, { color: appColors.text, fontSize: mS(13) }]}>
+                                        {new Date(tripData.scheduled_start_time).toLocaleString([], {
+                                            month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true
+                                        })}
+                                    </Text>
+                                </View>
+                            </View>
+
+                            <View style={[styles.tripRow, { flex: 1, marginLeft: hS(10) }]}>
+                                <View style={[styles.iconBg, { backgroundColor: isDark ? 'rgba(139, 92, 246, 0.1)' : '#F5F3FF' }]}>
+                                    <MaterialCommunityIcons name="car-info" size={mS(20)} color="#8B5CF6" />
+                                </View>
+                                <View style={[styles.tripInfo, { marginLeft: hS(10) }]}>
+                                    <Text style={[styles.tripLabel, { color: appColors.secondaryText }]}>Ride Type</Text>
+                                    <Text style={[styles.tripValue, { color: appColors.text, fontSize: mS(13), textTransform: 'capitalize' }]}>
+                                        {tripData.ride_type?.replace(/_/g, ' ').toLowerCase()}
+                                    </Text>
+                                </View>
+                            </View>
+                        </View>
+
+                        {isAccepted && (
+                            <>
+                                <View style={[styles.divider, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F3F4F6', marginLeft: 0 }]} />
+                                <View style={[styles.tripRow, { marginTop: vS(5) }]}>
+                                    <View style={[styles.iconBg, { width: mS(45), height: mS(45), borderRadius: mS(22.5), backgroundColor: isDark ? 'rgba(245, 158, 11, 0.1)' : '#FFFBEB', overflow: 'hidden' }]}>
+                                        {driver?.driverProfilePic ? (
+                                            <Image source={{ uri: driver.driverProfilePic }} style={{ width: '100%', height: '100%' }} />
+                                        ) : (
+                                            <MaterialCommunityIcons name="account" size={mS(24)} color="#F59E0B" />
+                                        )}
+                                    </View>
+                                    <View style={styles.tripInfo}>
+                                        <Text style={[styles.tripLabel, { color: appColors.secondaryText }]}>Driver Details</Text>
+                                        <Text style={[styles.tripValue, { color: appColors.text, marginBottom: vS(2) }]} numberOfLines={1}>
+                                            {driver?.driverName || tripData.driver_name || 'Driver'}
+                                        </Text>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                            <MaterialCommunityIcons name="star" size={mS(14)} color="#F59E0B" />
+                                            <Text style={{ fontSize: mS(12), color: appColors.secondaryText, marginLeft: hS(4) }}>
+                                                {driver?.driverRating || '4.9'} • {driver?.totalRides || '4.5k'} Rides
+                                            </Text>
+                                        </View>
+                                    </View>
+                                </View>
+                            </>
+                        )}
+                    </View>
+
+                    {/* Card 2: Locations */}
+                    <View style={[styles.tripCard, { marginTop: vS(15), backgroundColor: appColors.card, borderColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F3F4F6' }]}>
                         <View style={styles.tripRow}>
-                            <View style={[styles.iconBg, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.1)' : '#EFF6FF' }]}>
-                                <MaterialCommunityIcons name="calendar-clock" size={mS(20)} color={isDark ? '#60A5FA' : colors.primary} />
+                            <View style={[styles.iconBg, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.1)' : '#ECFDF5' }]}>
+                                <MaterialCommunityIcons name="map-marker-outline" size={mS(20)} color="#10B981" />
                             </View>
                             <View style={styles.tripInfo}>
-                                <Text style={[styles.tripLabel, { color: appColors.secondaryText }]}>Scheduled For</Text>
-                                <Text style={[styles.tripValue, { color: appColors.text }]}>
-                                    {new Date(tripData.scheduled_start_time).toLocaleString([], {
-                                        weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true
-                                    })}
-                                </Text>
+                                <Text style={[styles.tripLabel, { color: appColors.secondaryText }]}>Pickup</Text>
+                                <Text style={[styles.tripValue, { color: appColors.text }]} numberOfLines={1}>{tripData.pickup_address}</Text>
                             </View>
                         </View>
 
@@ -205,22 +263,22 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
     radarContainer: {
-        height: vS(250),
+        height: vS(160),
         alignItems: 'center',
         justifyContent: 'center',
-        marginTop: vS(80),
+        marginTop: vS(20),
     },
     pulse: {
         position: 'absolute',
-        width: mS(180),
-        height: mS(180),
-        borderRadius: mS(90),
+        width: mS(140),
+        height: mS(140),
+        borderRadius: mS(70),
         backgroundColor: colors.primary,
     },
     iconCircle: {
-        width: mS(100),
-        height: mS(100),
-        borderRadius: mS(50),
+        width: mS(80),
+        height: mS(80),
+        borderRadius: mS(40),
         backgroundColor: colors.primary,
         alignItems: 'center',
         justifyContent: 'center',
@@ -257,8 +315,8 @@ const styles = StyleSheet.create({
         width: '100%',
         backgroundColor: '#FFFFFF',
         borderRadius: mS(20),
-        padding: mS(20),
-        marginTop: vS(40),
+        padding: mS(15),
+        marginTop: vS(15),
         borderWidth: 1,
         borderColor: '#F3F4F6',
         ...Platform.select({
