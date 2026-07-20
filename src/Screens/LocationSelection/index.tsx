@@ -165,7 +165,7 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
         { label: '4 Days', value: 96 },
         { label: '5 Days', value: 120 },
     ];
-    const [outstationTripType, setOutstationTripType] = useState('oneway');
+    const [outstationTripType, setOutstationTripType] = useState<string | null>(null);
     // 2. Add refs to clear or control inputs if needed
 
     const [tripPayload, setTripPayload] = useState<Partial<Trip>>({
@@ -624,6 +624,10 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
     const destinationError = anyDataPresent && !destination;
     const vehicleError = (startLocation && destination) && !selectedVehicle;
     const advanceError = advancebooking && (startLocation && destination && selectedVehicle) && (!scheduledDate || !scheduledTime || !selectedRide);
+    
+    // Additional validations
+    const tripTypeError = anyDataPresent && (selectedRide === RideType.OUTSTATION_ONE_WAY || selectedRide === RideType.OUTSTATION_ROUND_TRIP) && !outstationTripType;
+    const packageError = anyDataPresent && (selectedRide === RideType.ROUND_TRIP || selectedRide === RideType.OUTSTATION_ONE_WAY || selectedRide === RideType.OUTSTATION_ROUND_TRIP) && !packageHours;
 
     const getCityFromAddress = (address: string) => {
         if (!address) return '';
@@ -906,12 +910,12 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                                     borderRadius: mS(12),
                                     paddingHorizontal: hS(16),
                                     borderWidth: 1,
-                                    borderColor: colors.border,
                                     ...Platform.select({
-                                        ios: { shadowColor: '#000', shadowOffset: { width: 0, height: vS(2) }, shadowOpacity: 0.05, shadowRadius: 8 },
-                                        android: { elevation: 2 },
-                                    }),
-                                }}
+                                    ios: { shadowColor: '#000', shadowOffset: { width: 0, height: vS(2) }, shadowOpacity: 0.05, shadowRadius: 8 },
+                                    android: { elevation: 2 },
+                                }),
+                                borderColor: packageError ? '#EF4444' : colors.border,
+                            }}
                                 placeholderStyle={{ color: colors.secondaryText, fontSize: mS(14) }}
                                 selectedTextStyle={{ color: colors.text, fontSize: mS(14), fontWeight: '600' }}
                                 itemTextStyle={{ color: colors.text }}
@@ -945,13 +949,13 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                                         borderRadius: mS(12),
                                         paddingHorizontal: hS(16),
                                         borderWidth: 1,
-                                        borderColor: colors.border,
                                         marginRight: hS(4),
                                         ...Platform.select({
-                                            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: vS(2) }, shadowOpacity: 0.05, shadowRadius: 8 },
-                                            android: { elevation: 2 },
-                                        }),
-                                    }}
+                                        ios: { shadowColor: '#000', shadowOffset: { width: 0, height: vS(2) }, shadowOpacity: 0.05, shadowRadius: 8 },
+                                        android: { elevation: 2 },
+                                    }),
+                                    borderColor: tripTypeError ? '#EF4444' : colors.border,
+                                }}
                                     placeholderStyle={{ color: colors.secondaryText, fontSize: mS(14) }}
                                     selectedTextStyle={{ color: colors.text, fontSize: mS(14), fontWeight: '600' }}
                                     itemTextStyle={{ color: colors.text }}
@@ -980,19 +984,19 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                                         borderRadius: mS(12),
                                         paddingHorizontal: hS(16),
                                         borderWidth: 1,
-                                        borderColor: colors.border,
                                         marginLeft: hS(4),
                                         ...Platform.select({
-                                            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: vS(2) }, shadowOpacity: 0.05, shadowRadius: 8 },
-                                            android: { elevation: 2 },
-                                        }),
-                                    }}
+                                        ios: { shadowColor: '#000', shadowOffset: { width: 0, height: vS(2) }, shadowOpacity: 0.05, shadowRadius: 8 },
+                                        android: { elevation: 2 },
+                                    }),
+                                    borderColor: packageError ? '#EF4444' : colors.border,
+                                }}
                                     placeholderStyle={{ color: colors.secondaryText, fontSize: mS(14) }}
                                     selectedTextStyle={{ color: colors.text, fontSize: mS(14), fontWeight: '600' }}
                                     itemTextStyle={{ color: colors.text }}
                                     itemContainerStyle={{ backgroundColor: colors.card }}
                                     activeColor={isDark ? 'rgba(255, 255, 255, 0.08)' : '#F1F5F9'}
-                                    data={outstationTripType === 'oneway' ? outstationOneWayPackageHourOptions : outstationRoundTripPackageHourOptions}
+                                    data={outstationTripType === RideType.OUTSTATION_ONE_WAY ? outstationOneWayPackageHourOptions : outstationRoundTripPackageHourOptions}
                                     labelField="label"
                                     valueField="value"
                                     placeholder="Package Hours"
@@ -1013,13 +1017,15 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                             initialTransmission={transmission}
                             hasError={vehicleError}
                         />
-                        {(pickupError || destinationError || vehicleError || advanceError) && (
+                        {(pickupError || destinationError || vehicleError || advanceError || tripTypeError || packageError) && (
                             <View style={{ marginTop: vS(8), alignItems: 'center' }}>
                                 <Text style={{ color: '#EF4444', fontSize: mS(13), fontWeight: '700', textAlign: 'center', paddingHorizontal: hS(20) }}>
                                     {pickupError ? "Please select pickup location" :
                                         destinationError ? "Please select destination" :
                                             vehicleError ? "Please select your vehicle" :
-                                                "Please complete all booking details"}
+                                                tripTypeError ? "Please select trip type" :
+                                                    packageError ? "Please select package hours" :
+                                                        "Please complete all booking details"}
                                 </Text>
                             </View>
                         )}
@@ -1188,14 +1194,14 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                                     </View>
 
                                     <TouchableOpacity
-                                        disabled={advancebooking ? (!startLocation || !destination || !selectedVehicle || !scheduledDate || !scheduledTime || !selectedRide) : (!startLocation || !destination || !selectedVehicle)}
+                                        disabled={advancebooking ? (!startLocation || !destination || !selectedVehicle || !scheduledDate || !scheduledTime || !selectedRide || tripTypeError || packageError) : (!startLocation || !destination || !selectedVehicle || tripTypeError || packageError)}
                                         onPress={() => {
                                             if (advancebooking) {
-                                                if (scheduledDate && scheduledTime && selectedRide) {
+                                                if (scheduledDate && scheduledTime && selectedRide && !tripTypeError && !packageError) {
                                                     handleSave(scheduledDate, scheduledTime, selectedRide);
                                                 }
                                             } else {
-                                                if (startLocation && destination && selectedVehicle && transmission) {
+                                                if (startLocation && destination && selectedVehicle && transmission && !tripTypeError && !packageError) {
                                                     setNext(true);
                                                 }
                                             }
@@ -1207,7 +1213,7 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                                             marginBottom: vS(12),
                                             justifyContent: 'center',
                                             alignItems: 'center',
-                                            opacity: (advancebooking ? (!startLocation || !destination || !selectedVehicle || !scheduledDate || !scheduledTime || !selectedRide) : (!startLocation || !destination || !selectedVehicle)) ? 0.6 : 1,
+                                            opacity: (advancebooking ? (!startLocation || !destination || !selectedVehicle || !scheduledDate || !scheduledTime || !selectedRide || tripTypeError || packageError) : (!startLocation || !destination || !selectedVehicle || tripTypeError || packageError)) ? 0.6 : 1,
                                         }}
                                     >
                                         <Text style={{ color: '#FFF', fontWeight: '800', fontSize: mS(15) }}>Confirm</Text>
