@@ -277,10 +277,12 @@ const OTPScreen: React.FC<any> = ({ navigation }) => {
                 <View style={localStyles.actionSection}>
                     <TouchableOpacity
                         onPress={handleChangeMobileNumber}
+                        disabled={!OTPdata?.exists}
                         activeOpacity={0.8}
                         style={[
                             localStyles.premiumActionButton,
-                            { backgroundColor: OTPdata?.exists ? appColors.card : appColors.button, shadowColor: isDark ? '#000' : '#000' }
+                            { backgroundColor: OTPdata?.exists ? appColors.card : appColors.button, shadowColor: isDark ? '#000' : '#000' },
+                            !OTPdata?.exists && { opacity: 0.5 }
                         ]}
                     >
                         <Text style={[

@@ -294,8 +294,10 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
 
                 const payload = {
                     distance_km: TripPayload.distance_km,
-                    duration_min: TripPayload.trip_duration_minutes,
+                    // duration_min: TripPayload.trip_duration_minutes,
+                    duration_min: TripPayload.package_hours ? TripPayload.package_hours * 60 : TripPayload.trip_duration_minutes,
                     ride_type: TripPayload.ride_type,
+                    ...(TripPayload.ride_type?.includes('OUTSTATION') && { days: TripPayload.package_hours ? TripPayload.package_hours / 24 : 1 }),
                     // driver_type: TripPayload.,
                     scheduled_at: actualStartDate.toISOString(),
                     day,

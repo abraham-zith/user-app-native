@@ -11,7 +11,7 @@ import { storage } from '../service/utils/storage';
 import { navigationRef, safeReset } from '../Navigations/navigationRef';
 import { Auth_Nav, BookedTripScreen_Nav, WelcomeScreen_Nav } from '../Navigations/navigations';
 import { NotificationType } from './notificationTypes';
-import { getChannelForType, createNotificationChannels } from './channels';
+import { getChannelForType, createNotificationChannels, NotificationChannels } from './channels';
 import { addNotification } from '../redux/notificationSlice';
 
 const NotificationHandler: React.FC = () => {
@@ -79,6 +79,12 @@ const NotificationHandler: React.FC = () => {
             android: {
                 channelId,
                 pressAction: { id: 'default' },
+                ...(channelId === NotificationChannels.ALARMS ? {
+                    fullScreenAction: {
+                        id: 'default',
+                    },
+                    loopSound: true,
+                } : {})
             },
         });
     };

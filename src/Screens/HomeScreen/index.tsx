@@ -19,7 +19,7 @@ import AntDesign from 'react-native-vector-icons/AntDesign';
 import Config from 'react-native-config';
 import { useAppTheme } from "../../hooks/useAppTheme";
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
 // Components & Constants
 import { Styles } from "../../lib/styles";
 import colors from "../../constant/colors";
@@ -41,7 +41,6 @@ import { ScheduledTripBadge } from "../TripScreen/TripComponents/ScheduledRideBa
 import { BookedTripScreen_Nav } from "../../Navigations/navigations";
 import { useLazyGetByTripIdQuery } from "../../service/tripApi";
 import Skeleton from "../../Components/Skeleton";
-import SidebarModal from "./HomeScreenComponents/SidebarModal";
 
 let initialLoadChecked = false;
 
@@ -135,7 +134,6 @@ const HomeScreen: React.FC<any> = ({ navigation }) => {
     const [screenName, setscreenName] = useState('OneWay');
     const [active, setActive] = useState<number>(0);
     const [isScreenLoading, setIsScreenLoading] = useState(true);
-    const [isSidebarVisible, setIsSidebarVisible] = useState(false);
 
     const [triggerGetTrip] = useLazyGetByTripIdQuery();
 
@@ -268,13 +266,20 @@ const HomeScreen: React.FC<any> = ({ navigation }) => {
                 {/* --- HEADER SECTION --- */}
                 <View style={[style.headerContainer, { paddingHorizontal: hS(20), paddingTop: vS(10), paddingBottom: vS(10), zIndex: 9999 }]}>
                     <View style={style.headerLeft}>
-                        <View style={[style.profileImageContainer, { backgroundColor: isDark ? '#333' : '#E2E8F0' }]}>
-                            <Image
-                                source={{ uri: proxiedImageSource || 'https://via.placeholder.com/150' }}
-                                style={style.profileImage}
-                            />
+                        <TouchableOpacity 
+                            style={[style.profileImageContainer, { backgroundColor: isDark ? '#333' : '#E2E8F0', justifyContent: 'center', alignItems: 'center' }]}
+                            onPress={() => navigation.navigate('Profile')}
+                        >
+                            {imageSource ? (
+                                <Image
+                                    source={{ uri: proxiedImageSource || '' }}
+                                    style={style.profileImage}
+                                />
+                            ) : (
+                                <FontAwesome name="user" size={mS(24)} color={isDark ? appColors.lightTextColor : '#CBD5E1'} />
+                            )}
                             <View style={style.onlineDot} />
-                        </View>
+                        </TouchableOpacity>
                         <View style={style.headerTextContainer}>
                             <Text style={[style.greetingText, { color: appColors.text }]}>
                                 {getGreeting()}, <Text style={[style.userNameText, { color: appColors.secondaryText }]}>{localUser?.full_name?.split(' ')[0] || localUser?.name?.split(' ')[0] || 'User'}</Text>
@@ -295,12 +300,6 @@ const HomeScreen: React.FC<any> = ({ navigation }) => {
                             <ActiveTripBadge />
                             <ScheduledTripBadge />
                         </View>
-                        <TouchableOpacity 
-                            style={[style.settingsButton, { backgroundColor: isDark ? '#333' : '#F1F5F9' }]}
-                            onPress={() => setIsSidebarVisible(true)}
-                        >
-                            <MaterialCommunityIcons name="menu" size={mS(20)} color={appColors.text} />
-                        </TouchableOpacity>
                     </View>
                 </View>
 
@@ -449,13 +448,6 @@ const HomeScreen: React.FC<any> = ({ navigation }) => {
                     </View>
                 </ScrollView>
             </View>
-
-            <SidebarModal
-                visible={isSidebarVisible}
-                onClose={() => setIsSidebarVisible(false)}
-                appColors={appColors}
-                isDark={isDark}
-            />
         </View>
     );
 };

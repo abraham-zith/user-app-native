@@ -32,7 +32,7 @@ export const ScheduledTripBadge = () => {
     const translateY = useSharedValue(0);
     const expansion = useSharedValue(0);
 
-    const COLLAPSED_WIDTH = mS(48);
+    const COLLAPSED_WIDTH = mS(40);
     const EXPANDED_WIDTH = mS(180);
 
     useEffect(() => {
@@ -63,12 +63,7 @@ export const ScheduledTripBadge = () => {
     if (scheduledTrips.length === 0) return null;
 
     const handlePress = () => {
-        if (!isExpanded) {
-            setIsExpanded(true);
-            setTimeout(() => setIsExpanded(false), 5000);
-        } else {
-            navigation.navigate('ScheduledTripsList');
-        }
+        navigation.navigate('ScheduledTripsList');
     };
 
     return (
@@ -79,7 +74,7 @@ export const ScheduledTripBadge = () => {
                 onPress={handlePress}
             >
                 <View style={styles.iconCircle}>
-                    <MaterialCommunityIcons name="calendar-clock" size={mS(18)} color="white" />
+                    <MaterialCommunityIcons name="calendar-clock" size={mS(14)} color="white" />
                     {!isExpanded && scheduledTrips.length > 0 && (
                         <View style={styles.miniBadge}>
                             <Text style={styles.miniBadgeText}>{scheduledTrips.length}</Text>
@@ -109,8 +104,8 @@ export const ScheduledTripBadge = () => {
 const styles = StyleSheet.create({
     badgeWrapper: {
         overflow: 'visible',
-        height: mS(48),
-        borderRadius: mS(12),
+        height: mS(40),
+        borderRadius: mS(10),
         backgroundColor: 'rgba(30, 27, 75, 0.95)',
         borderWidth: 1.5,
         borderColor: 'rgba(129, 140, 248, 0.2)',
@@ -130,8 +125,8 @@ const styles = StyleSheet.create({
     },
     iconCircle: {
         backgroundColor: '#6366F1',
-        width: mS(36),
-        height: mS(36),
+        width: mS(28),
+        height: mS(28),
         borderRadius: mS(8),
         justifyContent: 'center',
         alignItems: 'center',
@@ -159,9 +154,9 @@ const styles = StyleSheet.create({
         top: -mS(5),
         right: -mS(5),
         backgroundColor: '#EF4444',
-        minWidth: mS(18),
-        height: mS(18),
-        borderRadius: mS(9),
+        minWidth: mS(16),
+        height: mS(16),
+        borderRadius: mS(8),
         paddingHorizontal: mS(4),
         justifyContent: 'center',
         alignItems: 'center',
@@ -176,7 +171,7 @@ const styles = StyleSheet.create({
     },
     miniBadgeText: {
         color: 'white',
-        fontSize: mS(9),
+        fontSize: mS(8),
         fontWeight: '900',
     },
 });

@@ -87,15 +87,15 @@ const RideCompletedScreen = ({ navigation }: any) => {
             'drop_address',
             'scheduled_start_time',
             'trip_status',
-            'rating',
-            'feedback',
+            'driver_rating',
+            'driver_feedback',
         ];
 
         const payload = {
             trip_id: trip.trip_id,
             trip_status: TripStatus.COMPLETED,
-            rating: selectedRating,
-            feedback: feedback
+            driver_rating: selectedRating,
+            driver_feedback: feedback
         };
 
         const cleanPayload = Object.fromEntries(
