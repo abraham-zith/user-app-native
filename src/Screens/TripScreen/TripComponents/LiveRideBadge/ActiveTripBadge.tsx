@@ -29,7 +29,7 @@ export const ActiveTripBadge = () => {
     const pulseScale = useSharedValue(1);
     const expansion = useSharedValue(0); // 0 = Icon, 1 = Expanded
 
-    const COLLAPSED_WIDTH = mS(48);
+    const COLLAPSED_WIDTH = mS(40);
     const EXPANDED_WIDTH = mS(180);
 
     useEffect(() => {
@@ -60,13 +60,7 @@ export const ActiveTripBadge = () => {
     if (activeTrips.length === 0) return null;
 
     const handlePress = () => {
-        if (!isExpanded) {
-            setIsExpanded(true);
-            // Auto-collapse after 5 seconds
-            setTimeout(() => setIsExpanded(false), 5000);
-        } else {
-            navigation.navigate('OngoingTripsList');
-        }
+        navigation.navigate('OngoingTripsList');
     };
 
     return (
@@ -77,7 +71,7 @@ export const ActiveTripBadge = () => {
                 onPress={handlePress}
             >
                 <View style={styles.iconCircle}>
-                    <MaterialCommunityIcons name="car-multiple" size={mS(18)} color="white" />
+                    <MaterialCommunityIcons name="car-multiple" size={mS(14)} color="white" />
                     {!isExpanded && activeTrips.length > 0 && (
                         <View style={styles.miniBadge}>
                             <Text style={styles.miniBadgeText}>{activeTrips.length}</Text>
@@ -110,8 +104,8 @@ export const ActiveTripBadge = () => {
 const styles = StyleSheet.create({
     badgeWrapper: {
         overflow: 'visible',
-        height: mS(48),
-        borderRadius: mS(24),
+        height: mS(40),
+        borderRadius: mS(20),
         backgroundColor: 'rgba(15, 23, 42, 0.95)',
         borderWidth: 1.5,
         borderColor: 'rgba(255, 255, 255, 0.1)',
@@ -131,9 +125,9 @@ const styles = StyleSheet.create({
     },
     iconCircle: {
         backgroundColor: colors.button || '#3B82F6',
-        width: mS(36),
-        height: mS(36),
-        borderRadius: mS(18),
+        width: mS(28),
+        height: mS(28),
+        borderRadius: mS(14),
         justifyContent: 'center',
         alignItems: 'center',
         overflow: 'visible',
@@ -172,9 +166,9 @@ const styles = StyleSheet.create({
         top: -mS(5),
         right: -mS(5),
         backgroundColor: '#EF4444', // Vibrant Red
-        minWidth: mS(18),
-        height: mS(18),
-        borderRadius: mS(9),
+        minWidth: mS(16),
+        height: mS(16),
+        borderRadius: mS(8),
         paddingHorizontal: mS(4),
         justifyContent: 'center',
         alignItems: 'center',
@@ -189,7 +183,7 @@ const styles = StyleSheet.create({
     },
     miniBadgeText: {
         color: 'white',
-        fontSize: mS(9),
+        fontSize: mS(8),
         fontWeight: '900', // Extra bold for that notification feel
     },
 });

@@ -908,6 +908,7 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
                     fare={currentTrip.total_fare}
                     navigation={navigation}
                     isRated={!!currentTrip.rating}
+                    driver={activeDriver}
                 />
             </View>
         );
@@ -1048,7 +1049,7 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
                             <Text style={{ fontSize: mS(13), color: appColors.secondaryText, textAlign: 'center' }}>What would you like to do?</Text>
                         </View>
                         <View style={{ borderTopWidth: StyleSheet.hairlineWidth, borderColor: '#D1D5DB' }} />
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             style={{ padding: 16, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}
                             onPress={() => {
                                 setShowTripOptions(false);
@@ -1059,7 +1060,7 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
                             <Text style={{ fontSize: mS(16), color: '#007AFF', textDecorationLine: 'underline', fontWeight: '500' }}>View Cancellation Policy</Text>
                         </TouchableOpacity>
                         <View style={{ borderTopWidth: StyleSheet.hairlineWidth, borderColor: '#D1D5DB' }} />
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             style={{ padding: 16, alignItems: 'center' }}
                             onPress={() => {
                                 setShowTripOptions(false);
@@ -1069,7 +1070,7 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
                             <Text style={{ fontSize: mS(16), color: '#FF3B30', fontWeight: '500' }}>Cancel Ride</Text>
                         </TouchableOpacity>
                         <View style={{ borderTopWidth: StyleSheet.hairlineWidth, borderColor: '#D1D5DB' }} />
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             style={{ padding: 16, alignItems: 'center' }}
                             onPress={() => setShowTripOptions(false)}
                         >

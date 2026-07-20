@@ -11,9 +11,10 @@ import { useEffect, useState, useRef } from "react";
 import BottomSheetInput from "../../../../Components/BottomSheetInput";
 import { RootState } from '../../../../redux/store';
 import { useDispatch, useSelector } from "react-redux";
+import { skipToken } from '@reduxjs/toolkit/query';
 import { updateUserStore } from "../../../../redux/userSlice";
 import { useUpdateUserMutation } from "../../../../service/userApi";
-import { useAddTrustedContactMutation } from "../../../../service/sosApi";
+import { useAddTrustedContactMutation, useRemoveTrustedContactMutation, useGetTrustedContactsQuery } from "../../../../service/sosApi";
 import DateTimePickerComponent from "../../../../Components/DateTimePicker";
 import RelationshipSelectionModal from "../../../../Components/RelationshipSelectionModal";
 import { hS, mS, vS } from "../../../../lib/responsive";
@@ -27,6 +28,7 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
     const route = useRoute<any>();
     const [updateUser] = useUpdateUserMutation();
     const [addTrustedContact] = useAddTrustedContactMutation();
+    const [removeTrustedContact] = useRemoveTrustedContactMutation();
     const dispatch = useDispatch()
 
     const minDate = new Date();
@@ -34,7 +36,9 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
 
     const user = useSelector((state: RootState) => state.userSlice.user);
 
-
+    const { data: serverContactsData, refetch: refetchContacts } = useGetTrustedContactsQuery(
+        user?.id ? { userId: user.id } : skipToken
+    );
 
     const [isUpdating, setIsUpdating] = useState(false);
     const [visible, setVisible] = useState(false);
@@ -56,10 +60,18 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
     const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('')
     const [gender, setGender] = useState('');
-    const [emergencyContacts, setEmergencyContacts] = useState<{ name: string, phone: string }[]>([]);
+    const [emergencyContacts, setEmergencyContacts] = useState<{ name: string, phone: string, relationship?: string }[]>([]);
 
 
     const slideAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (serverContactsData?.data && Array.isArray(serverContactsData.data)) {
+            setEmergencyContacts(serverContactsData.data);
+            AsyncStorage.setItem('@emergency_contacts', JSON.stringify(serverContactsData.data));
+            dispatch(updateUserStore({ emergency_contacts: serverContactsData.data }));
+        }
+    }, [serverContactsData]);
 
 
     useEffect(() => {
@@ -269,7 +281,6 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
             onSelectContact: async (SelectedContact: any) => {
                 if (SelectedContact) {
                     navigation.goBack();
-                    setIsUpdating(true);
 
                     const incomingPhone = SelectedContact.phone?.replace(/[^0-9]/g, '') || '';
                     const cleanphone = SelectedContact.phone?.replace(/\+91/g, '').replace(/[^0-9]/g, '');
@@ -295,21 +306,42 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
         // navigation.goBack();
     }
 
+    const [editingContactIndex, setEditingContactIndex] = useState<number | null>(null);
+
+    const handleEditContactRelationship = (index: number) => {
+        setEditingContactIndex(index);
+        setSelectedContact({
+            name: (emergencyContacts || [])[index].name,
+            phone: (emergencyContacts || [])[index].phone,
+        });
+        setRelationshipModalVisible(true);
+    };
+
     const handleRelationshipSelect = async (relationship: string) => {
         if (!selectedContact) return;
         setIsUpdating(true);
 
-        const newContact = {
+        const newContact: any = {
             name: selectedContact.name,
             phone: selectedContact.phone,
             relationship: relationship,
         };
 
-        const updatedList = [...emergencyContacts, newContact].slice(0, 5);
+        const updatedList = [...(emergencyContacts || [])];
+        let oldContact: any = null;
+        if (editingContactIndex !== null) {
+            oldContact = updatedList[editingContactIndex];
+            if (oldContact.id) newContact.id = oldContact.id;
+            updatedList[editingContactIndex] = newContact;
+        } else {
+            updatedList.push(newContact);
+        }
+
+        const cappedList = updatedList.slice(0, 5);
         try {
             const payload = {
                 id: user.id,
-                emergency_contacts: updatedList
+                emergency_contacts: cappedList
             };
 
             const response = await updateUser(payload).unwrap();
@@ -327,19 +359,71 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
             };
 
             try {
-                await addTrustedContact(trustedcontacts).unwrap();
+                if (editingContactIndex === null) {
+                    await addTrustedContact(trustedcontacts).unwrap();
+                } else {
+                    if (oldContact && oldContact.id) {
+                        await removeTrustedContact({ id: oldContact.id }).unwrap();
+                    }
+                    await addTrustedContact(trustedcontacts).unwrap();
+                }
             } catch (err) {
                 console.log(err, "error adding trusted contact");
             }
 
-            setEmergencyContacts(updatedList);
-            await AsyncStorage.setItem('@emergency_contacts', JSON.stringify(updatedList));
+            refetchContacts();
+            setEmergencyContacts(cappedList);
+            await AsyncStorage.setItem('@emergency_contacts', JSON.stringify(cappedList));
         } catch (error) {
             ToastAndroid.show("Something Went Wrong!!! Try Later...", ToastAndroid.SHORT);
         } finally {
             setIsUpdating(false);
             setRelationshipModalVisible(false);
             setSelectedContact(null);
+            setEditingContactIndex(null);
+        }
+    };
+
+    const handleRemoveContact = (index: number) => {
+        const contactName = emergencyContacts[index]?.name || "this contact";
+
+        Alert.alert(
+            "Remove Contact",
+            `Are you sure you want to remove ${contactName} from your emergency list?`,
+            [
+                { text: "Cancel", style: "cancel" },
+                { text: "Remove", style: "destructive", onPress: () => performDelete(index) },
+            ]
+        );
+    };
+
+    const performDelete = async (index: number) => {
+        const contactToDelete = emergencyContacts[index];
+        const updatedList = (emergencyContacts || []).filter((_, i) => i !== index);
+
+        try {
+            const payload = {
+                id: user.id,
+                emergency_contacts: updatedList
+            };
+
+            const response = await updateUser(payload).unwrap();
+            const serverContacts = response.data?.emergency_contacts || response.emergency_contacts;
+
+            if (serverContacts) {
+                dispatch(updateUserStore({ emergency_contacts: serverContacts }));
+            }
+
+            if (contactToDelete && (contactToDelete as any).id) {
+                await removeTrustedContact({ id: (contactToDelete as any).id }).unwrap();
+            }
+
+            refetchContacts();
+            setEmergencyContacts(updatedList);
+            await AsyncStorage.setItem('@emergency_contacts', JSON.stringify(updatedList));
+            ToastAndroid.show("Contact removed successfully", ToastAndroid.SHORT);
+        } catch (error) {
+            ToastAndroid.show("Something Went Wrong!!! Try Later...", ToastAndroid.SHORT);
         }
     };
 
@@ -465,13 +549,35 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
                         {emergencyContacts.length > 0 ? (
                             <View style={styles.contactsList}>
                                 {emergencyContacts.map((contact, idx) => (
-                                    <View key={idx} style={[styles.contactItem, { backgroundColor: isDark ? colors.iconBox : '#F8FAFC' }]}>
+                                    <View 
+                                        key={idx} 
+                                        style={[styles.contactItem, { backgroundColor: isDark ? colors.iconBox : '#F8FAFC' }]}
+                                    >
                                         <View style={[styles.contactAvatar, { backgroundColor: isDark ? colors.primary : colors.button }]}>
                                             <Text style={styles.contactInitial}>{contact.name.charAt(0)}</Text>
                                         </View>
                                         <View style={styles.contactInfo}>
                                             <Text style={[styles.contactName, { color: colors.text }]}>{contact.name}</Text>
                                             <Text style={[styles.contactPhone, { color: colors.lightTextColor }]}>{contact.phone}</Text>
+                                            <Text style={[styles.contactRelationshipText, { color: colors.lightTextColor }]}>
+                                                <MaterialCommunityIcons name="family-tree" size={mS(12)} /> {contact.relationship}
+                                            </Text>
+                                        </View>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                            <TouchableOpacity 
+                                                activeOpacity={0.6}
+                                                onPress={() => handleEditContactRelationship(idx)}
+                                                style={{ padding: mS(8) }}
+                                            >
+                                                <MaterialCommunityIcons name="pencil-outline" size={mS(20)} color={colors.lightTextColor} />
+                                            </TouchableOpacity>
+                                            <TouchableOpacity 
+                                                activeOpacity={0.6}
+                                                onPress={() => handleRemoveContact(idx)}
+                                                style={{ padding: mS(8) }}
+                                            >
+                                                <MaterialCommunityIcons name="trash-can-outline" size={mS(20)} color="#EF4444" />
+                                            </TouchableOpacity>
                                         </View>
                                     </View>
                                 ))}
@@ -775,6 +881,7 @@ const styles = StyleSheet.create({
     },
     contactInfo: {
         marginLeft: hS(12),
+        flex: 1,
     },
     contactName: {
         fontSize: mS(14),
@@ -785,6 +892,13 @@ const styles = StyleSheet.create({
         fontSize: mS(12),
         color: '#64748B',
         marginTop: vS(2),
+    },
+    contactRelationshipText: {
+        fontSize: mS(12),
+        color: '#94A3B8',
+        marginTop: vS(2),
+        fontWeight: '500',
+        fontStyle: 'italic',
     },
     noContactsBox: {
         paddingVertical: vS(20),

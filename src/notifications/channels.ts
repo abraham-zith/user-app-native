@@ -3,11 +3,18 @@ import notifee, { AndroidImportance } from '@notifee/react-native';
 export const NotificationChannels = {
     TRIP_UPDATES: 'trip_updates',
     PAYMENTS: 'payments',
+    ALARMS: 'alarms',
     GENERAL: 'general',
 };
 
 export const createNotificationChannels = async () => {
     await Promise.all([
+        notifee.createChannel({
+            id: NotificationChannels.ALARMS,
+            name: 'Alarms',
+            importance: AndroidImportance.HIGH,
+            sound: 'default',
+        }),
         notifee.createChannel({
             id: NotificationChannels.TRIP_UPDATES,
             name: 'Trip Updates',
@@ -37,6 +44,8 @@ export const getChannelForType = (type: string): string => {
         RIDE_COMPLETED: NotificationChannels.TRIP_UPDATES,
         PAYMENT_SUCCESS: NotificationChannels.PAYMENTS,
         PAYMENT_FAILED: NotificationChannels.PAYMENTS,
+        SCHEDULED_REMINDER: NotificationChannels.ALARMS,
+        WAKEUP_CALL: NotificationChannels.ALARMS,
     };
     return channelMap[type] || NotificationChannels.GENERAL;
 };

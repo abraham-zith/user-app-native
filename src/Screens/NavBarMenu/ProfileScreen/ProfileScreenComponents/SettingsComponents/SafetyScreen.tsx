@@ -143,16 +143,35 @@ const SafetyScreen = ({ navigation }: any) => {
         });
     };
 
+    const [editingContactIndex, setEditingContactIndex] = useState<number | null>(null);
+
+    const handleEditContactRelationship = (index: number) => {
+        setEditingContactIndex(index);
+        setSelectedContact({
+            name: (emergencyContacts || [])[index].name,
+            phone: (emergencyContacts || [])[index].phone,
+        });
+        setRelationshipModalVisible(true);
+    };
+
     const handleRelationshipSelect = async (relationship: string) => {
         if (!selectedContact) return;
 
-        const newContact: EmergencyContact = {
+        const newContact: any = {
             name: selectedContact.name,
             phone: selectedContact.phone,
             relationship: relationship,
         };
 
-        const updatedList = [...emergencyContacts, newContact];
+        const updatedList = [...(emergencyContacts || [])];
+        let oldContact: any = null;
+        if (editingContactIndex !== null) {
+            oldContact = updatedList[editingContactIndex];
+            if (oldContact.id) newContact.id = oldContact.id;
+            updatedList[editingContactIndex] = newContact;
+        } else {
+            updatedList.push(newContact);
+        }
 
         try {
             const payload = {
@@ -174,8 +193,15 @@ const SafetyScreen = ({ navigation }: any) => {
                 user_type: 'customer'
             }
 
-            const res = await addTrustedContact(trustedcontacts).unwrap();
-            console.log(res, "res")
+            if (editingContactIndex === null) {
+                await addTrustedContact(trustedcontacts).unwrap();
+            } else {
+                if (oldContact && oldContact.id) {
+                    await removeTrustedContact({ id: oldContact.id }).unwrap();
+                }
+                await addTrustedContact(trustedcontacts).unwrap();
+            }
+
             refetchContacts();
             setEmergencyContacts(updatedList);
             await AsyncStorage.setItem('@emergency_contacts', JSON.stringify(updatedList));
@@ -184,6 +210,7 @@ const SafetyScreen = ({ navigation }: any) => {
         } finally {
             setRelationshipModalVisible(false);
             setSelectedContact(null);
+            setEditingContactIndex(null);
         }
     };
 
@@ -320,20 +347,29 @@ const SafetyScreen = ({ navigation }: any) => {
                                     ]}
                                 >
                                     <ContactAvatar name={item.name} />
-                                    <View style={styles.contactInfo}>
+                                    <View style={[styles.contactInfo, { flex: 1 }]}>
                                         <Text style={[styles.contactNameText, { color: appColors.text }]}>{item.name}</Text>
                                         <Text style={[styles.contactPhoneText, { color: appColors.secondaryText }]}>{item.phone}</Text>
                                         <Text style={[styles.contactRelationshipText, { color: appColors.secondaryText }]}>
                                             <MaterialCommunityIcons name="family-tree" size={mS(12)} /> {item.relationship}
                                         </Text>
                                     </View>
-                                    <TouchableOpacity
-                                        activeOpacity={0.5}
-                                        onPress={() => handleRemoveContact(index)}
-                                        style={styles.deleteAction}
-                                    >
-                                        <MaterialCommunityIcons name="trash-can-outline" size={mS(20)} color="#EF4444" />
-                                    </TouchableOpacity>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                        <TouchableOpacity
+                                            activeOpacity={0.5}
+                                            onPress={() => handleEditContactRelationship(index)}
+                                            style={styles.deleteAction}
+                                        >
+                                            <MaterialCommunityIcons name="pencil-outline" size={mS(20)} color={appColors.secondaryText} />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            activeOpacity={0.5}
+                                            onPress={() => handleRemoveContact(index)}
+                                            style={styles.deleteAction}
+                                        >
+                                            <MaterialCommunityIcons name="trash-can-outline" size={mS(20)} color="#EF4444" />
+                                        </TouchableOpacity>
+                                    </View>
                                 </View>
                             ))
                         )}
