@@ -19,7 +19,7 @@ import fonts from '../../../../constant/fonts';
 import colors from '../../../../constant/colors';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../../../redux/store';
-import { AboutVdriveScreen_Nav, FavouritelocationScreens_Nav, HelpContactScreen_Nav, NotificationScreen_Nav, PreferencesScreen_Nav, ProfilescreenComponents_Nav, ProfileUpdateScreen_Nav, SafetyScreen_Nav, OffersScreen_Nav } from '../../../../Navigations/navigations';
+import { AboutVdriveScreen_Nav, FavouritelocationScreens_Nav, HelpContactScreen_Nav, NotificationScreen_Nav, PreferencesScreen_Nav, ProfilescreenComponents_Nav, ProfileUpdateScreen_Nav, SafetyScreen_Nav, OffersScreen_Nav, WalletScreen_Nav } from '../../../../Navigations/navigations';
 import { useSignOut } from '../../../../service/auth/signout';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { hS, mS, vS } from '../../../../lib/responsive';
@@ -178,6 +178,12 @@ const Settings = ({ navigation }: ScreenProps) => {
                         title="Favourites"
                         subtitle="Manage favourite locations"
                         onPress={() => handleNavigation(FavouritelocationScreens_Nav)}
+                    />
+                    <ActionRow
+                        icon="wallet-outline"
+                        title="My Wallet"
+                        subtitle="Manage balance & transactions"
+                        onPress={() => handleNavigation(WalletScreen_Nav)}
                     />
                     <ActionRow
                         icon="ticket-percent-outline"

@@ -1,4 +1,4 @@
-import { StatusBar, View, Alert } from 'react-native';
+import { StatusBar, View, Alert, Appearance } from 'react-native';
 import React from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
@@ -41,6 +41,10 @@ notifee.onBackgroundEvent(async ({ type, detail }) => {
 const AppContent = () => {
   const { isDark, colors: appColors } = useAppTheme();
   const { checkingToken } = useSessionManager();
+
+  React.useEffect(() => {
+    Appearance.setColorScheme(isDark ? 'dark' : 'light');
+  }, [isDark]);
 
   if (checkingToken) {
     return <AnimationWithImperativeApi />;

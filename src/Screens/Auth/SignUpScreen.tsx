@@ -267,7 +267,7 @@ const SignUpScreen: React.FC<any> = ({ navigation }) => {
           placeholderTextColor={appColors.lightTextColor}
           value={lastName}
           onChangeText={setLastName}
-          icon="account-badge-outline"
+          icon="account-outline"
           appColors={appColors}
         />
 

@@ -12,6 +12,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { hS, mS, vS } from '../lib/responsive';
 import colors from '../constant/colors';
 import { useAppTheme } from '../hooks/useAppTheme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export interface ContactData {
     name: string;
@@ -45,6 +46,7 @@ const RelationshipSelectionModal: React.FC<RelationshipSelectionModalProps> = ({
     suggestions = DEFAULT_SUGGESTIONS,
 }) => {
     const { colors: appColors, isDark } = useAppTheme();
+    const insets = useSafeAreaInsets();
     const [customRelationship, setCustomRelationship] = useState('');
     const [filteredSuggestions, setFilteredSuggestions] = useState(suggestions);
 
@@ -96,9 +98,11 @@ const RelationshipSelectionModal: React.FC<RelationshipSelectionModalProps> = ({
             transparent
             animationType="slide"
             onRequestClose={onClose}
+            statusBarTranslucent
+            navigationBarTranslucent
         >
             <View style={styles.modalOverlay}>
-                <View style={[styles.modalContent, { backgroundColor: appColors.card }]}>
+                <View style={[styles.modalContent, { backgroundColor: appColors.card, paddingBottom: vS(24) + insets.bottom }]}>
                     {/* Modal Header */}
                     <View style={styles.modalHeader}>
                         <Text style={[styles.modalTitle, { color: appColors.text }]}>
@@ -118,7 +122,7 @@ const RelationshipSelectionModal: React.FC<RelationshipSelectionModalProps> = ({
 
                     {/* Contact Preview */}
                     {contact && (
-                        <View style={styles.contactPreviewBox}>
+                        <View style={[styles.contactPreviewBox, { backgroundColor: isDark ? '#1E293B' : '#F8FAFC', borderWidth: isDark ? 1 : 0, borderColor: appColors.border }]}>
                             <ContactAvatar name={contact.name} />
                             <View style={{ marginLeft: hS(12), flex: 1 }}>
                                 <Text style={[styles.previewName, { color: appColors.text }]}>
@@ -172,7 +176,7 @@ const RelationshipSelectionModal: React.FC<RelationshipSelectionModalProps> = ({
                                     <MaterialCommunityIcons
                                         name="account-check"
                                         size={mS(18)}
-                                        color={colors.button}
+                                        color={isDark ? appColors.primary : colors.button}
                                         style={{ marginRight: hS(10) }}
                                     />
                                     <Text style={[styles.suggestionText, { color: appColors.text }]}>

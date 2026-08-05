@@ -14,6 +14,7 @@ import { CancelBy, ChangeBy, ChangeType, TripStatus } from '../../enums/trip.enu
 import { RideCompletedScreen_Nav, TabNavigation_Nav } from '../../Navigations/navigations';
 import { useDispatch } from 'react-redux';
 import { updateTripInArray } from '../../redux/tripSlice';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const GOOGLE_P_API_KEY = Config.GOOGLE_API_KEY;
 
@@ -283,6 +284,7 @@ const SmoothCar = React.memo(React.forwardRef(({ initialPos, carImage }: any, re
 
 export const UserAppUI = ({ trip, status, onFindETA, onTripPhase, driver, liveDriverLocation }: props) => {
     const { colors: appColors, isDark } = useAppTheme();
+    const insets = useSafeAreaInsets();
     const route = useRoute();
     const navigation = useNavigation<any>();
     const tripDetails = route.params as any;
@@ -691,7 +693,7 @@ export const UserAppUI = ({ trip, status, onFindETA, onTripPhase, driver, liveDr
                 />
             </MapView>
 
-            <View style={[styles.statusBadge, { backgroundColor: appColors.background, borderColor: appColors.border }]}>
+            <View style={[styles.statusBadge, { backgroundColor: appColors.background, borderColor: appColors.border, top: insets.top + vS(10) }]}>
                 <View style={styles.etaContainer}>
                     {eta <= 1 && <Pulse />}
                     <Text style={[styles.arrivalBadgeText, { color: appColors.text }, eta <= 1 ? { color: '#10B981' } : null]}>

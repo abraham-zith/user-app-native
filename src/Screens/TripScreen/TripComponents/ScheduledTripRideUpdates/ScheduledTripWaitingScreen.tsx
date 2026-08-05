@@ -7,6 +7,7 @@ import colors from '../../../../constant/colors';
 import { hS, mS, vS } from '../../../../lib/responsive';
 import { TabNavigation_Nav } from '../../../../Navigations/navigations';
 import { useAppTheme } from '../../../../hooks/useAppTheme';
+import { TripStatus } from '../../../../enums/trip.enum';
 
 export const ScheduledWaitingView = ({
     tripData,
@@ -26,6 +27,40 @@ export const ScheduledWaitingView = ({
     const fadeAnim = useRef(new Animated.Value(0)).current;
 
     const isAccepted = !!tripData.driver_id;
+    const tripStatus = tripData?.trip_status || tripData?.status;
+    
+    const getTitle = () => {
+        if (!isAccepted) return "Finding your Driver";
+        switch (tripStatus) {
+            case TripStatus.ARRIVING: return "Driver is Arriving";
+            case TripStatus.ARRIVED: return "Driver has Arrived";
+            case TripStatus.LIVE: return "Trip in Progress";
+            case TripStatus.DESTINATION_REACHED: return "Destination Reached";
+            default: return "Driver is Confirmed";
+        }
+    };
+
+    const getSubtitle = () => {
+        if (!isAccepted) return "Relax! We're matching you with the best driver for your scheduled trip.";
+        switch (tripStatus) {
+            case TripStatus.ARRIVING: return "Your driver is on the way to the pickup location.";
+            case TripStatus.ARRIVED: return "Your driver is waiting at the pickup location.";
+            case TripStatus.LIVE: return "You are currently on your way to the destination.";
+            case TripStatus.DESTINATION_REACHED: return "You have successfully reached your destination.";
+            default: return "Your driver is ready for the scheduled time. Click the badge above to track.";
+        }
+    };
+    
+    const getBadgeTitle = () => {
+        switch (tripStatus) {
+            case TripStatus.ARRIVING: return "Driver Arriving!";
+            case TripStatus.ARRIVED: return "Driver Arrived!";
+            case TripStatus.LIVE: return "Trip Live!";
+            case TripStatus.DESTINATION_REACHED: return "Reached Destination!";
+            default: return "Driver Found!";
+        }
+    };
+
     console.log(driver, "driverdriver");
 
     useEffect(() => {
@@ -78,7 +113,7 @@ export const ScheduledWaitingView = ({
                             <MaterialCommunityIcons name="check" size={mS(14)} color="white" />
                         </View>
                         <View style={styles.badgeTextContainer}>
-                            <Text style={[styles.badgeTitle, { color: isDark ? '#34D399' : '#065F46' }]}>Driver Found!</Text>
+                            <Text style={[styles.badgeTitle, { color: isDark ? '#34D399' : '#065F46' }]}>{getBadgeTitle()}</Text>
                             <Text style={[styles.badgeSubtitle, { color: isDark ? 'rgba(16, 185, 129, 0.8)' : '#047857' }]}>Tap to see your ride on map</Text>
                         </View>
                         <MaterialCommunityIcons name="chevron-right" size={mS(20)} color="#10B981" />
@@ -93,6 +128,23 @@ export const ScheduledWaitingView = ({
             >
                 {/* Radar Section */}
                 <View style={styles.radarContainer}>
+                    <View style={styles.cityBgContainer}>
+                        <View style={styles.treeLeft}>
+                            <View style={styles.treeTop} />
+                            <View style={styles.treeTrunk} />
+                        </View>
+                        <View style={styles.buildingLeft1} />
+                        <View style={styles.buildingLeft2} />
+                        <View style={styles.buildingLeft3} />
+                        
+                        <View style={styles.buildingRight1} />
+                        <View style={styles.buildingRight2} />
+                        <View style={styles.treeRight}>
+                            <View style={styles.treeTop} />
+                            <View style={styles.treeTrunk} />
+                        </View>
+                        <View style={styles.ground} />
+                    </View>
                     <Animated.View style={[styles.pulse, { transform: [{ scale: pulseAnim }], opacity: pulseAnim.interpolate({ inputRange: [1, 1.4], outputRange: [0.6, 0] }) }]} />
                     <Animated.View style={[styles.pulse, { transform: [{ scale: pulseAnim }], opacity: pulseAnim.interpolate({ inputRange: [1, 1.4], outputRange: [0.4, 0] }), delay: 500 } as any]} />
                     <View style={[styles.iconCircle, { borderColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#EFF6FF', backgroundColor: colors.primary }]}>
@@ -101,11 +153,9 @@ export const ScheduledWaitingView = ({
                 </View>
 
                 <View style={styles.content}>
-                    <Text style={[styles.title, { color: appColors.text }]}>{isAccepted ? "Driver is Confirmed" : "Finding your Driver"}</Text>
+                    <Text style={[styles.title, { color: appColors.text }]}>{getTitle()}</Text>
                     <Text style={[styles.subtitle, { color: appColors.secondaryText }]}>
-                        {isAccepted
-                            ? "Your driver is ready for the scheduled time. Click the badge above to track."
-                            : "Relax! We're matching you with the best driver for your scheduled trip."}
+                        {getSubtitle()}
                     </Text>
 
                     {/* Card 1: Schedule & Ride Type */}
@@ -217,6 +267,19 @@ export const ScheduledWaitingView = ({
 };
 
 const styles = StyleSheet.create({
+    // City Background
+    cityBgContainer: { position: 'absolute', top: 0, left: 0, right: 0, height: vS(280), justifyContent: 'flex-end', opacity: 0.15, zIndex: 0 },
+    ground: { height: vS(100), backgroundColor: '#47B872', width: '100%' },
+    treeLeft: { position: 'absolute', bottom: vS(100), left: mS(25), alignItems: 'center' },
+    treeRight: { position: 'absolute', bottom: vS(100), right: mS(25), alignItems: 'center' },
+    treeTop: { width: mS(28), height: mS(40), borderRadius: mS(14), backgroundColor: '#47B872' },
+    treeTrunk: { width: mS(4), height: mS(16), backgroundColor: '#47B872' },
+    buildingLeft1: { position: 'absolute', bottom: vS(100), left: mS(70), width: mS(28), height: vS(50), backgroundColor: '#47B872', borderTopLeftRadius: 2, borderTopRightRadius: 2 },
+    buildingLeft2: { position: 'absolute', bottom: vS(100), left: mS(100), width: mS(22), height: vS(80), backgroundColor: '#47B872', borderTopLeftRadius: 2, borderTopRightRadius: 2 },
+    buildingLeft3: { position: 'absolute', bottom: vS(100), left: mS(124), width: mS(30), height: vS(60), backgroundColor: '#47B872', borderTopLeftRadius: 2, borderTopRightRadius: 2 },
+    buildingRight1: { position: 'absolute', bottom: vS(100), right: mS(90), width: mS(35), height: vS(95), backgroundColor: '#47B872', borderTopLeftRadius: 2, borderTopRightRadius: 2 },
+    buildingRight2: { position: 'absolute', bottom: vS(100), right: mS(60), width: mS(28), height: vS(65), backgroundColor: '#47B872', borderTopLeftRadius: 2, borderTopRightRadius: 2 },
+
     container: {
         flex: 1,
         backgroundColor: '#FFFFFF',
@@ -294,6 +357,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     scrollContent: {
+        paddingTop: vS(40),
         paddingBottom: vS(20),
     },
     title: {

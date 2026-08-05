@@ -5,7 +5,11 @@ import {
     ToastAndroid,
     StatusBar,
     Dimensions,
-    SafeAreaView
+    SafeAreaView,
+    Modal,
+    TextInput,
+    TouchableWithoutFeedback,
+    Keyboard,
 } from 'react-native';
 import RazorpayCheckout from 'react-native-razorpay';
 import { useRoute, useNavigation } from '@react-navigation/native';
@@ -17,11 +21,13 @@ import { useAppTheme } from '../../hooks/useAppTheme';
 
 import colors from '../../constant/colors';
 import { hS, mS, vS } from '../../lib/responsive';
-import { useCreatePaymentOrderMutation, useVerifyPaymentMutation } from '../../service/userApi';
+import { useCreatePaymentOrderMutation, useVerifyPaymentMutation, useGetWalletBalanceQuery, usePayTripWithWalletMutation } from '../../service/userApi';
 import { useSocket } from '../../Socket/SocketContext';
 import { TripStatus } from '../../enums/trip.enum';
 import { useEffect, useMemo } from 'react';
 import { useApplyReferralDiscountMutation } from '../../service/referralApi';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../redux/store';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -35,10 +41,16 @@ const CheckoutScreen = () => {
     const [createPaymentOrder] = useCreatePaymentOrderMutation();
     const [verifyPayment] = useVerifyPaymentMutation();
     const [applyDiscount] = useApplyReferralDiscountMutation();
+    const [payTripWithWallet] = usePayTripWithWalletMutation();
     const [paymentStatus, setPaymentStatus] = useState('idle');
-    const [paymentMethod, setPaymentMethod] = useState<'ONLINE' | 'CASH'>('ONLINE');
+    const [paymentMethod, setPaymentMethod] = useState<'ONLINE' | 'CASH' | 'WALLET'>('ONLINE');
     const [discountData, setDiscountData] = useState<any>(null);
+    const [walletPinModalVisible, setWalletPinModalVisible] = useState(false);
+    const [walletPin, setWalletPin] = useState('');
     const { onTripStatusChanged, joinTripRoom } = useSocket();
+    const userId = useSelector((state: RootState) => state.userSlice.user?.id || '');
+    const { data: walletData } = useGetWalletBalanceQuery(userId, { skip: !userId });
+    const walletBalance = walletData?.data?.balance ?? 0;
 
     // ✅ Fetch Referral Discount on Mount
     useEffect(() => {
@@ -144,7 +156,49 @@ const CheckoutScreen = () => {
             );
             return;
         }
+        if (paymentMethod === 'WALLET') {
+            if (walletBalance < product.payable) {
+                Alert.alert('Insufficient Wallet Balance', `Your wallet balance (₹${walletBalance.toFixed(2)}) is less than the fare (₹${product.payable.toFixed(2)}). Please top up your wallet.`);
+                return;
+            }
+            setWalletPin('');
+            setWalletPinModalVisible(true);
+            return;
+        }
         await handlePayment(product.payable);
+    };
+
+    const handleWalletPayment = async () => {
+        if (walletPin.length < 4) {
+            Alert.alert('Enter PIN', 'Please enter your 4-digit wallet PIN');
+            return;
+        }
+        setWalletPinModalVisible(false);
+        setIsProcessing(true);
+        setPaymentStatus('processing');
+        try {
+            const res = await payTripWithWallet({
+                userId,
+                amount: product.payable,
+                pin: walletPin,
+                trip_id: trip?.trip_id,
+                description: `Trip payment - ${product.description}`,
+            }).unwrap();
+            setIsProcessing(false);
+            if (res.success) {
+                navigation.navigate(PaymentSuccessScreen_Nav, {
+                    targetScreen: RideCompletedScreen_Nav,
+                    tripData: { ...trip, payment_status: 'PAID' },
+                });
+            } else {
+                setPaymentStatus('failed');
+                Alert.alert('Payment Failed', res.message || 'Wallet payment failed');
+            }
+        } catch (err: any) {
+            setIsProcessing(false);
+            setPaymentStatus('failed');
+            Alert.alert('Payment Failed', err?.data?.message || 'An error occurred. Please try again.');
+        }
     };
 
     const handlePayment = async (price: number) => {
@@ -267,6 +321,18 @@ const CheckoutScreen = () => {
                                 <MaterialCommunityIcons name="cash" size={mS(20)} color={paymentMethod === 'CASH' ? '#10B981' : appColors.secondaryText} />
                                 <Text style={[styles.methodText, { color: paymentMethod === 'CASH' ? '#10B981' : appColors.text }]}>Cash</Text>
                             </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.methodButton, paymentMethod === 'WALLET' && { borderColor: '#60A5FA', backgroundColor: isDark ? 'rgba(96,165,250,0.1)' : 'rgba(30,64,175,0.05)' }]}
+                                onPress={() => setPaymentMethod('WALLET')}
+                            >
+                                <MaterialCommunityIcons name="wallet" size={mS(20)} color={paymentMethod === 'WALLET' ? '#60A5FA' : appColors.secondaryText} />
+                                <Text style={[styles.methodText, { color: paymentMethod === 'WALLET' ? '#60A5FA' : appColors.text }]}>Wallet</Text>
+                                {paymentMethod === 'WALLET' && (
+                                    <Text style={{ fontSize: mS(10), color: walletBalance >= product.payable ? '#10B981' : '#EF4444', fontWeight: '700', marginLeft: hS(2) }}>
+                                        ₹{walletBalance.toFixed(0)}
+                                    </Text>
+                                )}
+                            </TouchableOpacity>
                         </View>
                     </View>
 
@@ -319,11 +385,13 @@ const CheckoutScreen = () => {
                         <Text style={styles.payButtonText}>
                             {paymentStatus === 'processing' ? 'Processing...' :
                                 paymentStatus === 'failed' ? 'Retry Payment' :
-                                    paymentMethod === 'CASH' ? 'Confirm Payment (Cash)' : `Confirm & Pay ₹${Number(product.payable).toFixed(2)}`}
+                                    paymentMethod === 'CASH' ? 'Confirm Payment (Cash)' :
+                                    paymentMethod === 'WALLET' ? `Pay ₹${Number(product.payable).toFixed(2)} via Wallet` :
+                                    `Confirm & Pay ₹${Number(product.payable).toFixed(2)}`}
                         </Text>
                         {paymentStatus !== 'processing' && (
                             <MaterialCommunityIcons
-                                name={paymentMethod === 'CASH' ? "hand-coin-outline" : "check-circle"}
+                                name={paymentMethod === 'CASH' ? "hand-coin-outline" : paymentMethod === 'WALLET' ? "wallet" : "check-circle"}
                                 size={mS(20)}
                                 color="#FFF"
                             />
@@ -331,6 +399,52 @@ const CheckoutScreen = () => {
                     </View>
                 </TouchableOpacity>
             </View>
+
+            {/* ─── WALLET PIN MODAL ─── */}
+            <Modal
+                visible={walletPinModalVisible}
+                transparent
+                animationType="slide"
+                statusBarTranslucent
+                onRequestClose={() => setWalletPinModalVisible(false)}
+            >
+                <TouchableWithoutFeedback onPress={() => { Keyboard.dismiss(); setWalletPinModalVisible(false); }}>
+                    <View style={styles.modalOverlay} />
+                </TouchableWithoutFeedback>
+                <View style={[styles.pinModalSheet, { backgroundColor: appColors.card }]}>
+                    <View style={[styles.sheetHandle, { backgroundColor: isDark ? '#4B5563' : '#E2E8F0' }]} />
+                    <View style={styles.pinSheetHeader}>
+                        <MaterialCommunityIcons name="lock-outline" size={mS(28)} color={colors.button} />
+                        <Text style={[styles.pinSheetTitle, { color: appColors.text }]}>Enter Wallet PIN</Text>
+                        <Text style={[styles.pinSheetSub, { color: appColors.secondaryText }]}>
+                            Authorise ₹{Number(product.payable).toFixed(2)} from your wallet
+                        </Text>
+                    </View>
+                    <View style={[styles.pinInputRow, { borderColor: isDark ? '#374151' : '#E2E8F0' }]}>
+                        <TextInput
+                            style={[styles.pinInput, { color: appColors.text }]}
+                            placeholder="••••"
+                            placeholderTextColor={appColors.secondaryText}
+                            secureTextEntry
+                            keyboardType="numeric"
+                            maxLength={4}
+                            value={walletPin}
+                            onChangeText={setWalletPin}
+                            autoFocus
+                        />
+                    </View>
+                    <TouchableOpacity
+                        style={[styles.pinConfirmBtn, { backgroundColor: colors.button, opacity: walletPin.length < 4 ? 0.5 : 1 }]}
+                        onPress={handleWalletPayment}
+                        disabled={walletPin.length < 4}
+                        activeOpacity={0.85}
+                    >
+                        <Text style={styles.pinConfirmText}>Confirm Payment</Text>
+                        <MaterialCommunityIcons name="check" size={mS(20)} color="#FFF" />
+                    </TouchableOpacity>
+                </View>
+            </Modal>
+
         </View>
     );
 };
@@ -544,7 +658,77 @@ const styles = StyleSheet.create({
         color: '#FFF',
         fontSize: mS(18),
         fontWeight: '800',
-    }
+    },
+    // Wallet PIN Modal
+    modalOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.55)',
+    },
+    pinModalSheet: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        borderTopLeftRadius: mS(28),
+        borderTopRightRadius: mS(28),
+        paddingHorizontal: hS(24),
+        paddingTop: vS(12),
+        paddingBottom: vS(40),
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -10 },
+        shadowOpacity: 0.12,
+        shadowRadius: 24,
+        elevation: 20,
+    },
+    sheetHandle: {
+        width: hS(40),
+        height: vS(4),
+        borderRadius: vS(2),
+        alignSelf: 'center',
+        marginBottom: vS(20),
+    },
+    pinSheetHeader: {
+        alignItems: 'center',
+        marginBottom: vS(24),
+        gap: vS(6),
+    },
+    pinSheetTitle: {
+        fontSize: mS(20),
+        fontWeight: '800',
+    },
+    pinSheetSub: {
+        fontSize: mS(13),
+        textAlign: 'center',
+    },
+    pinInputRow: {
+        borderWidth: 1.5,
+        borderRadius: mS(16),
+        height: vS(60),
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: vS(20),
+        paddingHorizontal: hS(16),
+    },
+    pinInput: {
+        fontSize: mS(28),
+        fontWeight: '800',
+        textAlign: 'center',
+        letterSpacing: 12,
+        width: '100%',
+    },
+    pinConfirmBtn: {
+        height: vS(56),
+        borderRadius: mS(18),
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: hS(10),
+    },
+    pinConfirmText: {
+        color: '#FFF',
+        fontSize: mS(17),
+        fontWeight: '800',
+    },
 });
 
 export default CheckoutScreen;

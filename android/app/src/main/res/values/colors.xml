@@ -1,3 +1,4 @@
 <resources>
     <color name="notification_icon_color">#FF5722</color>
+    <color name="datepicker_accent">#185BE5</color>
 </resources>

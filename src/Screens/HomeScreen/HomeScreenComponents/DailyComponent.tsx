@@ -171,16 +171,16 @@ export function DailyComponent() {
                 style={[
                     styles.heroCard,
                     {
-                        backgroundColor: appColors.button,
+                        backgroundColor: isDark ? '#1E3A8A' : appColors.button,
                         borderColor: appColors.border,
                     }
                 ]}
             >
                 {/* Left Content */}
                 <View style={styles.heroContent}>
-                    <View style={styles.heroBadge}>
-                        <Ionicons name="flash" size={14} color={appColors.primary} />
-                        <Text style={styles.badgeText}>LIMITED TIME OFFER</Text>
+                    <View style={[styles.heroBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : '#FFFFFF' }]}>
+                        <Ionicons name="flash" size={14} color={isDark ? '#FCD34D' : appColors.primary} />
+                        <Text style={[styles.badgeText, { color: isDark ? '#FFFFFF' : '#000' }]}>LIMITED TIME OFFER</Text>
                     </View>
 
                     <Text style={[fonts.bold, styles.heroTitle]}>
@@ -199,15 +199,15 @@ export function DailyComponent() {
 
                     {/* Primary CTA */}
                     <Button
-                        style={[styles.reserveBtn, { backgroundColor: '#FFFFFF' }]}
+                        style={[styles.reserveBtn, { backgroundColor: isDark ? appColors.primary : '#FFFFFF' }]}
                         onPress={() =>
                             navigation.navigate(LocationSearch_Nav, { screenName: 'Schedule' })
                         }
                     >
-                        <Text style={[fonts.bold, styles.btnTextPrimary]}>
+                        <Text style={[fonts.bold, styles.btnTextPrimary, { color: isDark ? '#0F172A' : '#000' }]}>
                             Reserve Now
                         </Text>
-                        <Ionicons name="arrow-forward" size={16} color={appColors.primary} />
+                        <Ionicons name="arrow-forward" size={16} color={isDark ? '#0F172A' : appColors.primary} />
                     </Button>
 
                     {/* Secondary CTA */}
@@ -314,7 +314,7 @@ export function DailyComponent() {
             </View>
 
             {/* Call to Action Footer */}
-            <View style={[styles.ctaFooter, { backgroundColor: appColors.primary }]}>
+            <View style={[styles.ctaFooter, { backgroundColor: isDark ? '#1E3A8A' : appColors.primary }]}>
                 <View>
                     <Text style={styles.footerTitle}>Ready to Book?</Text>
                     <Text style={styles.footerSubtitle}>Get your driver today</Text>
@@ -418,7 +418,7 @@ function FeatureCard({ feature, appColors, isDark, iconcolor, iconBgColor }: Fea
             <Text style={[fonts.bold, styles.featureLabel, { color: appColors.text }]}>
                 {feature.label}
             </Text>
-            <Text style={[styles.featureDescription, { color: appColors.subtext }]}>
+            <Text style={[styles.featureDescription, { color: appColors.secondaryText }]}>
                 {feature.description}
             </Text>
         </View>
@@ -529,7 +529,7 @@ function StepCard({ step, index, appColors, isDark }: StepCardProps) {
                     <Text style={[fonts.bold, styles.stepTitle, { color: appColors.text }]}>
                         {step.title}
                     </Text>
-                    <Text style={[styles.stepDescription, { color: appColors.subtext }]}>
+                    <Text style={[styles.stepDescription, { color: appColors.secondaryText }]}>
                         {step.description}
                     </Text>
                 </View>

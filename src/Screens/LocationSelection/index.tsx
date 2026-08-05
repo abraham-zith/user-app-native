@@ -7,6 +7,7 @@ import { Dropdown } from 'react-native-element-dropdown';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import SelectionPage from '../SelectionScreen/SelectionPage';
 import DateTimePickerComponent from '../../Components/DateTimePicker';
+import DatePicker from '../../Components/DatePicker';
 import colors from '../../constant/colors';
 import LocationSearchModal from '../MapTrackingScreen/LocationSearchModal';
 import { BookingType, PaymentStatus, RideType, ServiceType, TripStatus } from '../../enums/trip.enum';
@@ -72,7 +73,7 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
     const { getCurrentLocation, getAddressFromCoords, loading } = useLocation();
     const { distance, duration, calculateRoute } = useDirections(GOOGLE_P_API_KEY ?? "");
 
-    const { screenName, selectedDropOff, dropoffLocation } = route.params;
+    const { screenName, selectedDropOff, dropoffLocation, rideType } = route.params || {};
     const localuser = useSelector((state: RootState) => state.userSlice.user);
     const [favoriteLocations, setFavoriteLocations] = useState<SavedLocation[]>(localuser?.favourite_places || []);
     const [isAlertVisible, setAlertVisible] = useState(false);
@@ -105,7 +106,11 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
     const [scheduledDate, setScheduledDate] = useState<Date | null>(sDate ? sDate : null);
     const [scheduledTime, setScheduledTime] = useState<Date | null>(sDate ? sDate : null);
     const [selectedRide, setSelectedRide] = useState<RideType>(() => {
-        return sRide || SCREEN_TO_RIDE_TYPE[screenName] || RideType.ONE_WAY;
+        const initial = rideType || sRide || SCREEN_TO_RIDE_TYPE[screenName] || RideType.ONE_WAY;
+        if (initial === RideType.OUTSTATION_ROUND_TRIP) {
+            return RideType.OUTSTATION_ONE_WAY;
+        }
+        return initial;
     });
     const [selectedService, setSelectedService] = useState('');
     const [pickerMode, setPickerMode] = useState<PickerMode>('date');
@@ -114,6 +119,10 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
     const now = new Date();
     const minimumSchedulingDate = new Date(now.getTime());
     minimumSchedulingDate.setMinutes(now.getMinutes() + 30);
+
+    // Users cannot book an advanced ride more than 30 days from now
+    const maximumSchedulingDate = new Date(now);
+    maximumSchedulingDate.setDate(now.getDate() + 30);
 
     const [startLocation, setStartLocation] = useState(pickupLocation || "");
     const [destination, setDestination] = useState(dropLocation || selectedDropOff || "");
@@ -165,7 +174,13 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
         { label: '4 Days', value: 96 },
         { label: '5 Days', value: 120 },
     ];
-    const [outstationTripType, setOutstationTripType] = useState<string | null>(null);
+    const [outstationTripType, setOutstationTripType] = useState<string | null>(() => {
+        const initial = rideType || sRide || SCREEN_TO_RIDE_TYPE[screenName];
+        if (initial === RideType.OUTSTATION_ROUND_TRIP || initial === RideType.OUTSTATION_ONE_WAY) {
+            return initial;
+        }
+        return null;
+    });
     // 2. Add refs to clear or control inputs if needed
 
     const [tripPayload, setTripPayload] = useState<Partial<Trip>>({
@@ -224,6 +239,26 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                 "Incomplete Selection",
                 "Please ensure all fields (Pickup, Destination, Vehicle, Date, Time, and Ride Type) are selected before proceeding.",
                 [{ text: "OK" }]
+            );
+            return;
+        }
+
+        // Guard: prevent booking a date in the past
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+        if (scheduledDate < startOfToday) {
+            Alert.alert('Date Not Allowed', 'You cannot book a ride for a past date.');
+            return;
+        }
+
+        // Guard: prevent bookings more than 30 days in the future
+        const maxAllowed = new Date();
+        maxAllowed.setDate(maxAllowed.getDate() + 30);
+        maxAllowed.setHours(23, 59, 59, 999);
+        if (scheduledDate > maxAllowed) {
+            Alert.alert(
+                'Date Not Allowed',
+                'Advance bookings can only be made up to 30 days from today.'
             );
             return;
         }
@@ -674,7 +709,7 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                                 style={{
                                     width: mS(160),
                                     height: vS(40),
-                                    backgroundColor: '#F1F5F9',
+                                    backgroundColor: isDark ? colors.iconBox : '#F1F5F9',
                                     paddingHorizontal: hS(10),
                                     borderColor: colors.border,
                                     borderWidth: 1,
@@ -837,6 +872,47 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                             borderColor: '#EF4444'
                         }]}
                     >
+                        {/* Swap Button */}
+                        <TouchableOpacity
+                            onPress={() => {
+                                setStartLocation(destination);
+                                setDestination(startLocation);
+
+                                setTripPayload(prev => {
+                                    const newPayload = {
+                                        ...prev,
+                                        pickup_address: prev.drop_address,
+                                        pickup_lat: prev.drop_lat,
+                                        pickup_lng: prev.drop_lng,
+                                        drop_address: prev.pickup_address,
+                                        drop_lat: prev.pickup_lat,
+                                        drop_lng: prev.pickup_lng,
+                                    };
+
+                                    onDataChange?.(newPayload);
+                                    return newPayload;
+                                });
+                            }}
+                            style={{
+                                position: 'absolute',
+                                right: hS(16),
+                                top: '50%',
+                                marginTop: vS(-18),
+                                zIndex: 10,
+                                padding: mS(6),
+                                backgroundColor: isDark ? colors.background : '#F8FAFC',
+                                borderRadius: mS(20),
+                                borderWidth: 1,
+                                borderColor: colors.border,
+                                ...Platform.select({
+                                    ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
+                                    android: { elevation: 2 },
+                                })
+                            }}
+                        >
+                            <MaterialCommunityIcons name="swap-vertical" size={mS(22)} color={colors.text} />
+                        </TouchableOpacity>
+
                         {/* Pickup Section */}
                         <TouchableOpacity
                             onPress={() => setModalType("start")}
@@ -921,6 +997,14 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                                 itemTextStyle={{ color: colors.text }}
                                 itemContainerStyle={{ backgroundColor: colors.card }}
                                 activeColor={isDark ? 'rgba(255, 255, 255, 0.08)' : '#F1F5F9'}
+                                containerStyle={{
+                                    backgroundColor: colors.card,
+                                    borderColor: colors.border,
+                                    borderWidth: isDark ? 1 : 0,
+                                    borderRadius: mS(12),
+                                    marginTop: vS(5),
+                                    overflow: 'hidden'
+                                }}
                                 data={packageHourOptions}
                                 labelField="label"
                                 valueField="value"
@@ -961,6 +1045,14 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                                     itemTextStyle={{ color: colors.text }}
                                     itemContainerStyle={{ backgroundColor: colors.card }}
                                     activeColor={isDark ? 'rgba(255, 255, 255, 0.08)' : '#F1F5F9'}
+                                    containerStyle={{
+                                        backgroundColor: colors.card,
+                                        borderColor: colors.border,
+                                        borderWidth: isDark ? 1 : 0,
+                                        borderRadius: mS(12),
+                                        marginTop: vS(5),
+                                        overflow: 'hidden'
+                                    }}
                                     data={outstationTripTypeOptions}
                                     labelField="label"
                                     valueField="value"
@@ -996,6 +1088,14 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                                     itemTextStyle={{ color: colors.text }}
                                     itemContainerStyle={{ backgroundColor: colors.card }}
                                     activeColor={isDark ? 'rgba(255, 255, 255, 0.08)' : '#F1F5F9'}
+                                    containerStyle={{
+                                        backgroundColor: colors.card,
+                                        borderColor: colors.border,
+                                        borderWidth: isDark ? 1 : 0,
+                                        borderRadius: mS(12),
+                                        marginTop: vS(5),
+                                        overflow: 'hidden'
+                                    }}
                                     data={outstationTripType === RideType.OUTSTATION_ONE_WAY ? outstationOneWayPackageHourOptions : outstationRoundTripPackageHourOptions}
                                     labelField="label"
                                     valueField="value"
@@ -1466,10 +1566,26 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                 </View>
             )}
 
-            {showDatePicker && (
+            {showDatePicker && pickerMode === 'date' && (
+                <DatePicker
+                    mode="single"
+                    visible={showDatePicker}
+                    onClose={() => setShowDatePicker(false)}
+                    minDate={minimumSchedulingDate.toISOString().split('T')[0]}
+                    maxDate={maximumSchedulingDate.toISOString().split('T')[0]}
+                    onSelect={(d: string) => {
+                        const dateParts = d.split('-');
+                        const newDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+                        handleDateTimeChange(newDate);
+                        setShowDatePicker(false);
+                    }}
+                />
+            )}
+
+            {showDatePicker && pickerMode === 'time' && (
                 <DateTimePickerComponent
                     value={scheduledDate || minimumSchedulingDate}
-                    mode={pickerMode}
+                    mode="time"
                     isVisible={showDatePicker}
                     onChange={handleDateTimeChange}
                     onClose={() => setShowDatePicker(false)}

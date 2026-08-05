@@ -58,6 +58,8 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
     // Coupon State
     const [isCouponModalVisible, setIsCouponModalVisible] = useState(false);
     const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
+    const [isInfoModalVisible, setIsInfoModalVisible] = useState(false);
+    const [showPolicyModal, setShowPolicyModal] = useState(false);
     const [appliedCoupon, setAppliedCoupon] = useState<{ id: string, code: string, discount: number } | null>(null);
     const [options, setOptions] = useState<OptionModal[]>([])
     const doptions = {
@@ -148,7 +150,7 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
         try {
             const finalPayload = {
                 ...TripPayload,
-                ...(TripPayload.ride_type?.includes('OUTSTATION') && { days: TripPayload.package_hours ? Math.ceil(TripPayload.package_hours / 24) : 1 }),
+                // ...(TripPayload.ride_type?.includes('OUTSTATION') && { days: TripPayload.package_hours ? Math.ceil(TripPayload.package_hours / 24) : 1 }),
                 coupon_code: appliedCoupon?.code,
                 discount: appliedCoupon?.discount || 0,
                 applied_coupon_id: appliedCoupon?.id
@@ -170,12 +172,12 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
             }
         } catch (error: any) {
             if (error.data && error.data.message) {
-                //console.log(error.data, "error");
+                console.log(error.data, "error");
                 Alert.alert('Booking Failed!!!', error.data.message);
             } else {
                 Alert.alert('Booking Failed!!!');
             }
-            //console.log(error, "error");
+            console.log(error, "error");
         } finally {
             setIsLoading(false);
         }
@@ -295,8 +297,8 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
 
                 const payload = {
                     distance_km: TripPayload.distance_km,
-                    // duration_min: TripPayload.trip_duration_minutes,
-                    duration_min: TripPayload.package_hours ? TripPayload.package_hours * 60 : TripPayload.trip_duration_minutes,
+                    duration_min: TripPayload.trip_duration_minutes,
+                    // duration_min: TripPayload.package_hours ? TripPayload.package_hours * 60 : TripPayload.trip_duration_minutes,
                     ride_type: TripPayload.ride_type,
                     ...(TripPayload.ride_type?.includes('OUTSTATION') && { days: TripPayload.package_hours ? Math.ceil(TripPayload.package_hours / 24) : 1 }),
                     // driver_type: TripPayload.,
@@ -391,12 +393,20 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
                                             <Text style={[styles.driverLabel, { color: appColors.text }]}>
                                                 DriveV <Text style={{ color: item.name === 'Classic' ? (isDark ? appColors.primary : '#152D5E') : '#185BE5' }}>{item.name}</Text>
                                             </Text>
-                                            <Text style={[styles.priceLabel, { color: appColors.text }]}>₹{(
-                                                item.Price +
-                                                item.allowance +
-                                                (selectedDriver === item.id ? (updatedTip || 0) : 0) -
-                                                (selectedDriver === item.id ? (appliedCoupon?.discount || 0) : 0)
-                                            ).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                <Text style={[styles.priceLabel, { color: appColors.text }]}>₹{(
+                                                    item.Price +
+                                                    item.allowance +
+                                                    (selectedDriver === item.id ? (updatedTip || 0) : 0) -
+                                                    (selectedDriver === item.id ? (appliedCoupon?.discount || 0) : 0)
+                                                ).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+                                                <TouchableOpacity onPress={() => {
+                                                    setModalData(item);
+                                                    setIsInfoModalVisible(true);
+                                                }} style={{ marginLeft: hS(5) }}>
+                                                    <MaterialCommunityIcons name="information-outline" size={mS(16)} color={appColors.secondaryText} />
+                                                </TouchableOpacity>
+                                            </View>
                                         </View>
                                         {selectedDriver === item.id && appliedCoupon && (
                                             <Text style={{ fontSize: mS(12), color: colors.primary, fontWeight: '700', textAlign: 'right' }}>
@@ -513,6 +523,109 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
                             Cab Ride cost (₹{(modalData?.Price || 0).toFixed(2)}) + Allowance (₹{((modalData?.allowance || 0) + (selectedDriver === modalData?.id ? (updatedTip || 0) : 0)).toFixed(2)})
                             {"\n"}(driver’s return travel to ensure fair pricing).
                         </Text>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* INFO MODAL */}
+            <Modal statusBarTranslucent={false} visible={isInfoModalVisible} animationType="slide" onRequestClose={() => setIsInfoModalVisible(false)}>
+                <View style={{ flex: 1, backgroundColor: appColors.background, paddingTop: insets.top }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: hS(20), paddingVertical: vS(15), borderBottomWidth: 1, borderBottomColor: appColors.border }}>
+                        <TouchableOpacity onPress={() => setIsInfoModalVisible(false)} style={{ padding: mS(5), marginLeft: -mS(5) }}>
+                            <MaterialCommunityIcons name="close" size={mS(24)} color={appColors.text} />
+                        </TouchableOpacity>
+                        <Text style={[styles.modalTitle, { color: appColors.text, marginLeft: hS(10) }]}>Fare Details</Text>
+                    </View>
+                    
+                    <View style={{ padding: hS(20), flex: 1 }}>
+                        <View style={{ backgroundColor: appColors.card, padding: mS(15), borderRadius: mS(12), borderWidth: isDark ? 1 : 0, borderColor: appColors.border, marginBottom: vS(20) }}>
+                            <View style={[styles.rowBetween, { marginBottom: vS(10) }]}>
+                                <Text style={{ color: appColors.text, fontSize: mS(14) }}>Base Fare</Text>
+                                <Text style={{ color: appColors.text, fontSize: mS(14), fontWeight: '600' }}>₹{(modalData?.Price || 0).toFixed(2)}</Text>
+                            </View>
+                            <View style={[styles.rowBetween, { marginBottom: vS(10) }]}>
+                                <Text style={{ color: appColors.text, fontSize: mS(14) }}>Allowance</Text>
+                                <Text style={{ color: appColors.text, fontSize: mS(14), fontWeight: '600' }}>₹{((modalData?.allowance || 0) + (selectedDriver === modalData?.id ? (updatedTip || 0) : 0)).toFixed(2)}</Text>
+                            </View>
+                            {selectedDriver === modalData?.id && appliedCoupon && (
+                                <View style={[styles.rowBetween, { marginBottom: vS(10) }]}>
+                                    <Text style={{ color: colors.primary, fontSize: mS(14) }}>Discount</Text>
+                                    <Text style={{ color: colors.primary, fontSize: mS(14), fontWeight: '600' }}>-₹{appliedCoupon.discount.toFixed(2)}</Text>
+                                </View>
+                            )}
+                            <View style={[styles.rowBetween, { paddingTop: vS(10), borderTopWidth: 1, borderTopColor: appColors.border }]}>
+                                <Text style={{ color: appColors.text, fontSize: mS(16), fontWeight: '700' }}>Total Fare</Text>
+                                <Text style={{ color: appColors.text, fontSize: mS(16), fontWeight: '700' }}>
+                                    ₹{((modalData?.Price || 0) + (modalData?.allowance || 0) + (selectedDriver === modalData?.id ? (updatedTip || 0) : 0) - (selectedDriver === modalData?.id ? (appliedCoupon?.discount || 0) : 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </Text>
+                            </View>
+                        </View>
+
+                        <View style={{ gap: vS(12) }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? 'rgba(59, 130, 246, 0.1)' : '#EFF6FF', padding: mS(12), borderRadius: mS(8) }}>
+                                <MaterialCommunityIcons name="information" size={mS(20)} color={colors.primary} style={{ marginRight: hS(10) }} />
+                                <Text style={{ flex: 1, color: appColors.text, fontSize: mS(13) }}>
+                                    If the trip extends beyond {TripPayload.package_hours || 0} Hrs/day, extra charges as ₹60 per extra hour applicable.
+                                </Text>
+                            </View>
+                            
+                            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? 'rgba(59, 130, 246, 0.1)' : '#EFF6FF', padding: mS(12), borderRadius: mS(8) }}>
+                                <MaterialCommunityIcons name="clock-outline" size={mS(20)} color={colors.primary} style={{ marginRight: hS(10) }} />
+                                <Text style={{ flex: 1, color: appColors.text, fontSize: mS(13) }}>
+                                    Fares will be adjusted based on additional time usage
+                                </Text>
+                            </View>
+                            
+                            {(TripPayload.ride_type === 'ROUND_TRIP' || TripPayload.ride_type === 'OUTSTATION_ROUND_TRIP') && (
+                                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? 'rgba(59, 130, 246, 0.1)' : '#EFF6FF', padding: mS(12), borderRadius: mS(8) }}>
+                                    <MaterialCommunityIcons name="food" size={mS(20)} color={colors.primary} style={{ marginRight: hS(10) }} />
+                                    <Text style={{ flex: 1, color: appColors.text, fontSize: mS(13) }}>
+                                        Please provide food & accommodation for the driver
+                                    </Text>
+                                </View>
+                            )}
+                        </View>
+
+                        <View style={{ flex: 1 }} />
+
+                        <TouchableOpacity 
+                            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: vS(15), borderTopWidth: 1, borderTopColor: appColors.border, gap: hS(8) }}
+                            onPress={() => setShowPolicyModal(true)}
+                        >
+                            <MaterialCommunityIcons name="file-document-outline" size={mS(20)} color={colors.primary} />
+                            <Text style={{ color: colors.primary, fontSize: mS(14), fontWeight: '600' }}>View cancellation policy</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* POLICY MODAL */}
+            <Modal statusBarTranslucent={false} visible={showPolicyModal} animationType="slide" onRequestClose={() => setShowPolicyModal(false)}>
+                <View style={{ flex: 1, backgroundColor: appColors.background, paddingTop: insets.top }}>
+                    <View style={{ flex: 1, padding: hS(20) }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: vS(20), paddingTop: vS(10) }}>
+                            <TouchableOpacity onPress={() => setShowPolicyModal(false)} style={{ padding: mS(5), marginLeft: -mS(5) }}>
+                                <MaterialCommunityIcons name="arrow-left" size={mS(28)} color={appColors.text} />
+                            </TouchableOpacity>
+                            <Text style={[styles.modalTitle, { color: appColors.text, marginBottom: 0, marginLeft: hS(10) }]}>
+                                Cancellation Policy
+                            </Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={{ color: appColors.secondaryText, fontSize: mS(16), lineHeight: vS(24) }}>
+                                • You can cancel your request free of charge before a driver accepts.{"\n\n"}
+                                • If you cancel after a driver is assigned and has started moving towards you, a cancellation fee may apply to compensate the driver for their time and fuel.{"\n\n"}
+                                • Cancellations due to driver delays (exceeding the estimated time of arrival significantly) will not incur any fees.{"\n\n"}
+                                • Habitual cancellations may result in temporary account restrictions.{"\n\n"}
+                                Please be considerate of our drivers' time.
+                            </Text>
+                        </View>
+                        <TouchableOpacity
+                            style={[styles.bookBtn, { marginTop: vS(10) }]}
+                            onPress={() => setShowPolicyModal(false)}
+                        >
+                            <Text style={styles.bookBtnText}>Close</Text>
+                        </TouchableOpacity>
                     </View>
                 </View>
             </Modal>
@@ -690,6 +803,8 @@ const styles = StyleSheet.create({
         borderRadius: mS(14),
         backgroundColor: colors.button,
         marginTop: vS(5),
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     bookBtnText: {
         color: '#FFFFFF',

@@ -108,13 +108,22 @@ const ScheduledTripsList = () => {
                     <MaterialCommunityIcons name="chevron-right" size={24} color="#CCC" />
                 </View>
 
-                {!isSearching && (
-                    <View style={[styles.driverQuickInfo, { borderTopColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F3F4F6' }]}>
+                <View style={[styles.driverQuickInfo, { borderTopColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F3F4F6', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' }]}>
+                    {isSearching ? (
+                        <Text style={[styles.driverNote, { color: appColors.secondaryText }]}>
+                            Driver: <Text style={{ fontWeight: '700', color: appColors.text }}>Searching...</Text>
+                        </Text>
+                    ) : (
                         <Text style={[styles.driverNote, { color: appColors.secondaryText }]}>
                             Driver: <Text style={{ fontWeight: '700', color: appColors.text }}>{item.driver_details?.full_name || 'Assigned'}</Text>
                         </Text>
+                    )}
+                    <View style={{ backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F3F4F6', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
+                        <Text style={{ fontSize: 10, fontWeight: '700', color: appColors.text, textTransform: 'uppercase' }}>
+                            {(item.ride_type || 'RIDE').replace(/_/g, ' ')}
+                        </Text>
                     </View>
-                )}
+                </View>
             </TouchableOpacity>
         )
     };

@@ -32,7 +32,10 @@ import {
   ChatScreen_Nav,
   OngoingTripsList_Nav,
   ScheduledTripsList_Nav,
-  OffersScreen_Nav
+  OffersScreen_Nav,
+  WalletScreen_Nav,
+  WalletSuccessScreen_Nav,
+  WalletPinSetupScreen_Nav,
 } from './navigations';
 import AuthNavigation from './AuthNavigation';
 import DashBoardScreen from '../Screens/Dashboard';
@@ -68,15 +71,18 @@ import ScheduledTripCard from '../Screens/TripScreen/TripComponents/ScheduledRid
 import PaymentSuccessScreen from '../Screens/PaymentScreen/PaymentSuccessScreen';
 
 const withSuspense = (Component: any) => {
-  return (props: any) => (
-    <Suspense fallback={
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#2563EB" />
-      </View>
-    }>
-      <Component {...props} />
-    </Suspense>
-  );
+  return (props: any) => {
+    const { colors } = useAppTheme();
+    return (
+      <Suspense fallback={
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      }>
+        <Component {...props} />
+      </Suspense>
+    );
+  };
 };
 
 const FAQDetails = withSuspense(lazy(() => import('../Screens/HelpScreen/FAQDetails')));
@@ -88,6 +94,9 @@ const NotificationScreen = withSuspense(lazy(() => import('../Screens/NavBarMenu
 const SafetyScreen = withSuspense(lazy(() => import('../Screens/NavBarMenu/ProfileScreen/ProfileScreenComponents/SettingsComponents/SafetyScreen')));
 const ContactListScreen = withSuspense(lazy(() => import('../Screens/ContactScreen')));
 const OffersScreen = withSuspense(lazy(() => import('../Screens/Offers/OffersScreen')));
+const WalletScreen = withSuspense(lazy(() => import('../Screens/Profile/WalletScreen')));
+const WalletSuccessScreen = withSuspense(lazy(() => import('../Screens/Profile/WalletSuccessScreen')));
+const WalletPinSetupScreen = withSuspense(lazy(() => import('../Screens/Profile/WalletPinSetupScreen')));
 
 
 const RootNavigation = () => {
@@ -385,6 +394,22 @@ const RootNavigation = () => {
         }}
       />
 
+      {/* ── Wallet Screens ── */}
+      <Stack.Screen
+        name={WalletScreen_Nav}
+        component={WalletScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name={WalletSuccessScreen_Nav}
+        component={WalletSuccessScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name={WalletPinSetupScreen_Nav}
+        component={WalletPinSetupScreen}
+        options={{ headerShown: false }}
+      />
 
     </Stack.Navigator>
   );

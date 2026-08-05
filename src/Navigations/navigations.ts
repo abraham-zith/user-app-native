@@ -57,5 +57,7 @@ export const ScheduledTripsList_Nav: string = 'ScheduledTripsList';
 export const OffersScreen_Nav: string = 'OffersScreen';
 export const SuspensionScreen_Nav: string = 'SuspensionScreen';
 
-
-
+// Wallet
+export const WalletScreen_Nav: string = 'WalletScreen';
+export const WalletSuccessScreen_Nav: string = 'WalletSuccessScreen';
+export const WalletPinSetupScreen_Nav: string = 'WalletPinSetupScreen';

@@ -184,6 +184,23 @@ const ReturnStartedView: React.FC<ReturnStartedViewProps> = ({
 
     return (
         <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
+            <View style={styles.cityBgContainer}>
+                <View style={styles.treeLeft}>
+                    <View style={styles.treeTop} />
+                    <View style={styles.treeTrunk} />
+                </View>
+                <View style={styles.buildingLeft1} />
+                <View style={styles.buildingLeft2} />
+                <View style={styles.buildingLeft3} />
+                
+                <View style={styles.buildingRight1} />
+                <View style={styles.buildingRight2} />
+                <View style={styles.treeRight}>
+                    <View style={styles.treeTop} />
+                    <View style={styles.treeTrunk} />
+                </View>
+                <View style={styles.ground} />
+            </View>
             {/* 1. RETURN STARTED TRACKER */}
             <View style={[styles.progressSection, { backgroundColor: isDark ? appColors.iconBox : appColors.card, borderColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F3F4F6', borderWidth: isDark ? 1 : 0 }]}>
                 <View style={styles.progressHeader}>
@@ -350,6 +367,19 @@ const styles = StyleSheet.create({
         paddingHorizontal: hS(16),
         paddingTop: vS(10),
     },
+    
+    // City Background
+    cityBgContainer: { position: 'absolute', top: 0, left: 0, right: 0, height: vS(280), justifyContent: 'flex-end', opacity: 0.15, zIndex: 0 },
+    ground: { height: vS(100), backgroundColor: '#47B872', width: '100%' },
+    treeLeft: { position: 'absolute', bottom: vS(100), left: mS(25), alignItems: 'center' },
+    treeRight: { position: 'absolute', bottom: vS(100), right: mS(25), alignItems: 'center' },
+    treeTop: { width: mS(28), height: mS(40), borderRadius: mS(14), backgroundColor: '#47B872' },
+    treeTrunk: { width: mS(4), height: mS(16), backgroundColor: '#47B872' },
+    buildingLeft1: { position: 'absolute', bottom: vS(100), left: mS(70), width: mS(28), height: vS(50), backgroundColor: '#47B872', borderTopLeftRadius: 2, borderTopRightRadius: 2 },
+    buildingLeft2: { position: 'absolute', bottom: vS(100), left: mS(100), width: mS(22), height: vS(80), backgroundColor: '#47B872', borderTopLeftRadius: 2, borderTopRightRadius: 2 },
+    buildingLeft3: { position: 'absolute', bottom: vS(100), left: mS(124), width: mS(30), height: vS(60), backgroundColor: '#47B872', borderTopLeftRadius: 2, borderTopRightRadius: 2 },
+    buildingRight1: { position: 'absolute', bottom: vS(100), right: mS(90), width: mS(35), height: vS(95), backgroundColor: '#47B872', borderTopLeftRadius: 2, borderTopRightRadius: 2 },
+    buildingRight2: { position: 'absolute', bottom: vS(100), right: mS(60), width: mS(28), height: vS(65), backgroundColor: '#47B872', borderTopLeftRadius: 2, borderTopRightRadius: 2 },
 
     // Progress Section
     progressSection: {

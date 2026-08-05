@@ -19,6 +19,7 @@ import { useTheme, useNavigation } from '@react-navigation/native';
 import { mS, vS, hS } from '../../lib/responsive';
 import { HapticFeedbackTypes } from 'react-native-haptic-feedback';
 import { useHaptic } from '../../hooks/useHaptic';
+import { useAppTheme } from '../../hooks/useAppTheme';
 import { useCreateSupportTicketMutation, useLazyGetTicketMessagesQuery } from '../../service/ticketsApi';
 import { useSelector } from 'react-redux';
 import { socket } from '../../Socket/socket';
@@ -93,7 +94,8 @@ const TypingIndicator = ({ color }: { color: string }) => {
 };
 
 const FaqChatbotModal = ({ visible, onClose }: any) => {
-    const { colors, fonts, dark }: any = useTheme();
+    const { fonts }: any = useTheme();
+    const { colors, isDark: dark } = useAppTheme();
     const { triggerHaptic } = useHaptic();
     const insets = useSafeAreaInsets();
     const flatListRef = useRef<FlatList>(null);
@@ -446,7 +448,7 @@ const FaqChatbotModal = ({ visible, onClose }: any) => {
 
                     <View style={[
                         styles.messageBubble,
-                        isMe ? [styles.bubbleMe, { backgroundColor: colors.primary }] : [styles.bubbleBot, { backgroundColor: dark ? '#2A2A2A' : '#F9FAFB' }]
+                        isMe ? [styles.bubbleMe, { backgroundColor: colors.primary }] : [styles.bubbleBot, { backgroundColor: dark ? colors.card : '#F9FAFB' }]
                     ]}>
                         {isAdmin && <Text style={[styles.senderName, { color: '#10B981' }]}>Support Agent</Text>}
                         <Text style={[styles.messageText, { color: isMe ? '#FFFFFF' : colors.text }]}>
@@ -483,7 +485,7 @@ const FaqChatbotModal = ({ visible, onClose }: any) => {
                                         style={[styles.actionButton, { backgroundColor: colors.primary + '10', borderColor: colors.primary + '30' }]}
                                         onPress={() => handleCategorySelected(cat.key)}
                                     >
-                                        <Text style={{ fontSize: mS(13) }}>{cat.label}</Text>
+                                        <Text style={{ fontSize: mS(13), color: colors.text }}>{cat.label}</Text>
                                     </TouchableOpacity>
                                 ))}
                             </View>
@@ -556,7 +558,7 @@ const FaqChatbotModal = ({ visible, onClose }: any) => {
                             <View style={[styles.botAvatar, { backgroundColor: colors.primary + '15' }]}>
                                 <Ionicons name="sparkles" size={mS(14)} color={colors.primary} />
                             </View>
-                            <View style={[styles.bubbleBot, styles.typingBubble, { backgroundColor: dark ? '#2A2A2A' : '#F9FAFB' }]}>
+                            <View style={[styles.bubbleBot, styles.typingBubble, { backgroundColor: dark ? colors.card : '#F9FAFB' }]}>
                                 <TypingIndicator color={colors.primary} />
                             </View>
                         </View>
