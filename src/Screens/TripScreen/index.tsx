@@ -38,6 +38,7 @@ import RideClosurePreview from './TripComponents/RideClosurePreview';
 import SafetyToolkitModal from './TripComponents/SafetyToolkitModal';
 import { UserAppUI, TripPhase } from '../MapTrackingScreen/UserMapScreen';
 import { ScheduledWaitingView } from './TripComponents/ScheduledTripRideUpdates/ScheduledTripWaitingScreen';
+import VerificationPendingView from './TripComponents/VerificationPendingView';
 import { RideCompletedScreen_Nav, TabNavigation_Nav } from '../../Navigations/navigations';
 
 // Types & Enums
@@ -767,6 +768,14 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
                         eta={eta}
                         status={currentStatus}
                         navigation={navigation}
+                    />
+                );
+
+            case TripStatus.VERIFICATION_PENDING:
+                return (
+                    <VerificationPendingView
+                        driver={activeDriver}
+                        trip={currentTrip}
                     />
                 );
 

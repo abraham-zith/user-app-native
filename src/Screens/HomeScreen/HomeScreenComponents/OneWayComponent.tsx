@@ -20,7 +20,7 @@ import colors from "../../../constant/colors";
 import { useNavigation } from '@react-navigation/native';
 import Config from "react-native-config";
 import { useLocation } from "../../../hooks/useLocation";
-import { LocationSearch_Nav } from "../../../Navigations/navigations";
+import { LocationSearch_Nav, TabNavigation_Nav, RideDetails_Nav } from "../../../Navigations/navigations";
 import Geolocation from 'react-native-geolocation-service';
 import { useAppTheme } from "../../../hooks/useAppTheme";
 import { hS, vS, mS, SCREEN_HEIGHT } from '../../../lib/responsive';
@@ -31,6 +31,10 @@ import { useGetAvailableCouponsQuery } from "../../../service/couponApi";
 import Clipboard from '@react-native-clipboard/clipboard';
 import { Trip } from "../../../types/trip";
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import fonts from "../../../constant/fonts";
+import { RoundTripCard, getRoundTripStatusColor, getRoundTripStatusIcon } from "./RoundedTripComponent";
+
+
 
 
 const GOOGLE_P_API_KEY = Config.GOOGLE_API_KEY;
@@ -285,41 +289,32 @@ export const OneWayComponent: React.FC<OneWayProps> = ({ onSelectLocation }) => 
                 <View style={styles.trendingSection}>
                     <View style={styles.sectionHeader}>
                         <Text style={[styles.sectionTitle, { color: appColors.text }]}>Recent Trips</Text>
+                        <TouchableOpacity style={[styles.seeAllButton, { backgroundColor: appColors.primary }]} onPress={() => {
+                            navigation.navigate(TabNavigation_Nav, { screen: 'Activity' })
+                        }}>
+                            <Text style={styles.seeAllText}>See All</Text>
+                            <Ionicons name="chevron-forward" size={16} color="#fff" />
+                        </TouchableOpacity>
                     </View>
                     {recentOneWayTrips.length > 0 ? (
 
-                        <View style={styles.trendingGrid}>
-                            {recentOneWayTrips.map((trip: Trip) => (
-                                <View
-                                    key={trip.trip_id}
-                                    style={[
-                                        styles.trendingCard,
-                                        {
-                                            backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
-                                            borderColor: appColors.border,
-                                            flexDirection: 'column',
-                                            alignItems: 'stretch',
-                                        }
-                                    ]}
-                                >
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: hS(10) }}>
-                                        <View style={[styles.routeIconBox, { backgroundColor: appColors.primary + '15' }]}>
-                                            <MaterialCommunityIcons name="history" size={mS(22)} color={appColors.icon} />
-                                        </View>
-                                        <View style={styles.routeContent}>
-                                            <Text style={[styles.routeLabel, { color: appColors.text }]}>To</Text>
-                                            <Text numberOfLines={1} style={[styles.routeTo, { color: appColors.text }]}>{trip.drop_address}</Text>
-                                        </View>
-                                        <TouchableOpacity
-                                            onPress={() => handleBookAgain(trip)}
-                                            style={[styles.bookAgainBtn, { backgroundColor: appColors.button }]}
-                                        >
-                                            <Text style={styles.bookAgainText}>Book Again</Text>
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
-                            ))}
-                        </View>
+                        <FlatList
+                            data={recentOneWayTrips.slice(0, 5)}
+                            keyExtractor={(item) => item.trip_id}
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={{ paddingRight: hS(20) }}
+                            ItemSeparatorComponent={() => <View style={{ width: hS(12) }} />}
+                            renderItem={({ item: trip }) => (
+                                <RoundTripCard
+                                    trip={trip}
+                                    appColors={appColors}
+                                    isDark={isDark}
+                                    getStatusColor={(status) => getRoundTripStatusColor(status, appColors)}
+                                    getStatusIcon={getRoundTripStatusIcon}
+                                />
+                            )}
+                        />
                     ) : (
                         <View style={styles.emptyContainer}>
                             <Ionicons name="map-outline" size={50} color={isDark ? 'rgba(255,255,255,0.1)' : '#E5E7EB'} />
@@ -551,10 +546,18 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: '#1E293B',
     },
+    seeAllButton: {
+        flexDirection: 'row',
+        paddingHorizontal: hS(12),
+        paddingVertical: vS(8),
+        borderRadius: 8,
+        alignItems: 'center',
+        gap: hS(4),
+    },
     seeAllText: {
         fontSize: mS(12),
         fontWeight: '600',
-        color: '#3B82F6',
+        color: '#fff',
     },
     trendingGrid: {
         gap: vS(10),
@@ -571,6 +574,104 @@ const styles = StyleSheet.create({
             ios: { shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } },
             android: { elevation: 1 }
         })
+    },
+    tripCard: {
+        borderRadius: 12,
+        borderWidth: 1,
+        paddingHorizontal: hS(14),
+        paddingVertical: vS(14),
+        width: hS(280),
+        minHeight: vS(180),
+        position: 'relative',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    tripStatusBadge: {
+        flexDirection: 'row',
+        alignSelf: 'flex-start',
+        paddingHorizontal: hS(8),
+        paddingVertical: vS(4),
+        borderRadius: 6,
+        gap: hS(4),
+        alignItems: 'center',
+        marginBottom: vS(10),
+    },
+    tripStatusText: {
+        fontSize: mS(10),
+        fontWeight: '600',
+    },
+    tripLocation: {
+        fontSize: mS(14),
+        lineHeight: vS(18),
+        marginBottom: vS(10),
+    },
+    tripDetailsRow: {
+        marginBottom: vS(10),
+    },
+    tripDetail: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: hS(6),
+    },
+    tripDetailText: {
+        fontSize: mS(11),
+        fontWeight: '500',
+    },
+    tripMetaRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: hS(8),
+        backgroundColor: 'rgba(0,0,0,0.02)',
+        paddingHorizontal: hS(10),
+        paddingVertical: vS(8),
+        borderRadius: 8,
+        marginBottom: vS(12),
+    },
+    tripMeta: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: hS(4),
+        flex: 1,
+    },
+    tripMetaText: {
+        fontSize: mS(11),
+        fontWeight: '600',
+    },
+    tripMetaDivider: {
+        width: 1,
+        height: vS(14),
+    },
+    buttonsRow: {
+        flexDirection: 'row',
+        gap: hS(8),
+        marginTop: vS(4),
+    },
+    bookAgainButton: {
+        paddingVertical: vS(6),
+        paddingHorizontal: hS(12),
+        borderRadius: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    bookAgainText: {
+        fontSize: mS(11),
+        fontWeight: '600',
+    },
+    detailsButton: {
+        flexDirection: 'row',
+        paddingVertical: vS(6),
+        paddingHorizontal: hS(14),
+        borderRadius: 8,
+        alignItems: 'center',
+        gap: hS(6),
+    },
+    detailsButtonText: {
+        color: '#fff',
+        fontSize: mS(11),
+        fontWeight: '600',
     },
     routeIconBox: {
         width: hS(40),
@@ -853,18 +954,18 @@ const styles = StyleSheet.create({
         fontSize: mS(14),
         fontWeight: '700'
     },
-    bookAgainBtn: {
-        paddingHorizontal: hS(12),
-        paddingVertical: vS(6),
-        borderRadius: mS(8),
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    bookAgainText: {
-        color: "#FFFFFF",
-        fontSize: mS(11),
-        fontWeight: "700",
-    },
+    // bookAgainBtn: {
+    //     paddingHorizontal: hS(12),
+    //     paddingVertical: vS(6),
+    //     borderRadius: mS(8),
+    //     justifyContent: "center",
+    //     alignItems: "center",
+    // },
+    // bookAgainText: {
+    //     color: "#FFFFFF",
+    //     fontSize: mS(11),
+    //     fontWeight: "700",
+    // },
 
     emptyContainer: {
         alignItems: "center",

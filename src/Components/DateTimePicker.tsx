@@ -3,6 +3,7 @@ import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/dat
 import React, { useState } from "react";
 import Text from "./Text";
 import { Styles } from "../lib/styles";
+import { useAppTheme } from "../hooks/useAppTheme";
 
 
 export type PickerMode = 'date' | 'time' | 'datetime';
@@ -26,7 +27,7 @@ const DateTimePickerComponent: React.FC<DateTimePickerProps> = ({
     minimumDate,
     maximumDate
 }) => {
-
+    const { isDark } = useAppTheme();
 
     const handleNativeChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
 
@@ -88,10 +89,11 @@ const DateTimePickerComponent: React.FC<DateTimePickerProps> = ({
             value={value} // 💡 The current date/time value
             mode={mode}  // 💡 The mode to display (date or time)
             is24Hour={false}
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            display={Platform.OS === 'ios' ? 'spinner' : mode === 'date' ? 'spinner' : 'default'}
             onChange={handleNativeChange} // 💡 Handler for when the user selects a new value
             minimumDate={minimumDate}
             maximumDate={maximumDate}
+            themeVariant={isDark ? "dark" : "light"}
         />
         // )}
         // </View>

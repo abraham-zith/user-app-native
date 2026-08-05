@@ -61,10 +61,11 @@ import { useAppTheme } from "../../../hooks/useAppTheme";
 import { hS, vS, mS } from '../../../lib/responsive';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from "@react-navigation/native";
-import { ActivityScreen_Nav, TabNavigation_Nav } from "../../../Navigations/navigations";
+import { ActivityScreen_Nav, TabNavigation_Nav, LocationSearch_Nav, RideDetails_Nav } from "../../../Navigations/navigations";
 import { useSelector } from "react-redux";
 import { RootState } from "../../../redux/store";
 import { useGetTripQuery } from "../../../service/userApi";
+import { RoundTripCard, getRoundTripStatusColor, getRoundTripStatusIcon } from "./RoundedTripComponent";
 import { Trip } from "../../../types/trip";
 
 interface OutstationData {
@@ -131,31 +132,6 @@ export function OutstationComponent() {
         ]).start();
     }, []);
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'active':
-                return '#10B981';
-            case 'completed':
-                return '#8B5CF6';
-            case 'upcoming':
-                return '#F59E0B';
-            default:
-                return appColors.primary;
-        }
-    };
-
-    const getStatusIcon = (status: string) => {
-        switch (status) {
-            case 'active':
-                return 'play-circle';
-            case 'completed':
-                return 'checkmark-circle';
-            case 'upcoming':
-                return 'calendar';
-            default:
-                return 'help-circle';
-        }
-    };
 
     return (
         <Animated.View
@@ -177,13 +153,6 @@ export function OutstationComponent() {
                         Your outstation journey
                     </Text>
                 </View>
-                <TouchableOpacity style={[styles.seeAllButton, { backgroundColor: appColors.primary }]} onPress={() => {
-                    console.log("Hiiii");
-                    navigation.navigate(TabNavigation_Nav, { screen: 'Activity' })
-                }}>
-                    <Text style={styles.seeAllText}>See All</Text>
-                    <Ionicons name="chevron-forward" size={16} color="#fff" />
-                </TouchableOpacity>
             </View>
 
             {/* Stats Row */}
@@ -236,9 +205,17 @@ export function OutstationComponent() {
 
             {/* Recent Trips List */}
             <View style={styles.listContainer}>
-                <Text style={[fonts.bold, styles.listTitle, { color: appColors.text }]}>
-                    Recent Trips
-                </Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: hS(4) }}>
+                    <Text style={[fonts.bold, styles.listTitle, { color: appColors.text, paddingHorizontal: 0 }]}>
+                        Recent Trips
+                    </Text>
+                    <TouchableOpacity style={[styles.seeAllButton, { backgroundColor: appColors.primary }]} onPress={() => {
+                        navigation.navigate(TabNavigation_Nav, { screen: 'Activity' })
+                    }}>
+                        <Text style={styles.seeAllText}>See All</Text>
+                        <Ionicons name="chevron-forward" size={16} color="#fff" />
+                    </TouchableOpacity>
+                </View>
                 {/* 
                 <ScrollView
                     horizontal
@@ -264,28 +241,13 @@ export function OutstationComponent() {
                     horizontal
                     showsHorizontalScrollIndicator={false}
                     renderItem={({ item }) => {
-                        let mappedStatus: 'active' | 'completed' | 'upcoming' = 'upcoming';
-                        if (['ARRIVING', 'ARRIVED', 'LIVE', 'DESTINATION_REACHED'].includes(item.trip_status)) {
-                            mappedStatus = 'active';
-                        } else if (['COMPLETED', 'CANCELLED', 'MID_CANCELLED'].includes(item.trip_status)) {
-                            mappedStatus = 'completed';
-                        }
-
-                        const mappedData: OutstationData = {
-                            location: `${item.pickup_address?.split(',')[0] || 'Unknown'} - ${item.drop_address?.split(',')[0] || 'Unknown'}`,
-                            duration: item.trip_duration_minutes ? `${item.trip_duration_minutes} mins` : '--',
-                            distance: item.distance_km ? `${item.distance_km} km` : '--',
-                            date: new Date(item.scheduled_start_time || item.original_scheduled_start_time || new Date()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-                            status: mappedStatus
-                        };
-
                         return (
-                            <TripCard
-                                data={mappedData}
+                            <RoundTripCard
+                                trip={item}
                                 appColors={appColors}
                                 isDark={isDark}
-                                getStatusColor={getStatusColor}
-                                getStatusIcon={getStatusIcon}
+                                getStatusColor={(status) => getRoundTripStatusColor(status, appColors)}
+                                getStatusIcon={getRoundTripStatusIcon}
                             />
                         );
                     }}
@@ -341,91 +303,9 @@ function StatCard({ icon, label, value, appColors, iconColor, iconBgColor }: Sta
             <View style={[styles.statIconContainer, { backgroundColor: iconBgColor || appColors.primary + '15' }]}>
                 <Ionicons name={icon as any} size={18} color={iconColor || appColors.button} />
             </View>
-            <Text style={[styles.statLabel, { color: appColors.subtext }]}>{label}</Text>
+            <Text style={[styles.statLabel, { color: appColors.secondaryText }]}>{label}</Text>
             <Text style={[fonts.bold, styles.statValue, { color: appColors.text }]}>{value}</Text>
         </View>
-    );
-}
-
-// Trip Card Component
-interface TripCardProps {
-    data: OutstationData;
-    appColors: any;
-    isDark: boolean;
-    getStatusColor: (status: string) => string;
-    getStatusIcon: (status: string) => string;
-}
-
-function TripCard({ data, appColors, isDark, getStatusColor, getStatusIcon }: TripCardProps) {
-    return (
-        <TouchableOpacity
-            style={[
-                styles.tripCard,
-                {
-                    backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
-                    borderColor: appColors.border,
-                }
-            ]}
-            activeOpacity={0.7}
-        >
-            {/* Status Badge */}
-            <View
-                style={[
-                    styles.tripStatusBadge,
-                    { backgroundColor: getStatusColor(data.status) + '20' }
-                ]}
-            >
-                <Ionicons
-                    name={getStatusIcon(data.status) as any}
-                    size={14}
-                    color={getStatusColor(data.status)}
-                />
-                <Text
-                    style={[
-                        styles.tripStatusText,
-                        { color: getStatusColor(data.status) }
-                    ]}
-                >
-                    {data.status.charAt(0).toUpperCase() + data.status.slice(1)}
-                </Text>
-            </View>
-
-            {/* Content */}
-            <Text style={[fonts.bold, styles.tripLocation, { color: appColors.text }]}>
-                {data.location}
-            </Text>
-
-            {/* Details Row */}
-            <View style={styles.tripDetailsRow}>
-                <View style={styles.tripDetail}>
-                    <Ionicons name="calendar-outline" size={13} color={appColors.subtext} />
-                    <Text style={[styles.tripDetailText, { color: appColors.subtext }]}>
-                        {data.date}
-                    </Text>
-                </View>
-            </View>
-
-            <View style={styles.tripMetaRow}>
-                <View style={styles.tripMeta}>
-                    <Ionicons name="time-outline" size={12} color={appColors.primary} />
-                    <Text style={[styles.tripMetaText, { color: appColors.primary }]}>
-                        {data.duration}
-                    </Text>
-                </View>
-                <View style={[styles.tripMetaDivider, { backgroundColor: appColors.border }]} />
-                <View style={styles.tripMeta}>
-                    <Ionicons name="navigate-outline" size={12} color={appColors.primary} />
-                    <Text style={[styles.tripMetaText, { color: appColors.primary }]}>
-                        {data.distance}
-                    </Text>
-                </View>
-            </View>
-
-            {/* Arrow Indicator */}
-            <View style={styles.tripArrow}>
-                <Ionicons name="chevron-forward" size={16} color={appColors.primary} />
-            </View>
-        </TouchableOpacity>
     );
 }
 
@@ -630,10 +510,34 @@ const styles = StyleSheet.create({
         width: 1,
         height: vS(14),
     },
-    tripArrow: {
-        position: 'absolute',
-        bottom: vS(14),
-        right: hS(14),
+    buttonsRow: {
+        flexDirection: 'row',
+        gap: hS(8),
+        marginTop: vS(4),
+    },
+    bookAgainButton: {
+        paddingVertical: vS(6),
+        paddingHorizontal: hS(12),
+        borderRadius: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    bookAgainText: {
+        fontSize: mS(11),
+        fontWeight: '600',
+    },
+    detailsButton: {
+        flexDirection: 'row',
+        paddingVertical: vS(6),
+        paddingHorizontal: hS(14),
+        borderRadius: 8,
+        alignItems: 'center',
+        gap: hS(6),
+    },
+    detailsButtonText: {
+        color: '#fff',
+        fontSize: mS(11),
+        fontWeight: '600',
     },
 
     // Footer Card

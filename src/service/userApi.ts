@@ -298,6 +298,41 @@ export const userApi = createApi({
       })
     }),
 
+    // ─────────── USER WALLET ───────────
+    getWalletBalance: builder.query<any, string>({
+      query: (userId) => `/users/wallet/${userId}/balance`,
+    }),
+    getWalletTransactions: builder.query<any, { userId: string; limit?: number }>({
+      query: ({ userId, limit = 20 }) => `/users/wallet/${userId}/transactions?limit=${limit}`,
+    }),
+    setupWalletPin: builder.mutation<any, { id: string; pin: string }>({
+      query: (body) => ({
+        url: `/users/wallet/${body.id}/setup-pin`,
+        method: 'POST',
+        body: { pin: body.pin },
+      }),
+    }),
+    createWalletTopupOrder: builder.mutation<any, { userId: string; amount: number }>({
+      query: ({ userId, amount }) => ({
+        url: `/users/wallet/${userId}/topup/order`,
+        method: 'POST',
+        body: { amount },
+      }),
+    }),
+    verifyWalletTopupPayment: builder.mutation<any, { userId: string; amount: number; razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }>({
+      query: ({ userId, ...body }) => ({
+        url: `/users/wallet/${userId}/topup/verify`,
+        method: 'POST',
+        body,
+      }),
+    }),
+    payTripWithWallet: builder.mutation<any, { userId: string; amount: number; pin: string; trip_id?: string; description?: string }>({
+      query: ({ userId, ...body }) => ({
+        url: `/users/wallet/${userId}/pay-trip`,
+        method: 'POST',
+        body,
+      }),
+    }),
 
   }),
 });
@@ -335,7 +370,17 @@ export const {
   useGetDriverQuery,
 
   useUpdateFcmTokenMutation,
-  useGetPricingMutation
+  useGetPricingMutation,
+
+  // Wallet
+  useGetWalletBalanceQuery,
+  useLazyGetWalletBalanceQuery,
+  useGetWalletTransactionsQuery,
+  useLazyGetWalletTransactionsQuery,
+  useSetupWalletPinMutation,
+  useCreateWalletTopupOrderMutation,
+  useVerifyWalletTopupPaymentMutation,
+  usePayTripWithWalletMutation,
 } = userApi;
 
 

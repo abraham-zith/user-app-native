@@ -267,7 +267,7 @@ const HomeScreen: React.FC<any> = ({ navigation }) => {
                 <View style={[style.headerContainer, { paddingHorizontal: hS(20), paddingTop: vS(10), paddingBottom: vS(10), zIndex: 9999 }]}>
                     <View style={style.headerLeft}>
                         <TouchableOpacity 
-                            style={[style.profileImageContainer, { backgroundColor: isDark ? '#333' : '#E2E8F0', justifyContent: 'center', alignItems: 'center' }]}
+                            style={[style.profileImageContainer, { backgroundColor: isDark ? appColors.card : '#E2E8F0', justifyContent: 'center', alignItems: 'center' }]}
                             onPress={() => navigation.navigate('Profile')}
                         >
                             {imageSource ? (
@@ -278,7 +278,7 @@ const HomeScreen: React.FC<any> = ({ navigation }) => {
                             ) : (
                                 <FontAwesome name="user" size={mS(24)} color={isDark ? appColors.lightTextColor : '#CBD5E1'} />
                             )}
-                            <View style={style.onlineDot} />
+                            <View style={[style.onlineDot, { borderColor: appColors.background }]} />
                         </TouchableOpacity>
                         <View style={style.headerTextContainer}>
                             <Text style={[style.greetingText, { color: appColors.text }]}>

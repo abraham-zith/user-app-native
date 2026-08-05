@@ -1,0 +1,19 @@
+<resources>
+    <style name="CustomDatePickerTheme" parent="Theme.AppCompat.DayNight.Dialog">
+        <item name="colorAccent">@color/datepicker_accent</item>
+        <item name="android:colorAccent">@color/datepicker_accent</item>
+        <item name="android:textColorPrimary">#F8FAFC</item>
+        <item name="android:textColorSecondary">#94A3B8</item>
+    </style>
+
+    <style name="CustomTimePickerTheme" parent="android:Theme.Material.Dialog">
+        <item name="colorAccent">@color/datepicker_accent</item>
+        <item name="android:colorAccent">@color/datepicker_accent</item>
+        <item name="colorControlActivated">@color/datepicker_accent</item>
+        <item name="android:colorControlActivated">@color/datepicker_accent</item>
+        <item name="colorPrimary">@color/datepicker_accent</item>
+        <item name="android:colorPrimary">@color/datepicker_accent</item>
+        <item name="android:textColorPrimary">#F8FAFC</item>
+        <item name="android:textColorSecondary">#94A3B8</item>
+    </style>
+</resources>

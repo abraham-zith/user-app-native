@@ -4,6 +4,26 @@
     <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
         <!-- Customize your theme here. -->
         <item name="android:editTextBackground">@drawable/rn_edit_text_material</item>
+        <item name="android:datePickerDialogTheme">@style/CustomDatePickerTheme</item>
+        <item name="android:timePickerDialogTheme">@style/CustomTimePickerTheme</item>
+    </style>
+
+    <style name="CustomDatePickerTheme" parent="Theme.AppCompat.DayNight.Dialog">
+        <item name="colorAccent">@color/datepicker_accent</item>
+        <item name="android:colorAccent">@color/datepicker_accent</item>
+        <item name="android:textColorPrimary">#1E293B</item>
+        <item name="android:textColorSecondary">#64748B</item>
+    </style>
+
+    <style name="CustomTimePickerTheme" parent="android:Theme.Material.Light.Dialog">
+        <item name="colorAccent">@color/datepicker_accent</item>
+        <item name="android:colorAccent">@color/datepicker_accent</item>
+        <item name="colorControlActivated">@color/datepicker_accent</item>
+        <item name="android:colorControlActivated">@color/datepicker_accent</item>
+        <item name="colorPrimary">@color/datepicker_accent</item>
+        <item name="android:colorPrimary">@color/datepicker_accent</item>
+        <item name="android:textColorPrimary">#1E293B</item>
+        <item name="android:textColorSecondary">#64748B</item>
     </style>
 
 </resources>

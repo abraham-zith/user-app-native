@@ -68,11 +68,51 @@ import { RootState } from "../../../redux/store";
 import { useGetTripQuery } from "../../../service/userApi";
 import { Trip } from "../../../types/trip";
 import formatDate from "../../../Components/FormatDate";
+
+export const getRoundTripStatusColor = (status: string, appColors: any) => {
+    switch (status.toLowerCase()) {
+        case 'completed':
+            return '#10B981';
+        case 'live':
+            return '#3B82F6';
+        case 'requested':
+        case 'accepted':
+        case 'arriving':
+        case 'arrived':
+            return '#F59E0B';
+        case 'cancelled':
+        case 'mid_cancelled':
+            return '#EF4444';
+        default:
+            return appColors.primary;
+    }
+};
+
+export const getRoundTripStatusIcon = (status: string) => {
+    switch (status.toLowerCase()) {
+        case 'completed':
+            return 'checkmark-circle';
+        case 'live':
+            return 'play-circle';
+        case 'requested':
+        case 'accepted':
+        case 'arriving':
+        case 'arrived':
+            return 'calendar';
+        case 'cancelled':
+        case 'mid_cancelled':
+            return 'close-circle';
+        default:
+            return 'help-circle';
+    }
+};
+
 import { useNavigation } from '@react-navigation/native';
-import { RideDetails_Nav } from "../../../Navigations/navigations";
+import { RideDetails_Nav, LocationSearch_Nav } from "../../../Navigations/navigations";
 
 
 export function RoundedTrip() {
+    const navigation = useNavigation<any>();
     const { colors: appColors, isDark } = useAppTheme();
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(30)).current;
@@ -113,43 +153,8 @@ export function RoundedTrip() {
         ]).start();
     }, []);
 
-    const getStatusColor = (status: string) => {
-        switch (status.toLowerCase()) {
-            case 'completed':
-                return '#10B981';
-            case 'live':
-                return '#3B82F6';
-            case 'requested':
-            case 'accepted':
-            case 'arriving':
-            case 'arrived':
-                return '#F59E0B';
-            case 'cancelled':
-            case 'mid_cancelled':
-                return '#EF4444';
-            default:
-                return appColors.primary;
-        }
-    };
-
-    const getStatusIcon = (status: string) => {
-        switch (status.toLowerCase()) {
-            case 'completed':
-                return 'checkmark-circle';
-            case 'live':
-                return 'play-circle';
-            case 'requested':
-            case 'accepted':
-            case 'arriving':
-            case 'arrived':
-                return 'calendar';
-            case 'cancelled':
-            case 'mid_cancelled':
-                return 'close-circle';
-            default:
-                return 'help-circle';
-        }
-    };
+    const getStatusColor = (status: string) => getRoundTripStatusColor(status, appColors);
+    const getStatusIcon = (status: string) => getRoundTripStatusIcon(status);
 
     return (
         <Animated.View
@@ -216,7 +221,7 @@ export function RoundedTrip() {
                         style={styles.featuredImage}
                         height={vS(220)}
                     />
-                    <View style={[styles.featuredOverlay, { backgroundColor: appColors.primary }]}>
+                    <View style={[styles.featuredOverlay, { backgroundColor: isDark ? "#1E3A8A" : appColors.primary }]}>
                         <Text style={styles.featuredTitle} numberOfLines={1}>
                             {featuredTrip.pickup_address} → {featuredTrip.drop_address}
                         </Text>
@@ -254,17 +259,22 @@ export function RoundedTrip() {
             <View style={styles.listContainer}>
                 <View style={styles.listHeader}>
                     <Text style={[fonts.bold, styles.listTitle, { color: appColors.text }]}>
-                        Recent Round Trips
+                        Recent Trips
                     </Text>
-                    <Text style={[styles.listCount, { color: appColors.text }]}>
-                        {roundTrips.length}
-                    </Text>
+                    {roundTrips.length > 3 && (
+                        <TouchableOpacity onPress={() => navigation.navigate('Activity')}>
+                            <Text style={[styles.listCount, { color: appColors.primary, backgroundColor: 'transparent' }]}>
+                                See all
+                            </Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
 
                 <FlatList
-                    data={roundTrips.slice(0, 5)}
+                    data={roundTrips.slice(0, 3)}
                     keyExtractor={(item) => item.trip_id}
-                    scrollEnabled={false}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
                     renderItem={({ item }) => (
                         <RoundTripCard
                             trip={item}
@@ -275,7 +285,7 @@ export function RoundedTrip() {
                         />
                     )}
                     ItemSeparatorComponent={() => (
-                        <View style={[styles.separator, { backgroundColor: appColors.border }]} />
+                        <View style={{ width: hS(12) }} />
                     )}
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
@@ -316,7 +326,7 @@ function OverviewCard({ icon, label, value, appColors, iconColor, iconBgColor }:
             <View style={[styles.overviewIcon, { backgroundColor: iconBgColor || appColors.primary + '15' }]}>
                 <Ionicons name={icon as any} size={20} color={iconColor || appColors.primary} />
             </View>
-            <Text style={[styles.overviewLabel, { color: appColors.subtext }]}>{label}</Text>
+            <Text style={[styles.overviewLabel, { color: appColors.secondaryText }]}>{label}</Text>
             <Text style={[fonts.bold, styles.overviewValue, { color: appColors.text }]}>{value}</Text>
         </View>
     );
@@ -364,7 +374,7 @@ function ActionButton({ icon, label, appColors, isDark, isPrimary }: ActionButto
 }
 
 // Round Trip Card Component
-function RoundTripCard({
+export function RoundTripCard({
     trip,
     appColors,
     isDark,
@@ -378,6 +388,26 @@ function RoundTripCard({
     getStatusIcon: (status: string) => string;
 }) {
     const navigation = useNavigation<any>();
+
+    const handleBookAgain = (trip: Trip) => {
+        navigation.navigate(LocationSearch_Nav, {
+            selectedDropOff: trip.drop_address,
+            dropoffLocation: { dropLat: trip.drop_lat, dropLng: trip.drop_lng },
+            rideType: trip.ride_type,
+            bookAgainBtn: {
+                paddingHorizontal: hS(12),
+                paddingVertical: vS(6),
+                borderRadius: mS(8),
+                justifyContent: "center",
+                alignItems: "center",
+            },
+            bookAgainText: {
+                color: "#FFFFFF",
+                fontSize: mS(11),
+                fontWeight: "700",
+            },
+        });
+    };
 
     return (
         <TouchableOpacity
@@ -451,19 +481,29 @@ function RoundTripCard({
             {/* Price and Action */}
             <View style={styles.tripCardBottom}>
                 <View>
-                    <Text style={[styles.priceLabel, { color: appColors.subtext }]}>Fare</Text>
+                    <Text style={[styles.priceLabel, { color: appColors.secondaryText }]}>Fare</Text>
                     <Text style={[fonts.bold, styles.priceValue, { color: appColors.primary }]}>
                         ₹{trip.total_fare}
                     </Text>
                 </View>
-                <TouchableOpacity
-                    style={[styles.detailsButton, { backgroundColor: appColors.button }]}
-                    activeOpacity={0.7}
-                    onPress={() => navigation.navigate(RideDetails_Nav, { rideData: trip })}
-                >
-                    <Text style={styles.detailsButtonText}>View Details</Text>
-                    <Ionicons name="arrow-forward" size={14} color="#fff" />
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: hS(8) }}>
+                    <TouchableOpacity
+                        style={[styles.bookAgainButton, { backgroundColor: appColors.primary + '15' }]}
+                        activeOpacity={0.7}
+                        onPress={() => handleBookAgain(trip)}
+                    >
+                        <Text style={[styles.bookAgainText, { color: appColors.primary }]}>Book Again</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[styles.detailsButton, { backgroundColor: appColors.button }]}
+                        activeOpacity={0.7}
+                        onPress={() => navigation.navigate(RideDetails_Nav, { rideData: trip })}
+                    >
+                        <Text style={styles.detailsButtonText}>View Details</Text>
+                        <Ionicons name="arrow-forward" size={14} color="#fff" />
+                    </TouchableOpacity>
+                </View>
             </View>
         </TouchableOpacity>
     );
@@ -482,7 +522,7 @@ function DetailItem({ icon, label, value, appColors }: DetailItemProps) {
         <View style={styles.detailItem}>
             <Ionicons name={icon as any} size={14} color={appColors.primary} />
             <View style={{ flex: 1 }}>
-                <Text style={[styles.detailLabel, { color: appColors.subtext }]}>{label}</Text>
+                <Text style={[styles.detailLabel, { color: appColors.secondaryText }]}>{label}</Text>
                 <Text style={[styles.detailValue, { color: appColors.text }]}>{value}</Text>
             </View>
         </View>
@@ -669,11 +709,13 @@ const styles = StyleSheet.create({
         borderRadius: 6,
     },
     listContent: {
-        gap: vS(12),
+        paddingHorizontal: hS(4),
+        gap: hS(12),
     },
 
     // Trip Card
     tripCard: {
+        width: hS(300),
         borderRadius: 14,
         borderWidth: 1,
         padding: hS(16),
@@ -783,6 +825,17 @@ const styles = StyleSheet.create({
     priceValue: {
         fontSize: mS(16),
         fontWeight: '700',
+    },
+    bookAgainButton: {
+        paddingVertical: vS(8),
+        paddingHorizontal: hS(12),
+        borderRadius: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    bookAgainText: {
+        fontSize: mS(11),
+        fontWeight: '600',
     },
     detailsButton: {
         flexDirection: 'row',

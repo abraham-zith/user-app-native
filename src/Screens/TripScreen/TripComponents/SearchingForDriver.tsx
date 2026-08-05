@@ -357,16 +357,16 @@ const SearchingDriver: React.FC<SearchDriverProps> = ({
                                 />
                             )}
                             {stg === 5 && (
-                                <Text style={[styles.circleLabel, { color: appColors.secondaryText, top: -vS(8) }]}>10km</Text>
+                                <Text style={[styles.circleLabel, { backgroundColor: isDark ? 'rgba(15, 23, 42, 0.7)' : 'rgba(255, 255, 255, 0.7)', color: appColors.secondaryText, top: -vS(8) }]}>10km</Text>
                             )}
                             {stg === 4 && (
-                                <Text style={[styles.circleLabel, { color: appColors.secondaryText, top: -vS(8) }]}>7km</Text>
+                                <Text style={[styles.circleLabel, { backgroundColor: isDark ? 'rgba(15, 23, 42, 0.7)' : 'rgba(255, 255, 255, 0.7)', color: appColors.secondaryText, top: -vS(8) }]}>7km</Text>
                             )}
                             {stg === 3 && (
-                                <Text style={[styles.circleLabel, { color: appColors.secondaryText, top: -vS(8) }]}>5km</Text>
+                                <Text style={[styles.circleLabel, { backgroundColor: isDark ? 'rgba(15, 23, 42, 0.7)' : 'rgba(255, 255, 255, 0.7)', color: appColors.secondaryText, top: -vS(8) }]}>5km</Text>
                             )}
                             {stg === 2 && (
-                                <Text style={[styles.circleLabel, { color: appColors.secondaryText, top: -vS(8) }]}>3km</Text>
+                                <Text style={[styles.circleLabel, { backgroundColor: isDark ? 'rgba(15, 23, 42, 0.7)' : 'rgba(255, 255, 255, 0.7)', color: appColors.secondaryText, top: -vS(8) }]}>3km</Text>
                             )}
                             {stg === 1 && (
                                 <View style={[styles.centerPoint, { backgroundColor: appColors.primary }]}>
@@ -650,7 +650,6 @@ const styles = StyleSheet.create({
         position: 'absolute',
         fontSize: mS(10),
         fontWeight: 'bold',
-        backgroundColor: 'rgba(255, 255, 255, 0.7)',
         paddingHorizontal: hS(4),
         borderRadius: mS(4),
     },

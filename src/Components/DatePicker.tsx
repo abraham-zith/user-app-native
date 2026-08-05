@@ -1,184 +1,203 @@
 
 import React, { useState } from "react";
-import { View, StyleSheet, Text, Modal, Pressable, Platform } from "react-native";
+import { View, StyleSheet, Text, Modal, Pressable, TouchableOpacity } from "react-native";
 import { Calendar, DateData } from "react-native-calendars";
+import type { Theme } from "react-native-calendars/src/types";
 import { useAppTheme } from "../hooks/useAppTheme";
-// import DateTimePicker from "@react-native-community/datetimepicker";
+
 
 type PickerMode = "single" | "range";
 
 interface Props {
-    mode: PickerMode;                // "single" | "range"
+    mode: PickerMode;
     visible: boolean;
     onClose?: () => void;
-    onSelect?: (date: string) => void;                     // for single mode
-    onRangeSelect?: (start: string, end: string) => void;  // for range mode
+    onSelect?: (date: string) => void;
+    onRangeSelect?: (start: string, end: string) => void;
+    minDate?: string;  // YYYY-MM-DD
+    maxDate?: string;  // YYYY-MM-DD
 }
 
 const toDate = (dateStr: string) => new Date(dateStr + "T00:00:00");
+
+// Returns "YYYY-MM-01" for a given Date
+const toMonthKey = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+
+// Formats a YYYY-MM-01 string to "Month YYYY"
+const formatMonthLabel = (key: string) => {
+    const [year, month] = key.split('-').map(Number);
+    const d = new Date(year, month - 1, 1);
+    return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+};
 
 const DatePicker: React.FC<Props> = ({
     mode,
     visible,
     onClose,
     onSelect,
-    onRangeSelect
+    onRangeSelect,
+    minDate,
+    maxDate,
 }) => {
-
     const { colors: appColors, isDark } = useAppTheme();
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
+    // Custom month navigation state
+    const [currentMonthKey, setCurrentMonthKey] = useState<string>(toMonthKey(new Date()));
 
     // Range state
     const [click1, setClick1] = useState<string | null>(null);
     const [click2, setClick2] = useState<string | null>(null);
 
-    const startDate =
-        click1 && click2 ? (click1 < click2 ? click1 : click2) : click1;
-
-    const endDate =
-        click1 && click2 ? (click1 < click2 ? click2 : click1) : click2;
-
+    const startDate = click1 && click2 ? (click1 < click2 ? click1 : click2) : click1;
+    const endDate = click1 && click2 ? (click1 < click2 ? click2 : click1) : click2;
     const isRangeComplete = !!(startDate && endDate);
 
-    // const [currentMonth, setCurrentMonth] = useState(new Date().toISOString().split("T")[0]);
-    // const [showJumpPicker, setShowJumpPicker] = useState(false);
+    // ─── Month navigation ───
+    const canGoBack = () => {
+        if (!minDate) return true;
+        const [y, m] = currentMonthKey.split('-').map(Number);
+        const prev = new Date(y, m - 2, 1);
+        const minD = new Date(minDate + 'T00:00:00');
+        // Allow going back if previous month starts on or before the last day of that month
+        return toMonthKey(prev) >= toMonthKey(minD) || prev >= minD;
+    };
 
-    // const handleJumpChange = (event: any, selectedDate?: Date) => {
-    //     // Close the native picker (Platform-specific logic)
-    //     setShowJumpPicker(Platform.OS === 'ios');
+    const canGoForward = () => {
+        if (!maxDate) return true;
+        const [y, m] = currentMonthKey.split('-').map(Number);
+        const next = new Date(y, m, 1);
+        const maxD = new Date(maxDate + 'T00:00:00');
+        return next <= maxD;
+    };
 
-    //     if (selectedDate) {
-    //         // 💡 CRITICAL: Update the state that controls the Calendar's 'current' prop
-    //         setCurrentMonth(selectedDate.toISOString().split("T")[0]);
-    //     }
-    // };
+    const goToPrevMonth = () => {
+        if (!canGoBack()) return;
+        const [y, m] = currentMonthKey.split('-').map(Number);
+        setCurrentMonthKey(toMonthKey(new Date(y, m - 2, 1)));
+    };
 
-    // const openJumpPicker = () => {
-    //     setShowJumpPicker(true);
-    // };
+    const goToNextMonth = () => {
+        if (!canGoForward()) return;
+        const [y, m] = currentMonthKey.split('-').map(Number);
+        setCurrentMonthKey(toMonthKey(new Date(y, m, 1)));
+    };
 
-    // --------- HANDLE DATE PRESS ---------
+    // ─── Day press ───
     const onDayPress = (day: DateData) => {
         const d = day.dateString;
 
         if (mode === "single") {
             setSelectedDate(d);
             onSelect?.(d);
-            // onClose?.();
             return;
         }
 
-        // RANGE MODE
         if (!click1 || isRangeComplete) {
             setClick1(d);
             setClick2(null);
             return;
         }
-
         setClick2(d);
-
         const start = click1 < d ? click1 : d;
         const end = click1 < d ? d : click1;
-
         onRangeSelect?.(start, end);
         onClose?.();
     };
 
-    // --------- MARKED DATES ---------
+    // ─── Marked dates ───
     const getMarkedDates = () => {
         let marked: any = {};
 
         if (mode === "single" && selectedDate) {
-            marked[selectedDate] = {
-                selected: true,
-                color: "#2479dd",
-                textColor: "#fff"
-            };
+            marked[selectedDate] = { selected: true, color: "#2479dd", textColor: "#fff" };
         }
 
         if (mode === "range" && startDate && endDate) {
             let curr = toDate(startDate);
-            let last = toDate(endDate);
-
+            const last = toDate(endDate);
             while (curr <= last) {
-                let d = curr.toISOString().split("T")[0];
+                const d = curr.toISOString().split("T")[0];
                 marked[d] = {
-                    color: isDark ? 'rgba(36, 121, 221, 0.4)' : "#a7c7f5",
+                    color: isDark ? 'rgba(36,121,221,0.4)' : "#a7c7f5",
                     textColor: isDark ? "#fff" : "#000",
                     startingDay: false,
                     endingDay: false,
                 };
                 curr.setDate(curr.getDate() + 1);
             }
-
-            marked[startDate] = {
-                startingDay: true,
-                color: "#2479dd",
-                textColor: "#fff"
-            };
-
-            marked[endDate] = {
-                endingDay: true,
-                color: "#2479dd",
-                textColor: "#fff"
-            };
-
-            // Handle the single day range case (where start === end)
+            marked[startDate] = { startingDay: true, color: "#2479dd", textColor: "#fff" };
+            marked[endDate] = { endingDay: true, color: "#2479dd", textColor: "#fff" };
             if (startDate === endDate) {
-                marked[startDate] = {
-                    startingDay: true,
-                    endingDay: true,
-                    color: '#2479dd',
-                    textColor: "#fff"
-                };
+                marked[startDate] = { startingDay: true, endingDay: true, color: '#2479dd', textColor: "#fff" };
             }
         }
-        // If only the start date is selected (in range mode), highlight it
+
         if (mode === "range" && startDate && !endDate) {
-            marked[startDate] = {
-                selected: true,
-                color: '#2479dd',
-                textColor: "#fff"
-            };
+            marked[startDate] = { selected: true, color: '#2479dd', textColor: "#fff" };
         }
 
         return marked;
     };
 
     return (
-        <Modal statusBarTranslucent navigationBarTranslucent visible={visible} animationType="slide" transparent={true}>
+        <Modal statusBarTranslucent navigationBarTranslucent visible={visible} animationType="slide" transparent>
             <View style={styles.modalContainer}>
                 <View style={[styles.modalBox, { backgroundColor: appColors.card }]}>
 
-                    {/* Header */}
-                    {/* <View style={styles.headerContainer}> */}
-
+                    {/* Status label */}
                     {mode === "single" ? (
                         <Text style={styles.statusText}>Select Date</Text>
                     ) : (
                         <Text style={styles.statusText}>
                             {isRangeComplete
                                 ? `Selected: ${startDate} → ${endDate}`
-                                : startDate
-                                    ? "Select End Date"
-                                    : "Select Start Date"}
+                                : startDate ? "Select End Date" : "Select Start Date"}
                         </Text>
                     )}
-                    {/* <Pressable style={styles.jumpBtn} onPress={openJumpPicker}>
-                            <Text style={styles.jumpBtnTxt}>Jump Year</Text>
-                        </Pressable>
-                    </View> */}
 
+                    {/* ── Custom month header with always-visible arrows ── */}
+                    <View style={styles.navRow}>
+                        <TouchableOpacity
+                            style={[styles.arrowBtn, !canGoBack() && styles.arrowDisabled]}
+                            onPress={goToPrevMonth}
+                            disabled={!canGoBack()}
+                            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                        >
+                            <Text style={[styles.arrowText, { color: canGoBack() ? "#2479dd" : appColors.border }]}>
+                                ◀
+                            </Text>
+                        </TouchableOpacity>
+
+                        <Text style={[styles.monthLabel, { color: appColors.text }]}>
+                            {formatMonthLabel(currentMonthKey)}
+                        </Text>
+
+                        <TouchableOpacity
+                            style={[styles.arrowBtn, !canGoForward() && styles.arrowDisabled]}
+                            onPress={goToNextMonth}
+                            disabled={!canGoForward()}
+                            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                        >
+                            <Text style={[styles.arrowText, { color: canGoForward() ? "#2479dd" : appColors.border }]}>
+                                ▶
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Calendar — header hidden since we have our own above */}
                     <Calendar
+                        key={currentMonthKey}
+                        current={currentMonthKey}
                         markingType={mode === "range" ? "period" : "custom"}
                         markedDates={getMarkedDates()}
                         onDayPress={onDayPress}
-                        enableSwipeMonths={true}
-                        // onVisibleMonthsChange={(months) => {
-                        //     if (months.length > 0) {
-                        //         setCurrentMonth(months[0].dateString);
-                        //     }
-                        // }}
+                        hideArrows={true}
+                        hideExtraDays={false}
+                        disableMonthChange={true}
+                        maxDate={maxDate}
+                        renderHeader={() => null}
                         style={styles.calendar}
                         theme={{
                             calendarBackground: appColors.card,
@@ -186,11 +205,13 @@ const DatePicker: React.FC<Props> = ({
                             dayTextColor: appColors.text,
                             todayTextColor: "#2479dd",
                             selectedDayBackgroundColor: "#2479dd",
-                            monthTextColor: appColors.text,
+                            monthTextColor: 'transparent',   // hidden — we show our own
                             textDisabledColor: appColors.border,
-                            arrowColor: appColors.text,
-                        }}
-                    // theme={{ todayTextColor: "#2479dd" }}
+                            arrowColor: "transparent",
+                            'stylesheet.calendar.header': {
+                                header: { height: 0, overflow: 'hidden' },
+                            },
+                        } as Theme}
                     />
 
                     <Pressable style={styles.closeBtn} onPress={onClose}>
@@ -199,59 +220,75 @@ const DatePicker: React.FC<Props> = ({
 
                 </View>
             </View>
-            {/* {showJumpPicker && (
-                <DateTimePicker
-                    value={toDate(currentMonth)}
-                    mode="date" // Allows year and month selection
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                    onChange={handleJumpChange}
-                />
-            )} */}
         </Modal>
     );
 };
 
-// ---------------- STYLES ----------------
+// ─── STYLES ───
 const styles = StyleSheet.create({
     calendar: { borderRadius: 8 },
     modalContainer: {
         flex: 1,
         backgroundColor: "rgba(0,0,0,0.4)",
         justifyContent: "center",
-        alignItems: "center"
+        alignItems: "center",
     },
     modalBox: {
-        backgroundColor: "#fff",
         width: "90%",
         padding: 20,
         borderRadius: 12,
-        elevation: 10
-    },
-    headerContainer: { // New style for the header row
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 15,
+        elevation: 10,
     },
     statusText: {
         fontSize: 16,
         fontWeight: "600",
         color: "#2479dd",
-        marginBottom: 15,
-        textAlign: "center"
+        marginBottom: 12,
+        textAlign: "center",
+    },
+    navRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 4,
+        paddingHorizontal: 4,
+    },
+    arrowBtn: {
+        padding: 4,
+        minWidth: 32,
+        alignItems: 'center',
+    },
+    arrowText: {
+        fontSize: 20,
+        fontWeight: '700',
+        lineHeight: 28,
+        includeFontPadding: false,
+    },
+    arrowDisabled: {
+        opacity: 0.3,
+    },
+    monthLabel: {
+        fontSize: 16,
+        fontWeight: '700',
     },
     closeBtn: {
         marginTop: 20,
         backgroundColor: "#2479dd",
         padding: 12,
-        borderRadius: 8
+        borderRadius: 8,
     },
     closeBtnTxt: {
         textAlign: "center",
         fontWeight: "600",
-        fontSize: 15
+        fontSize: 15,
     },
-    jumpBtn: { // Style for the new button
+    headerContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 15,
+    },
+    jumpBtn: {
         backgroundColor: "#585858",
         paddingVertical: 6,
         paddingHorizontal: 10,
@@ -260,9 +297,8 @@ const styles = StyleSheet.create({
     jumpBtnTxt: {
         color: '#fff',
         fontWeight: '500',
-        fontSize: 14
-    }
+        fontSize: 14,
+    },
 });
 
 export default DatePicker;
-
