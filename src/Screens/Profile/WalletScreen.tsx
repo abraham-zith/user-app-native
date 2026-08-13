@@ -16,6 +16,7 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   Image,
+  Switch,
 } from 'react-native';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -34,6 +35,8 @@ import {
   useGetWalletTransactionsQuery,
   useCreateWalletTopupOrderMutation,
   useVerifyWalletTopupPaymentMutation,
+  useGetWalletSettingsQuery,
+  useUpdateWalletSettingsMutation,
 } from '../../service/userApi';
 import RazorpayCheckout from 'react-native-razorpay';
 import Config from 'react-native-config';
@@ -114,6 +117,8 @@ const WalletScreen = () => {
 
   const [createOrder, { isLoading: isCreating }] = useCreateWalletTopupOrderMutation();
   const [verifyPayment, { isLoading: isVerifying }] = useVerifyWalletTopupPaymentMutation();
+  const { data: settingsData, refetch: refetchSettings } = useGetWalletSettingsQuery(userId, { skip: !userId });
+  const [updateSettings, { isLoading: isUpdatingSettings }] = useUpdateWalletSettingsMutation();
 
   const balance = balanceData?.data?.balance ?? 0;
   const hasWalletPin = balanceData?.data?.has_wallet_pin ?? false;
@@ -123,6 +128,41 @@ const WalletScreen = () => {
   // Add Money Modal
   const [addMoneyVisible, setAddMoneyVisible] = useState(false);
   const [topupAmount, setTopupAmount] = useState('');
+
+  // Auto Reload Modal
+  const [autoReloadVisible, setAutoReloadVisible] = useState(false);
+  const [arEnabled, setArEnabled] = useState(false);
+  const [arThreshold, setArThreshold] = useState('');
+  const [arReloadAmount, setArReloadAmount] = useState('');
+
+  const openAutoReload = () => {
+    if (settingsData?.data) {
+      setArEnabled(settingsData.data.enabled || false);
+      setArThreshold(String(settingsData.data.threshold_amount || 500));
+      setArReloadAmount(String(settingsData.data.reload_amount || 1000));
+    } else {
+      setArEnabled(false);
+      setArThreshold('500');
+      setArReloadAmount('1000');
+    }
+    setAutoReloadVisible(true);
+  };
+
+  const handleSaveAutoReload = async () => {
+    try {
+      await updateSettings({
+        userId,
+        enabled: arEnabled,
+        threshold_amount: Number(arThreshold) || 500,
+        reload_amount: Number(arReloadAmount) || 1000,
+      }).unwrap();
+      refetchSettings();
+      setAutoReloadVisible(false);
+      Alert.alert('Success', 'Auto Reload settings saved.');
+    } catch (e: any) {
+      Alert.alert('Error', e?.message || 'Failed to save settings.');
+    }
+  };
 
   // Transaction Detail Modal
   const [txnDetailVisible, setTxnDetailVisible] = useState(false);
@@ -196,7 +236,7 @@ const WalletScreen = () => {
         title: 'Wallet Transaction Receipt',
         message: `VDrive Wallet Receipt\n\nID: ${selectedTxn.id}\nDescription: ${selectedTxn.title}\nDate: ${selectedTxn.date} ${selectedTxn.time}\nAmount: ${selectedTxn.amount > 0 ? '+' : ''}₹${Math.abs(selectedTxn.amount)}\nStatus: ${selectedTxn.status}`,
       });
-    } catch {}
+    } catch { }
   };
 
   /* ─────── RENDER ─────── */
@@ -241,7 +281,7 @@ const WalletScreen = () => {
                   <MaterialCommunityIcons name="wallet-outline" size={mS(22)} color="rgba(255,255,255,0.7)" />
                 </View>
                 <Text style={styles.balanceValue}>₹{Number(balance).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
-                <View style={styles.cardActions}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cardActions}>
                   <TouchableOpacity
                     style={styles.cardActionBtn}
                     onPress={() => { setTopupAmount(''); setAddMoneyVisible(true); }}
@@ -260,7 +300,15 @@ const WalletScreen = () => {
                       {hasWalletPin ? 'Reset PIN' : 'Setup PIN'}
                     </Text>
                   </TouchableOpacity>
-                </View>
+                  <TouchableOpacity
+                    style={[styles.cardActionBtn, { backgroundColor: 'rgba(255,255,255,0.18)', marginLeft: hS(12) }]}
+                    onPress={openAutoReload}
+                    activeOpacity={0.85}
+                  >
+                    <MaterialCommunityIcons name="autorenew" size={mS(18)} color="#FFF" />
+                    <Text style={[styles.cardActionText, { color: '#FFF' }]}>Auto Reload</Text>
+                  </TouchableOpacity>
+                </ScrollView>
               </View>
             )}
 
@@ -335,6 +383,72 @@ const WalletScreen = () => {
           )
         }
       />
+
+      {/* ═══ AUTO RELOAD MODAL ═══ */}
+      <Modal
+        visible={autoReloadVisible}
+        transparent
+        animationType="slide"
+        statusBarTranslucent
+        onRequestClose={() => setAutoReloadVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => { Keyboard.dismiss(); setAutoReloadVisible(false); }}>
+          <View style={styles.modalOverlay} />
+        </TouchableWithoutFeedback>
+        <View style={[styles.modalSheet, { backgroundColor: appColors.card, paddingBottom: insets.bottom + vS(24) }]}>
+          <View style={[styles.sheetHandle, { backgroundColor: isDark ? '#4B5563' : '#E2E8F0' }]} />
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: vS(20) }}>
+            <Text style={[styles.sheetTitle, { color: appColors.text, marginBottom: 0 }]}>Auto Reload</Text>
+            <Switch
+              value={arEnabled}
+              onValueChange={setArEnabled}
+              trackColor={{ false: '#767577', true: '#10B981' }}
+              thumbColor={'#f4f3f4'}
+            />
+          </View>
+          
+          <Text style={[styles.sheetSubtitle, { color: appColors.secondaryText, marginBottom: vS(8) }]}>
+            When balance falls below:
+          </Text>
+          <View style={[styles.amountInputRow, { borderBottomColor: isDark ? '#374151' : '#E2E8F0', marginBottom: vS(16), opacity: arEnabled ? 1 : 0.5 }]} pointerEvents={arEnabled ? 'auto' : 'none'}>
+            <Text style={[styles.rupee, { color: appColors.text, fontSize: mS(20) }]}>₹</Text>
+            <TextInput
+              style={[styles.amountInput, { color: appColors.text, fontSize: mS(24) }]}
+              keyboardType="numeric"
+              value={arThreshold}
+              onChangeText={setArThreshold}
+            />
+          </View>
+
+          <Text style={[styles.sheetSubtitle, { color: appColors.secondaryText, marginBottom: vS(8) }]}>
+            Top up with:
+          </Text>
+          <View style={[styles.amountInputRow, { borderBottomColor: isDark ? '#374151' : '#E2E8F0', marginBottom: vS(24), opacity: arEnabled ? 1 : 0.5 }]} pointerEvents={arEnabled ? 'auto' : 'none'}>
+            <Text style={[styles.rupee, { color: appColors.text, fontSize: mS(20) }]}>₹</Text>
+            <TextInput
+              style={[styles.amountInput, { color: appColors.text, fontSize: mS(24) }]}
+              keyboardType="numeric"
+              value={arReloadAmount}
+              onChangeText={setArReloadAmount}
+            />
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.proceedBtn,
+              { backgroundColor: colors.button, shadowColor: colors.button, opacity: isUpdatingSettings ? 0.75 : 1 },
+            ]}
+            onPress={handleSaveAutoReload}
+            disabled={isUpdatingSettings}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.proceedBtnText}>
+              {isUpdatingSettings ? 'Saving...' : 'Save Settings'}
+            </Text>
+            <MaterialCommunityIcons name="check" size={mS(20)} color="#FFF" />
+          </TouchableOpacity>
+        </View>
+      </Modal>
 
       {/* ═══ ADD MONEY MODAL ═══ */}
       <Modal

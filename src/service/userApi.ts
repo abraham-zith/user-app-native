@@ -333,6 +333,17 @@ export const userApi = createApi({
         body,
       }),
     }),
+    getWalletSettings: builder.query<any, string>({
+      query: (userId) => `/wallet/settings/${userId}`,
+    }),
+    updateWalletSettings: builder.mutation<any, { userId: string; enabled?: boolean; threshold_amount?: number; reload_amount?: number }>({
+      query: ({ userId, ...body }) => ({
+        url: `/wallet/settings/${userId}`,
+        method: 'PUT',
+        body,
+      }),
+    }),
+
 
   }),
 });
@@ -381,6 +392,8 @@ export const {
   useCreateWalletTopupOrderMutation,
   useVerifyWalletTopupPaymentMutation,
   usePayTripWithWalletMutation,
+  useGetWalletSettingsQuery,
+  useUpdateWalletSettingsMutation,
 } = userApi;
 
 
