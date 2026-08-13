@@ -7,7 +7,8 @@ import {
     ActivityScreen_Nav,
     ReferAndEarnScreen_Nav,
     SettingsScreen_Nav,
-    ProfileUpdateScreen_Nav
+    ProfileUpdateScreen_Nav,
+    WalletScreen_Nav
 } from './navigations';
 import Activity from '../Screens/NavBarMenu/ProfileScreen/ProfileScreenComponents/Activity';
 import Rating from '../Screens/NavBarMenu/ProfileScreen/ProfileScreenComponents/Rating';
@@ -20,6 +21,8 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useAppTheme } from '../hooks/useAppTheme';
 import { TouchableOpacity, View } from 'react-native';
 import { Styles } from '../lib/styles';
+import { waitForNavigation } from './navigationRef';
+import WalletScreen from '../Screens/Profile/WalletScreen';
 
 
 const ProfileScreenComponents: React.FC<ScreenProps> = () => {
@@ -54,7 +57,8 @@ const ProfileScreenComponents: React.FC<ScreenProps> = () => {
             })}>
             <Stack.Screen name={RatingScreen_Nav} component={Rating} options={{ headerTitle: 'Rating', }} />
             <Stack.Screen name={HelpScreen_Nav} component={Help} options={{ headerTitle: 'Help', }} />
-            <Stack.Screen name={PaymentScreen_Nav} component={Payment} options={{ headerShown: false }} />
+            {/* <Stack.Screen name={PaymentScreen_Nav} component={Payment} options={{ headerShown: false }} /> */}
+            <Stack.Screen name={WalletScreen_Nav} component={WalletScreen} options={{ headerShown: false }} />
             <Stack.Screen name={ActivityScreen_Nav} component={Activity} options={{ headerTitle: 'Activity', }} />
             <Stack.Screen name={ReferAndEarnScreen_Nav} component={ReferAndEarn} options={{ headerShown: false }} />
             <Stack.Screen name={SettingsScreen_Nav} component={Settings} options={{ headerTitle: 'Settings', }} />
