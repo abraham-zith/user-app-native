@@ -10,7 +10,8 @@ import {
     ActivityScreen_Nav,
     ReferAndEarnScreen_Nav,
     SettingsScreen_Nav,
-    ProfileUpdateScreen_Nav
+    ProfileUpdateScreen_Nav,
+    WalletScreen_Nav
 } from "../../../Navigations/navigations";
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Button from "../../../Components/Button";
@@ -436,7 +437,8 @@ const ProfileScreen: React.FC<ScreenProps> = ({ navigation }) => {
     const buttons = [
         { id: 1, name: `${user?.rating || 0.0} My Rating`, iconName: 'star', component: RatingScreen_Nav },
         { id: 2, name: 'Help', iconName: 'help-circle-outline', component: HelpScreen_Nav },
-        { id: 3, name: 'Payment', iconName: 'wallet-outline', component: PaymentScreen_Nav },
+        // { id: 3, name: 'Payment', iconName: 'wallet-outline', component: PaymentScreen_Nav },
+        { id: 3, name: 'My Wallet', iconName: 'wallet-outline', component: WalletScreen_Nav },
         { id: 4, name: 'Activity', iconName: 'clipboard-text-clock-outline', component: ActivityScreen_Nav },
         { id: 5, name: 'Refer and Earn', iconName: 'gift-open-outline', component: ReferAndEarnScreen_Nav },
         { id: 6, name: 'Settings', iconName: 'cog-outline', component: SettingsScreen_Nav },
@@ -561,7 +563,7 @@ const ProfileScreen: React.FC<ScreenProps> = ({ navigation }) => {
 
             {/* --- UPLOADING OVERLAY --- */}
             {isUploading && (
-                <Modal transparent={true} animationType="fade" visible={isUploading} statusBarTranslucent navigationBarTranslucent onRequestClose={() => {}}>
+                <Modal transparent={true} animationType="fade" visible={isUploading} statusBarTranslucent navigationBarTranslucent onRequestClose={() => { }}>
                     <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
                         <View style={{ backgroundColor: colors.card, padding: hS(24), borderRadius: mS(16), alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 10, elevation: 5 }}>
                             <ActivityIndicator size="large" color={colors.primary} />

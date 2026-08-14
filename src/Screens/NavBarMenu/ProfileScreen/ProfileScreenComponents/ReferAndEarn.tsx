@@ -23,7 +23,7 @@ const ReferAndEarn = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { colors: appColors, isDark } = useAppTheme();
-  const { data: referralResponse, isLoading: codeLoading } = useGetReferralCodeQuery();
+  const { data: referralResponse, isLoading: codeLoading, refetch: refetchCode } = useGetReferralCodeQuery();
   const { data: statsResponse } = useGetReferralStatsQuery();
   const [generateReferralCode] = useGenerateReferralCodeMutation();
   const referralCode = referralResponse?.data?.referralCode ?? (codeLoading ? '...' : '------');
@@ -34,6 +34,17 @@ const ReferAndEarn = () => {
     { id: 2, title: 'They Register', desc: 'They get ₹50 off on their first ride.', icon: 'card-account-details-outline' },
     { id: 3, title: 'You Earn', desc: 'You get ₹100 once they complete a ride.', icon: 'wallet-giftcard' },
   ];
+
+  useEffect(() => {
+    if (!codeLoading && referralResponse?.success && !referralResponse?.data?.referralCode) {
+      generateReferralCode()
+        .unwrap()
+        .then(() => {
+          refetchCode();
+        })
+        .catch(console.error);
+    }
+  }, [codeLoading, referralResponse, generateReferralCode, refetchCode]);
 
   const handleCopyCode = () => {
     Clipboard.setString(referralCode);
