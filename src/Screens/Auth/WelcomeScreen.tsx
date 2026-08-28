@@ -1,26 +1,76 @@
-import { View, Text } from 'react-native'
-import React from 'react'
-import { Styles } from '../../lib/styles'
-import colors from '../../constant/colors'
-import fonts from '../../constant/fonts'
-import { Car, Logo, SteeringWheels } from '../../assets/svg'
-import { useSelector } from 'react-redux'
-import { RootState } from '../../redux/store'
-import SwipeButton from '../../Components/SwipeButton'
-import { SignUpScreen_Nav, TabNavigation_Nav } from '../../Navigations/navigations'
-import { OnboardingStatus } from '../../enums/user.enum'
-import { useAppTheme } from '../../hooks/useAppTheme'
+import { View, Text, TouchableOpacity, StyleSheet, Image, FlatList, Dimensions } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import LinearGradient from 'react-native-linear-gradient';
+
+const { width } = Dimensions.get('window');
+
+const lightCarouselData = [
+  { id: '1', image: require('../../assets/png/light_book_a_ride_hd.png') },
+  { id: '2', image: require('../../assets/png/light_safe_secure_hd.png') },
+  { id: '3', image: require('../../assets/png/light_track_your_ride_hd.png') },
+];
+
+const darkCarouselData = [
+  { id: '1', image: require('../../assets/png/dark_book_a_ride_hd.png') },
+  { id: '2', image: require('../../assets/png/dark_safe_secure_hd.png') },
+  { id: '3', image: require('../../assets/png/dark_track_your_ride_hd.png') },
+];
+import { Car, Logo } from '../../assets/svg';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../redux/store';
+import { SignUpScreen_Nav, TabNavigation_Nav } from '../../Navigations/navigations';
+import { OnboardingStatus } from '../../enums/user.enum';
+import { useAppTheme } from '../../hooks/useAppTheme';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { hS, mS, vS } from '../../lib/responsive';
 
 // ✅ No fetch, no checkSession, no useEffect
 // App.tsx handles all session validation
-const WelcomeScreen: React.FC<ScreenProps> = ({ navigation }) => {
+const WelcomeScreen: React.FC<any> = ({ navigation }) => {
   const { colors: appColors, isDark } = useAppTheme();
   const user = useSelector((state: RootState) => state.userSlice.user);
+  const insets = useSafeAreaInsets();
+
+  const [activeIndex, setActiveIndex] = useState(0);
+  const flatListRef = useRef<FlatList>(null);
+
+  const currentCarouselData = isDark ? darkCarouselData : lightCarouselData;
+
+  useEffect(() => {
+    let interval = setInterval(() => {
+      const nextIndex = (activeIndex + 1) % currentCarouselData.length;
+      flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [activeIndex, isDark]);
+
+  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
+    if (viewableItems.length > 0) {
+      setActiveIndex(viewableItems[0].index);
+    }
+  }).current;
+
+  const renderItem = ({ item }: any) => {
+    const bgColor = isDark ? appColors.background : '#F4F7FB';
+    return (
+      <View style={{ width, height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+        <Image source={item.image} style={styles.carImage} resizeMode='cover' />
+        <LinearGradient
+          colors={[bgColor, 'transparent']}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, height: vS(60) }}
+        />
+        <LinearGradient
+          colors={['transparent', bgColor]}
+          style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: vS(80) }}
+        />
+      </View>
+    );
+  };
 
   const handleGetStarted = () => {
     if (!user) {
       navigation.navigate('LoginScreen');
-      // navigation.replace(TabNavigation_Nav);
       return;
     }
 
@@ -44,42 +94,213 @@ const WelcomeScreen: React.FC<ScreenProps> = ({ navigation }) => {
   };
 
   return (
-    <View style={[
-      Styles.flex,
-      Styles.p4,
-      { backgroundColor: appColors.background, flexDirection: 'column' }
-    ]}>
-      <View style={[
-        Styles.justifyContentCenter,
-        Styles.alignItemsCenter,
-        { flex: 10 }
-      ]}>
-        <Logo />
-        <Text style={[
-          Styles.fs16,
-          Styles.mt2,
-          fonts.light,
-          { color: appColors.text, textAlign: 'center' }
-        ]}>
-          Ride Your Way with{' '}
-          <Text style={{ color: appColors.primary, fontWeight: '400' }}>
-            T2Drive
-          </Text>
-        </Text>
-        <Car />
-      </View>
+    <View style={[styles.container, { backgroundColor: isDark ? appColors.background : '#F4F7FB', paddingTop: insets.top, paddingBottom: insets.bottom > 0 ? insets.bottom : 20 }]}>
 
-      <View style={[Styles.flex, Styles.justifyContentFlexEnd, Styles.mb5]}>
-        <SwipeButton
-          title="Slide to Get Started"
-          onSwipeSuccess={handleGetStarted}
-          Icon={<SteeringWheels width={34} height={34} />}
-          railColor={isDark ? appColors.button : appColors.button}
-          thumbColor="#FFFFFF"
-        />
+      <View style={styles.content}>
+        <View style={styles.topSection}>
+          <View style={styles.logoContainer}>
+            {
+              isDark ?
+                <Image
+                  source={require('../../assets/png/t2drive_logo.png')}
+                  style={{ width: hS(100), height: vS(24), resizeMode: 'contain' }}
+                />
+                : <Image
+                  source={require('../../assets/png/T2DriveDarkLogo.png')}
+                  style={{ width: hS(100), height: vS(24), resizeMode: 'contain' }}
+                />
+            }
+          </View>
+          <Text style={{ fontSize: mS(24), fontWeight: '800', color: isDark ? '#FFFFFF' : '#0F172A', marginTop: vS(24), textAlign: 'center' }}>
+            Welcome to <Text style={{ color: '#0066FF' }}>T2Drive</Text>
+          </Text>
+          <Text style={[styles.subtitle, { color: isDark ? '#E2E8F0' : '#475569', marginTop: vS(8), fontSize: mS(14), paddingHorizontal: hS(20) }]}>
+            Book affordable rides with T2Drive, your trusted ride-sharing companion.
+          </Text>
+        </View>
+
+        <View style={styles.carContainer}>
+          <FlatList
+            ref={flatListRef}
+            data={currentCarouselData}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.id}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
+            scrollEventThrottle={16}
+            onScrollToIndexFailed={info => {
+              const wait = new Promise(resolve => setTimeout(() => resolve(undefined), 500));
+              wait.then(() => {
+                flatListRef.current?.scrollToIndex({ index: info.index, animated: true });
+              });
+            }}
+          />
+        </View>
+
+
+        <View style={styles.bottomWrapper}>
+          <View style={styles.paginationContainer}>
+            {currentCarouselData.map((_, index) => (
+              <View key={index} style={[styles.dot, activeIndex === index && styles.activeDot]} />
+            ))}
+          </View>
+
+          <View style={styles.bottomSection}>
+            <TouchableOpacity style={styles.getStartedButton} onPress={handleGetStarted} activeOpacity={0.8}>
+              <View style={styles.buttonTextContainer}>
+                <Text style={styles.getStartedText}>Get Started</Text>
+              </View>
+              <View style={styles.iconCircleContainer}>
+                <View style={styles.iconCircle}>
+                  <MaterialCommunityIcons name="chevron-right" size={24} color="#0066FF" />
+                </View>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.loginButton, { backgroundColor: isDark ? '#1E293B' : '#FFFFFF', borderColor: isDark ? '#334155' : '#CBD5E1' }]} onPress={() => navigation.navigate('LoginScreen')} activeOpacity={0.8}>
+              <MaterialCommunityIcons name="account-outline" size={20} color={isDark ? '#FFFFFF' : '#0F172A'} style={styles.loginIcon} />
+              <Text style={[styles.loginText, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>Log In</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.createAccountContainer} onPress={() => navigation.navigate('LoginScreen')}>
+              <Text style={[styles.newHereText, { color: isDark ? '#CBD5E1' : '#64748B' }]}>
+                New here? <Text style={styles.createAccountText}>Create an account</Text>
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  content: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  topSection: {
+    alignItems: 'center',
+    paddingTop: 30,
+    paddingHorizontal: 24,
+  },
+  logoContainer: {
+    marginBottom: 12,
+  },
+  logoImage: {
+    width: 280,
+    height: 80,
+  },
+  subtitle: {
+    fontSize: 18,
+    textAlign: 'center',
+    lineHeight: 26,
+    fontWeight: '400',
+  },
+  carContainer: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+  },
+  carImage: {
+    width: '100%',
+    height: '100%',
+  },
+  bottomWrapper: {
+    paddingHorizontal: 24,
+    paddingBottom: 20,
+    width: '100%',
+  },
+  paginationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#CBD5E1',
+    marginHorizontal: 5,
+  },
+  activeDot: {
+    backgroundColor: '#0066FF',
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+  },
+  bottomSection: {
+    width: '100%',
+  },
+  getStartedButton: {
+    backgroundColor: '#0066FF',
+    borderRadius: 30,
+    height: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 8,
+    position: 'relative',
+  },
+  buttonTextContainer: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  getStartedText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  iconCircleContainer: {
+    flex: 1,
+    alignItems: 'flex-end',
+  },
+  iconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loginButton: {
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 30,
+    height: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  loginIcon: {
+    marginRight: 8,
+  },
+  loginText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  createAccountContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  newHereText: {
+    fontSize: 14,
+    color: '#64748B',
+  },
+  createAccountText: {
+    color: '#0066FF',
+    fontWeight: '600',
+  },
+});
 
 export default WelcomeScreen;

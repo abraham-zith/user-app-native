@@ -21,7 +21,8 @@ const OTPInput: React.FC<OTPInputProps> = ({
   ...props
 }) => {
   const [valueArray, setValueArray] = useState<string[]>([]);
-  const { colors: appColors } = useAppTheme();
+  const { colors: appColors, isDark } = useAppTheme();
+  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const inputs = useRef<(TextInput | null)[]>([]);
 
   useEffect(() => {
@@ -64,14 +65,16 @@ const OTPInput: React.FC<OTPInputProps> = ({
             style={[
               styles.box,
               { 
-                borderColor: appColors.border, 
-                backgroundColor: appColors.background,
-                color: appColors.text,
-                borderWidth: 1.5,
+                borderColor: isDark ? (focusedIndex === i || valueArray[i] ? '#00C2FF' : '#1C3A7A') : appColors.border, 
+                backgroundColor: isDark ? 'transparent' : appColors.background,
+                color: isDark ? '#FFFFFF' : appColors.text,
+                borderWidth: isDark ? 2 : 1.5,
               },
             ]}
             textAlign="center"
             onChangeText={text => handleChange(text.replace(/[^0-9]/g, ''), i)}
+            onFocus={() => setFocusedIndex(i)}
+            onBlur={() => setFocusedIndex(null)}
             keyboardType="number-pad"
             maxLength={1}
             ref={ref => { inputs.current[i] = ref; }}

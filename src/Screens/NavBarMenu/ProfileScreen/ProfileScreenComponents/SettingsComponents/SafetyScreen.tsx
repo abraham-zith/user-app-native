@@ -24,7 +24,128 @@ import { useAppTheme } from "../../../../../hooks/useAppTheme";
 import RelationshipSelectionModal from '../../../../../Components/RelationshipSelectionModal';
 import { useAddTrustedContactMutation, useGetTrustedContactsQuery, useRemoveTrustedContactMutation } from '../../../../../service/sosApi';
 import { skipToken } from '@reduxjs/toolkit/query';
+import Svg, { Path, Defs, LinearGradient, Stop, Rect, Mask, Image as SvgImage } from 'react-native-svg';
+import { Image, Dimensions } from 'react-native';
 
+const { width } = Dimensions.get('window');
+
+// const WhiteWave = ({ color }: { color: string }) => (
+//     <Svg width="100%" height={mS(50)} style={{ position: 'absolute', bottom: -1, left: 0, zIndex: 10 }} viewBox="0 0 375 50" preserveAspectRatio="none">
+//         <Path d="M0,50 L0,0 C 150,50 250,50 375,35 L375,50 Z" fill={color} />
+//     </Svg>
+// );
+// const BannerWaves = () => (
+//     <>
+//         {/* Light blue back wave */}
+//         <Svg
+//             width="100%"
+//             height={mS(55)}
+//             style={{
+//                 position: 'absolute',
+//                 bottom: -1,
+//                 left: 0,
+//                 zIndex: 8,
+//             }}
+//             viewBox="0 0 375 55"
+//             preserveAspectRatio="none"
+//         >
+//             <Path
+//                 d="
+//           M 0 10
+//           C 80 35, 145 50, 225 42
+//           C 290 36, 330 18, 375 15
+//           L 375 55
+//           L 0 55
+//           Z
+//         "
+//                 fill="#DCEEFF"
+//             />
+//         </Svg>
+
+//         {/* Main white wave */}
+//         <Svg
+//             width="100%"
+//             height={mS(48)}
+//             style={{
+//                 position: 'absolute',
+//                 bottom: -1,
+//                 left: 0,
+//                 zIndex: 9,
+//             }}
+//             viewBox="0 0 375 48"
+//             preserveAspectRatio="none"
+//         >
+//             <Path
+//                 d="
+//           M 0 0
+//           C 70 30, 135 48, 215 42
+//           C 280 38, 330 20, 375 17
+//           L 375 48
+//           L 0 48
+//           Z
+//         "
+//                 fill="#F7FAFC"
+//             />
+//         </Svg>
+//     </>
+// );
+const BannerWaves = ({ isDark, appColors }: { isDark?: boolean, appColors?: any }) => {
+    return (
+        <>
+            {/* Light blue outer wave */}
+            <Svg
+                width="100%"
+                height={mS(65)}
+                viewBox="0 0 375 65"
+                preserveAspectRatio="none"
+                style={{
+                    position: 'absolute',
+                    bottom: -1,
+                    left: 0,
+                    zIndex: 8,
+                }}
+            >
+                <Path
+                    d="
+            M 0 0
+            C 55 25, 120 55, 195 52
+            C 270 50, 320 20, 375 12
+            L 375 65
+            L 0 65
+            Z
+          "
+                    fill={isDark ? '#1E293B' : '#DCEEFF'}
+                />
+            </Svg>
+
+            {/* White inner wave */}
+            <Svg
+                width="100%"
+                height={mS(52)}
+                viewBox="0 0 375 52"
+                preserveAspectRatio="none"
+                style={{
+                    position: 'absolute',
+                    bottom: -1,
+                    left: 0,
+                    zIndex: 9,
+                }}
+            >
+                <Path
+                    d="
+            M 0 0
+            C 60 28, 125 48, 200 46
+            C 270 44, 325 16, 375 10
+            L 375 52
+            L 0 52
+            Z
+          "
+                    fill={isDark && appColors ? appColors.background : '#FFFFFF'}
+                />
+            </Svg>
+        </>
+    );
+};
 export interface EmergencyContact {
     name: string;
     phone: string;
@@ -126,7 +247,6 @@ const SafetyScreen = ({ navigation }: any) => {
                     if (isDuplicate) {
                         Alert.alert("Already Added", `${SelectedContact.name} is already in your emergency list.`);
                         setpickerLoading(false);
-                        navigation.goBack();
                         return;
                     }
 
@@ -136,7 +256,6 @@ const SafetyScreen = ({ navigation }: any) => {
                         phone: cleanphone || 'No Number',
                     });
                     setRelationshipModalVisible(true);
-                    navigation.goBack();
                 }
                 setpickerLoading(false);
             },
@@ -273,35 +392,83 @@ const SafetyScreen = ({ navigation }: any) => {
             .slice(0, 2);
 
         return (
-            <View style={[styles.avatarBox, { backgroundColor: appColors.iconBox }]}>
-                <Text style={[styles.avatarText, { color: isDark ? appColors.primary : appColors.button }]}>{initials}</Text>
+            <View style={[styles.avatarBox, { backgroundColor: isDark ? '#334155' : appColors.iconBox }]}>
+                <Text style={[styles.avatarText, { color: isDark ? '#93C5FD' : appColors.button }]}>{initials}</Text>
             </View>
         );
     };
 
     return (
-        <View style={[styles.container, { backgroundColor: appColors.background }]}>
+        <View style={[styles.container, { backgroundColor: isDark ? '#020617' : appColors.background }]}>
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: insets.bottom + vS(40) }}
             >
                 {/* --- PREMIUM HEADER --- */}
-                <View style={styles.premiumHeader}>
-                    <View style={styles.headerIconContainer}>
-                        <MaterialCommunityIcons name="shield-check" size={mS(48)} color="#FFF" />
+                <View style={[styles.premiumHeader, { paddingTop: insets.top, height: mS(260) + insets.top }]}>
+                    {/* Gradient Dark Blue Background */}
+                    <Svg style={StyleSheet.absoluteFill}>
+                        <Defs>
+                            <LinearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+                                <Stop offset="0" stopColor="#0B309B" />
+                                <Stop offset="1" stopColor="#051340" />
+                            </LinearGradient>
+                        </Defs>
+                        <Rect x="0" y="0" width="100%" height="100%" fill="url(#bgGrad)" />
+                    </Svg>
+                    <View style={styles.customHeader}>
+                        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                            <MaterialCommunityIcons name="arrow-left" size={mS(24)} color="#FFFFFF" />
+                        </TouchableOpacity>
+                        <Text style={styles.customHeaderTitle}>Safety Toolkit</Text>
                     </View>
-                    <Text style={styles.premiumTitle}>Safety Center</Text>
-                    <Text style={styles.premiumSubtitle}>
-                        Your protection is our priority. Set up your emergency tools for a secure journey.
-                    </Text>
+
+                    <View style={styles.headerContent}>
+                        <View style={[styles.headerImageContainer, { zIndex: 1 }]}>
+                            {/* True Alpha Mask to smoothly fade the image itself into transparency */}
+                            <Svg style={StyleSheet.absoluteFill}>
+                                <Defs>
+                                    <LinearGradient id="alphaFade" x1="0" y1="0" x2="1" y2="0">
+                                        <Stop offset="0" stopColor="white" stopOpacity="0" />
+                                        <Stop offset="0.4" stopColor="white" stopOpacity="1" />
+                                    </LinearGradient>
+                                    <Mask id="fadeMask">
+                                        <Rect x="0" y="0" width="100%" height="100%" fill="url(#alphaFade)" />
+                                    </Mask>
+                                </Defs>
+                                <SvgImage
+                                    href={require('../../../../../assets/png/SafetyScreenBanner.png')}
+                                    width="100%"
+                                    height="100%"
+                                    preserveAspectRatio="xMaxYMax slice"
+                                    mask="url(#fadeMask)"
+                                />
+                            </Svg>
+
+                            <Image source={require('../../../../../assets/png/t2drive_safety_shield_transparent_hd.png')} style={styles.shieldImage} resizeMode="contain" />
+                        </View>
+
+                        <View style={[styles.headerTextContainer, { zIndex: 2 }]}>
+                            <Text style={styles.premiumTitle}>Your Safety,{'\n'}Our Priority</Text>
+                            <Text style={styles.premiumSubtitle}>
+                                Ride with confidence. We're here{'\n'}to keep you safe, always.
+                            </Text>
+                        </View>
+                    </View>
+
+                    {/* <WhiteWave color={appColors.background} /> */}
+                    <BannerWaves isDark={isDark} appColors={appColors} />
                 </View>
 
                 {/* --- EMERGENCY CONTACTS SECTION --- */}
                 <View style={styles.sectionContainer}>
                     <View style={styles.sectionHeaderRow}>
                         <View>
-                            <Text style={[styles.sectionTitle, { color: appColors.text }]}>Emergency Contacts</Text>
-                            <Text style={[styles.sectionSubtitle, { color: appColors.secondaryText }]}>Select up to 5 trusted contacts</Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                {isDark && <MaterialCommunityIcons name="shield-check-outline" size={mS(18)} color="#38BDF8" style={{ marginRight: hS(6) }} />}
+                                <Text style={[styles.sectionTitle, { color: isDark ? '#F8FAFC' : appColors.text }]}>Emergency Contacts</Text>
+                            </View>
+                            <Text style={[styles.sectionSubtitle, { color: isDark ? '#94A3B8' : appColors.secondaryText }]}>Up to 5 trusted contacts</Text>
                         </View>
                         <TouchableOpacity
                             disabled={(emergencyContacts || []).length >= 5 || pickerloading}
@@ -309,32 +476,31 @@ const SafetyScreen = ({ navigation }: any) => {
                             activeOpacity={0.7}
                             style={[
                                 styles.addIconButton,
-                                { backgroundColor: appColors.card, shadowColor: appColors.text },
-                                (emergencyContacts.length >= 5 || pickerloading) && { backgroundColor: isDark ? '#1E293B' : '#F1F5F9' }
+                                { backgroundColor: isDark ? '#003366' : '#EFF6FF' },
+                                (emergencyContacts.length >= 5 || pickerloading) && { opacity: 0.5 }
                             ]}
                         >
                             {pickerloading ? (
-                                <ActivityIndicator size="small" color="#94A3B8" />
+                                <ActivityIndicator size="small" color="#3B82F6" />
                             ) : (
-                                <MaterialCommunityIcons
-                                    name="plus"
-                                    size={mS(24)}
-                                    color={(emergencyContacts || []).length >= 5 ? "#CBD5E1" : isDark ? colors.primary : colors.button}
-                                />
+                                <>
+                                    <MaterialCommunityIcons name="plus" size={mS(18)} color={isDark ? '#38BDF8' : "#3B82F6"} />
+                                    <Text style={[styles.addBtnText, { color: isDark ? '#38BDF8' : '#3B82F6' }]}>Add</Text>
+                                </>
                             )}
                         </TouchableOpacity>
                     </View>
 
-                    <View style={[styles.cardWrapper, { backgroundColor: appColors.card, shadowColor: appColors.text }]}>
+                    <View style={[styles.cardWrapper, { backgroundColor: isDark ? '#0B1120' : appColors.card, shadowColor: 'transparent', borderColor: isDark ? 'rgba(255,255,255,0.02)' : appColors.border, borderWidth: 1 }]}>
                         {emergencyContacts.length === 0 ? (
                             <TouchableOpacity
                                 activeOpacity={0.6}
                                 onPress={openContactPicker}
                                 style={styles.emptyStateBox}
                             >
-                                <MaterialCommunityIcons name="account-plus-outline" size={mS(32)} color={appColors.secondaryText} />
-                                <Text style={[styles.emptyStateText, { color: appColors.text }]}>No emergency contacts added yet.</Text>
-                                <Text style={[styles.emptyStateSubtext, { color: appColors.secondaryText }]}>Tap to add your first contact</Text>
+                                <MaterialCommunityIcons name="account-plus-outline" size={mS(32)} color={isDark ? '#64748B' : appColors.secondaryText} />
+                                <Text style={[styles.emptyStateText, { color: isDark ? '#F8FAFC' : appColors.text }]}>No emergency contacts added yet.</Text>
+                                <Text style={[styles.emptyStateSubtext, { color: isDark ? '#94A3B8' : appColors.secondaryText }]}>Tap to add your first contact</Text>
                             </TouchableOpacity>
                         ) : (
                             (emergencyContacts || []).map((item, index) => (
@@ -342,85 +508,126 @@ const SafetyScreen = ({ navigation }: any) => {
                                     key={index}
                                     style={[
                                         styles.contactActionRow,
-                                        { borderBottomColor: appColors.border },
+                                        { borderBottomColor: isDark ? 'rgba(255,255,255,0.05)' : appColors.border },
                                         index === emergencyContacts.length - 1 && { borderBottomWidth: 0 }
                                     ]}
                                 >
-                                    <ContactAvatar name={item.name} />
-                                    <View style={[styles.contactInfo, { flex: 1 }]}>
-                                        <Text style={[styles.contactNameText, { color: appColors.text }]}>{item.name}</Text>
-                                        <Text style={[styles.contactPhoneText, { color: appColors.secondaryText }]}>{item.phone}</Text>
-                                        <Text style={[styles.contactRelationshipText, { color: appColors.secondaryText }]}>
-                                            <MaterialCommunityIcons name="family-tree" size={mS(12)} /> {item.relationship}
+                                    <View style={[styles.avatarBox, { backgroundColor: isDark ? '#0066FF' : colors.button, width: mS(36), height: mS(36), borderRadius: mS(18), justifyContent: 'center', alignItems: 'center' }]}>
+                                        <Text style={{ color: '#FFFFFF', fontWeight: 'bold', fontSize: mS(16) }}>{item.name.charAt(0)}</Text>
+                                    </View>
+                                    <View style={[styles.contactInfo, { flex: 1, marginLeft: hS(12) }]}>
+                                        <Text style={[styles.contactNameText, { color: isDark ? '#F8FAFC' : appColors.text }]}>{item.name}</Text>
+                                        <Text style={[styles.contactPhoneText, { color: isDark ? '#94A3B8' : appColors.secondaryText }]}>{item.phone}</Text>
+                                        <Text style={[styles.contactRelationshipText, { color: isDark ? '#94A3B8' : appColors.secondaryText }]}>
+                                            <MaterialCommunityIcons name="account-outline" size={mS(12)} /> {item.relationship}
                                         </Text>
                                     </View>
                                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                         <TouchableOpacity
                                             activeOpacity={0.5}
                                             onPress={() => handleEditContactRelationship(index)}
-                                            style={styles.deleteAction}
+                                            style={[styles.deleteAction, { backgroundColor: isDark ? '#001F3F' : '#EFF6FF', padding: mS(6), borderRadius: mS(6), marginRight: hS(8) }]}
                                         >
-                                            <MaterialCommunityIcons name="pencil-outline" size={mS(20)} color={appColors.secondaryText} />
+                                            <MaterialCommunityIcons name="pencil-outline" size={mS(18)} color={isDark ? '#00BFFF' : "#3B82F6"} />
                                         </TouchableOpacity>
                                         <TouchableOpacity
                                             activeOpacity={0.5}
                                             onPress={() => handleRemoveContact(index)}
-                                            style={styles.deleteAction}
+                                            style={[styles.deleteAction, { backgroundColor: isDark ? '#3F0000' : '#FEF2F2', padding: mS(6), borderRadius: mS(6) }]}
                                         >
-                                            <MaterialCommunityIcons name="trash-can-outline" size={mS(20)} color="#EF4444" />
+                                            <MaterialCommunityIcons name="trash-can-outline" size={mS(18)} color={isDark ? '#FF3333' : '#EF4444'} />
                                         </TouchableOpacity>
                                     </View>
                                 </View>
                             ))
                         )}
                     </View>
+                </View>
 
-                    {(emergencyContacts || [])?.length >= 5 && (
-                        <View style={styles.limitBanner}>
-                            <MaterialCommunityIcons name="information" size={mS(16)} color={isDark ? '#F59E0B' : '#B45309'} />
-                            <Text style={[styles.limitText, isDark && { color: '#F59E0B' }]}>Maximum limit reached (5 contacts)</Text>
-                        </View>
-                    )}
+                {/* --- QUICK SAFETY ACTIONS SECTION --- */}
+                <View style={styles.sectionContainer}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        {isDark && <MaterialCommunityIcons name="lightning-bolt" size={mS(20)} color="#38BDF8" style={{ marginRight: hS(6), marginBottom: vS(10) }} />}
+                        <Text style={[styles.sectionTitle, { color: isDark ? '#F8FAFC' : appColors.text }]}>Quick Safety Actions</Text>
+                    </View>
+
+                    <View style={styles.quickActionsRow}>
+                        <TouchableOpacity style={[styles.quickActionCard, { backgroundColor: isDark ? '#0B1120' : '#FEF2F2', borderColor: isDark ? 'rgba(255,255,255,0.02)' : 'transparent', borderWidth: 1 }]} activeOpacity={0.7}>
+                            <View style={[styles.actionIconBox, { backgroundColor: isDark ? '#3F0000' : '#EF4444' }]}>
+                                <MaterialCommunityIcons name="phone" size={mS(24)} color={isDark ? '#FF4D4D' : "#FFF"} />
+                            </View>
+                            <Text style={[styles.actionTitle, { color: isDark ? '#FF4D4D' : '#EF4444' }]}>SOS</Text>
+                            <Text style={[styles.actionSubtitle, { color: isDark ? '#9CA3AF' : '#64748B' }]}>Call Emergency</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={[styles.quickActionCard, { backgroundColor: isDark ? '#0B1120' : '#EFF6FF', borderColor: isDark ? 'rgba(255,255,255,0.02)' : 'transparent', borderWidth: 1 }]} activeOpacity={0.7}>
+                            <View style={[styles.actionIconBox, { backgroundColor: isDark ? '#001F3F' : '#3B82F6' }]}>
+                                <MaterialCommunityIcons name="map-marker-account" size={mS(24)} color={isDark ? '#00BFFF' : "#FFF"} />
+                            </View>
+                            <Text style={[styles.actionTitle, { color: isDark ? '#00BFFF' : '#3B82F6' }]}>Share Trip</Text>
+                            <Text style={[styles.actionSubtitle, { color: isDark ? '#9CA3AF' : '#64748B' }]}>Share Live Location</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={[styles.quickActionCard, { backgroundColor: isDark ? '#0B1120' : '#FFFBEB', borderColor: isDark ? 'rgba(255,255,255,0.02)' : 'transparent', borderWidth: 1 }]} activeOpacity={0.7}>
+                            <View style={[styles.actionIconBox, { backgroundColor: isDark ? '#3F3F00' : '#F59E0B' }]}>
+                                <MaterialCommunityIcons name="shield-alert" size={mS(24)} color={isDark ? '#FFCC00' : "#FFF"} />
+                            </View>
+                            <Text style={[styles.actionTitle, { color: isDark ? '#FFCC00' : '#F59E0B' }]}>Report Issue</Text>
+                            <Text style={[styles.actionSubtitle, { color: isDark ? '#9CA3AF' : '#64748B' }]}>Get Help</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 {/* --- SAFETY GUIDANCE SECTION --- */}
                 <View style={styles.sectionContainer}>
-                    <Text style={[styles.sectionTitle, { color: appColors.text }]}>Safety Guidance</Text>
-                    <Text style={[styles.sectionSubtitle, { marginBottom: vS(16), color: appColors.secondaryText }]}>Best practices for a secure ride</Text>
-
-                    <View style={[styles.guidanceCard, { backgroundColor: appColors.card, shadowColor: appColors.text }]}>
-                        <View style={[styles.guideIconBox, { backgroundColor: isDark ? 'rgba(5, 150, 105, 0.15)' : '#ECFDF5' }]}>
-                            <MaterialCommunityIcons name="shield-account" size={mS(24)} color="#059669" />
-                        </View>
-                        <View style={styles.guideContent}>
-                            <Text style={[styles.guideTitle, { color: appColors.text }]}>Identify Your Ride</Text>
-                            <Text style={[styles.guideDescription, { color: appColors.secondaryText }]}>Always verify the vehicle plate and Captain's photo before boarding.</Text>
+                    <View style={styles.sectionHeaderRow}>
+                        <View>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                {isDark && <MaterialCommunityIcons name="shield-check-outline" size={mS(18)} color="#38BDF8" style={{ marginRight: hS(6) }} />}
+                                <Text style={[styles.sectionTitle, { color: isDark ? '#F8FAFC' : appColors.text }]}>Safety Guidance</Text>
+                            </View>
+                            <Text style={[styles.sectionSubtitle, { color: isDark ? '#94A3B8' : appColors.secondaryText }]}>Tips for a safer journey</Text>
                         </View>
                     </View>
 
-                    <View style={[styles.guidanceCard, { backgroundColor: appColors.card, shadowColor: appColors.text }]}>
-                        <View style={[styles.guideIconBox, { backgroundColor: isDark ? 'rgba(37, 99, 235, 0.15)' : '#EFF6FF' }]}>
-                            <MaterialCommunityIcons name="share-variant" size={mS(24)} color={isDark ? '#60A5FA' : '#2563EB'} />
+                    <TouchableOpacity style={[styles.guidanceCard, { backgroundColor: isDark ? '#0B1120' : appColors.card, shadowColor: 'transparent', borderColor: isDark ? 'rgba(255,255,255,0.02)' : appColors.border, borderWidth: 1 }]} activeOpacity={0.7}>
+                        <View style={[styles.guideIconBox, { backgroundColor: isDark ? '#003F1F' : '#ECFDF5' }]}>
+                            <MaterialCommunityIcons name="shield-check" size={mS(24)} color={isDark ? '#00FF7F' : "#10B981"} />
                         </View>
                         <View style={styles.guideContent}>
-                            <Text style={[styles.guideTitle, { color: appColors.text }]}>Share Trip Status</Text>
-                            <Text style={[styles.guideDescription, { color: appColors.secondaryText }]}>Send your live location to your emergency contacts once the journey starts.</Text>
+                            <Text style={[styles.guideTitle, { color: isDark ? '#F8FAFC' : appColors.text }]}>Verify Your Ride</Text>
+                            <Text style={[styles.guideDescription, { color: isDark ? '#94A3B8' : appColors.secondaryText }]}>Check vehicle plate and driver's photo before getting in.</Text>
                         </View>
-                    </View>
+                        <MaterialCommunityIcons name="chevron-right" size={mS(20)} color={isDark ? '#64748B' : appColors.secondaryText} />
+                    </TouchableOpacity>
 
-                    <View style={[styles.guidanceCard, { backgroundColor: appColors.card, shadowColor: appColors.text }]}>
-                        <View style={[styles.guideIconBox, { backgroundColor: isDark ? 'rgba(220, 38, 38, 0.15)' : '#FEF2F2' }]}>
-                            <MaterialCommunityIcons name="alert-octagon" size={mS(24)} color="#DC2626" />
+                    <TouchableOpacity style={[styles.guidanceCard, { backgroundColor: isDark ? '#0B1120' : appColors.card, shadowColor: 'transparent', borderColor: isDark ? 'rgba(255,255,255,0.02)' : appColors.border, borderWidth: 1 }]} activeOpacity={0.7}>
+                        <View style={[styles.guideIconBox, { backgroundColor: isDark ? '#001F3F' : '#EFF6FF' }]}>
+                            <MaterialCommunityIcons name="share-variant" size={mS(24)} color={isDark ? '#00BFFF' : "#3B82F6"} />
                         </View>
                         <View style={styles.guideContent}>
-                            <Text style={[styles.guideTitle, { color: appColors.text }]}>Emergency SOS</Text>
-                            <Text style={[styles.guideDescription, { color: appColors.secondaryText }]}>Use the in-app SOS button to instantly alert local authorities and our support.</Text>
+                            <Text style={[styles.guideTitle, { color: isDark ? '#F8FAFC' : appColors.text }]}>Share Trip Status</Text>
+                            <Text style={[styles.guideDescription, { color: isDark ? '#94A3B8' : appColors.secondaryText }]}>Share your live location with trusted contacts.</Text>
                         </View>
+                        <MaterialCommunityIcons name="chevron-right" size={mS(20)} color={isDark ? '#64748B' : appColors.secondaryText} />
+                    </TouchableOpacity>
+                </View>
+
+                {/* --- BOTTOM PROMO BANNER --- */}
+                <View style={styles.bottomPromoContainer}>
+                    <View style={[styles.bottomPromoCard, { backgroundColor: isDark ? '#1E293B' : '#EBF4FF' }]}>
+                        <Image source={require('../../../../../assets/png/t2drive_city_road_clouds_background_hd.png')} style={[styles.bottomPromoBg, isDark && { opacity: 0.2 }]} resizeMode="cover" />
+                        <View style={styles.bottomPromoContent}>
+                            <Image source={require('../../../../../assets/png/t2drive_safety_shield_transparent_hd.png')} style={styles.bottomPromoShield} resizeMode="contain" />
+                            <View style={styles.bottomPromoTexts}>
+                                <Text style={[styles.bottomPromoTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>Stay Safe,{'\n'}Ride Smart</Text>
+                            </View>
+                        </View>
+                        <Image source={require('../../../../../assets/png/t2drive_car_transparent_hd.png')} style={styles.bottomPromoCar} resizeMode="contain" />
                     </View>
                 </View>
             </ScrollView>
 
-            {/* --- RELATIONSHIP SELECTION MODAL --- */}
             <RelationshipSelectionModal
                 visible={relationshipModalVisible}
                 contact={selectedContact}
@@ -438,98 +645,144 @@ const SafetyScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F8FAFC'
     },
     premiumHeader: {
-        backgroundColor: colors.button,
-        paddingTop: vS(50),
-        paddingBottom: vS(40),
-        paddingHorizontal: hS(30),
-        alignItems: 'center',
-        borderBottomLeftRadius: mS(40),
-        borderBottomRightRadius: mS(40),
+        position: 'relative',
+        overflow: 'hidden',
     },
-    headerIconContainer: {
-        width: mS(80),
-        height: mS(80),
-        borderRadius: mS(40),
-        backgroundColor: 'rgba(255, 255, 255, 0.15)',
-        justifyContent: 'center',
+    customHeader: {
+        flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: vS(16),
+        paddingHorizontal: hS(15),
+        paddingTop: vS(10),
+        zIndex: 5,
+    },
+    backButton: {
+        padding: mS(5),
+    },
+    customHeaderTitle: {
+        fontSize: mS(18),
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+        marginLeft: hS(5),
+    },
+    headerBgImage: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100%',
+        height: '100%',
+    },
+    headerBlueOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: '#0032c880',
+    },
+    headerContent: {
+        flex: 1,
+        flexDirection: 'row',
+        paddingTop: vS(15),
+        paddingHorizontal: hS(20),
+        position: 'relative',
+        zIndex: 2,
+    },
+    headerTextContainer: {
+        flex: 1,
+        marginTop: vS(20),
     },
     premiumTitle: {
-        color: '#FFF',
+        color: '#FFFFFF',
         fontSize: mS(24),
-        fontWeight: '800',
-        letterSpacing: 0.5,
+        fontWeight: '900',
+        lineHeight: mS(32),
     },
     premiumSubtitle: {
-        color: 'rgba(255, 255, 255, 0.8)',
-        textAlign: 'center',
-        marginTop: vS(8),
-        fontSize: mS(14),
-        lineHeight: vS(20),
-        paddingHorizontal: hS(10),
+        color: '#F8FAFC',
+        marginTop: vS(10),
+        fontSize: mS(12),
+        lineHeight: vS(18),
+        fontWeight: '600',
+    },
+    headerImageContainer: {
+        width: mS(220),
+        height: mS(220),
+        position: 'absolute',
+        bottom: vS(0),
+        right: -hS(10),
+        zIndex: 1,
+    },
+    shieldImage: {
+        width: mS(100),
+        height: mS(100),
+        position: 'absolute',
+        right: hS(15),
+        top: 0,
+    },
+    carImage: {
+        width: '100%',
+        height: '100%',
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
     },
     sectionContainer: {
-        marginTop: vS(32),
+        marginTop: vS(20),
         paddingHorizontal: hS(20),
     },
     sectionHeaderRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: vS(16),
+        marginBottom: vS(12),
     },
     sectionTitle: {
-        fontSize: mS(18),
+        fontSize: mS(16),
         fontWeight: '800',
-        color: '#1E293B',
     },
     sectionSubtitle: {
-        fontSize: mS(13),
-        color: '#64748B',
+        fontSize: mS(12),
         marginTop: vS(2),
         fontWeight: '500',
     },
     addIconButton: {
-        width: mS(44),
-        height: mS(44),
-        borderRadius: mS(14),
-        backgroundColor: '#FFFFFF',
-        justifyContent: 'center',
+        flexDirection: 'row',
         alignItems: 'center',
-        shadowColor: '#64748B',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 3,
+        backgroundColor: '#EFF6FF',
+        paddingHorizontal: hS(12),
+        paddingVertical: vS(6),
+        borderRadius: mS(20),
+    },
+    addBtnText: {
+        color: '#3B82F6',
+        fontWeight: '700',
+        fontSize: mS(13),
+        marginLeft: hS(2),
     },
     cardWrapper: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: mS(24),
-        shadowColor: '#64748B',
-        shadowOffset: { width: 0, height: 8 },
+        borderRadius: mS(20),
+        shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.05,
-        shadowRadius: 16,
-        elevation: 4,
+        shadowRadius: 10,
+        elevation: 2,
         overflow: 'hidden',
     },
     emptyStateBox: {
-        padding: vS(40),
+        padding: vS(30),
         alignItems: 'center',
         justifyContent: 'center',
     },
     emptyStateText: {
-        fontSize: mS(15),
+        fontSize: mS(14),
         fontWeight: '700',
-        color: '#475569',
         marginTop: vS(12),
     },
     emptyStateSubtext: {
-        fontSize: mS(13),
-        color: '#94A3B8',
+        fontSize: mS(12),
         marginTop: vS(4),
     },
     contactActionRow: {
@@ -537,42 +790,37 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: mS(16),
         borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
     },
     avatarBox: {
-        width: mS(44),
-        height: mS(44),
-        borderRadius: mS(15),
-        backgroundColor: '#F1F5F9',
+        width: mS(46),
+        height: mS(46),
+        borderRadius: mS(23),
+        backgroundColor: '#EFF6FF',
         justifyContent: 'center',
         alignItems: 'center',
     },
     avatarText: {
-        fontSize: mS(15),
-        fontWeight: '700',
-        color: colors.button,
+        fontSize: mS(18),
+        fontWeight: '800',
+        color: '#1E3A8A',
     },
     contactInfo: {
         flex: 1,
         marginLeft: hS(16),
     },
     contactNameText: {
-        fontSize: mS(15),
-        fontWeight: '700',
-        color: '#1E293B',
+        fontSize: mS(14),
+        fontWeight: '800',
     },
     contactPhoneText: {
-        fontSize: mS(13),
-        color: '#64748B',
-        marginTop: vS(1),
-        fontWeight: '500',
+        fontSize: mS(12),
+        marginTop: vS(2),
+        fontWeight: '600',
     },
     contactRelationshipText: {
-        fontSize: mS(12),
-        color: '#94A3B8',
-        marginTop: vS(2),
-        fontWeight: '500',
-        fontStyle: 'italic',
+        fontSize: mS(11),
+        marginTop: vS(4),
+        fontWeight: '600',
     },
     deleteAction: {
         padding: mS(8),
@@ -589,42 +837,127 @@ const styles = StyleSheet.create({
         color: '#B45309',
         fontWeight: '600',
     },
+    quickActionsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: vS(8),
+    },
+    quickActionCard: {
+        width: (width - hS(40) - hS(20)) / 3,
+        borderRadius: mS(16),
+        paddingVertical: vS(16),
+        paddingHorizontal: hS(4),
+        alignItems: 'center',
+    },
+    actionIconBox: {
+        width: mS(40),
+        height: mS(40),
+        borderRadius: mS(20),
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: vS(10),
+    },
+    actionTitle: {
+        fontSize: mS(12),
+        fontWeight: '800',
+        marginBottom: vS(4),
+    },
+    actionSubtitle: {
+        fontSize: mS(10),
+        color: '#64748B',
+        fontWeight: '500',
+        textAlign: 'center',
+    },
+    viewAllBtn: {
+        backgroundColor: '#EFF6FF',
+        paddingHorizontal: hS(12),
+        paddingVertical: vS(6),
+        borderRadius: mS(16),
+    },
+    viewAllText: {
+        color: '#3B82F6',
+        fontWeight: '700',
+        fontSize: mS(11),
+    },
     guidanceCard: {
         flexDirection: 'row',
-        backgroundColor: '#FFFFFF',
         padding: mS(16),
-        borderRadius: mS(20),
+        borderRadius: mS(16),
         marginBottom: vS(12),
         alignItems: 'center',
-        shadowColor: '#64748B',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.04,
         shadowRadius: 10,
         elevation: 2,
     },
     guideIconBox: {
-        width: mS(48),
-        height: mS(48),
-        borderRadius: mS(16),
+        width: mS(44),
+        height: mS(44),
+        borderRadius: mS(14),
         justifyContent: 'center',
         alignItems: 'center',
     },
     guideContent: {
         flex: 1,
         marginLeft: hS(16),
+        marginRight: hS(8),
     },
     guideTitle: {
-        fontSize: mS(15),
-        fontWeight: '700',
-        color: '#1E293B',
+        fontSize: mS(14),
+        fontWeight: '800',
     },
     guideDescription: {
-        fontSize: mS(13),
-        color: '#64748B',
-        lineHeight: mS(18),
-        marginTop: vS(2),
+        fontSize: mS(11),
+        lineHeight: mS(16),
+        marginTop: vS(4),
         fontWeight: '500',
     },
+    bottomPromoContainer: {
+        marginTop: vS(20),
+        paddingHorizontal: hS(20),
+    },
+    bottomPromoCard: {
+        height: mS(80),
+        borderRadius: mS(16),
+        backgroundColor: '#EBF4FF',
+        overflow: 'hidden',
+        position: 'relative',
+    },
+    bottomPromoBg: {
+        position: 'absolute',
+        width: '100%',
+        height: '100%',
+        opacity: 0.6,
+    },
+    bottomPromoContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        height: '100%',
+        paddingHorizontal: hS(16),
+        zIndex: 2,
+    },
+    bottomPromoShield: {
+        width: mS(36),
+        height: mS(36),
+        marginRight: hS(12),
+    },
+    bottomPromoTexts: {
+        justifyContent: 'center',
+    },
+    bottomPromoTitle: {
+        fontSize: mS(14),
+        fontWeight: '900',
+        color: '#0F172A',
+        lineHeight: mS(18),
+    },
+    bottomPromoCar: {
+        position: 'absolute',
+        width: mS(110),
+        height: mS(60),
+        right: hS(5),
+        bottom: vS(5),
+        zIndex: 3,
+    }
 });
 
 export default SafetyScreen;

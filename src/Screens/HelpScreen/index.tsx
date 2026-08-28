@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity,
-    ScrollView, TextInput, Linking, Alert
+    ScrollView, TextInput, Linking, Alert, Image
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { FAQDetailsScreen_Nav } from '../../Navigations/navigations';
@@ -10,6 +10,7 @@ import colors from '../../constant/colors';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { hS, mS, vS } from '../../lib/responsive';
 import FaqChatbotModal from './FaqChatbotModal';
+import Svg, { Path } from 'react-native-svg';
 
 const FAQ_CATEGORIES = [
     {
@@ -64,51 +65,83 @@ const HelpScreen: React.FC<ScreenProps> = () => {
     );
 
     return (
-        <View style={[styles.container, { backgroundColor: appColors.background }]}>
+        <View style={[styles.container, { backgroundColor: isDark ? '#020617' : '#F8FAFC' }]}>
+            {isDark && (
+                <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: vS(200) }}>
+                    <Svg height="100%" width="100%" viewBox="0 0 1440 320" preserveAspectRatio="none">
+                        <Path
+                            fill="rgba(30, 58, 138, 0.3)"
+                            d="M0,256L48,229.3C96,203,192,149,288,154.7C384,160,480,224,576,218.7C672,213,768,139,864,128C960,117,1056,171,1152,197.3C1248,224,1344,224,1392,224L1440,224L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"
+                        />
+                    </Svg>
+                </View>
+            )}
+
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
             >
                 {/* --- MODERN SUPPORT HEADER --- */}
-                <View style={[styles.supportHeader, { backgroundColor: appColors.card, shadowColor: isDark ? '#000' : '#64748B' }]}>
-                    <Text style={[styles.headerTitle, { color: appColors.text }]}>How can we help you?</Text>
-                    <Text style={[styles.headerSubtitle, { color: appColors.lightTextColor }]}>Our team is here to support you 24/7</Text>
+                <View style={[styles.supportHeader, { backgroundColor: 'transparent' }]}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: vS(16) }}>
+                        <View style={{ flex: 1 }}>
+                            <Text style={[styles.headerTitle, { color: isDark ? '#F8FAFC' : appColors.text }]}>How can we help you?</Text>
+                            <Text style={[styles.headerSubtitle, { color: isDark ? '#94A3B8' : appColors.lightTextColor }]}>Our team is here to support you 24/7</Text>
+                        </View>
+                        {isDark ? (
+                            <Image
+                                source={require('../../assets/png/HelpHeadesetDark.png')}
+                                style={{ width: mS(120), height: mS(120), resizeMode: 'contain' }}
+                            />
+                        ) : (
+                            <Image
+                                source={require('../../assets/png/HelpHeadset.png')}
+                                style={{ width: mS(120), height: mS(120), resizeMode: 'contain' }}
+                            />
+                        )}
+                    </View>
 
                     <View style={styles.contactRow}>
                         <TouchableOpacity
                             activeOpacity={0.7}
-                            style={[styles.contactCard, { backgroundColor: appColors.card, borderColor: appColors.border, shadowColor: isDark ? '#000' : '#64748B' }]}
+                            style={[styles.contactCard, { backgroundColor: isDark ? 'rgba(15, 23, 42, 0.6)' : '#F4FAF6', borderColor: isDark ? 'rgba(56, 189, 248, 0.2)' : '#D1FAE5' }]}
                             onPress={handleCall}
                         >
                             <View style={[styles.contactIconCircle, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.1)' : '#ECFDF5' }]}>
-                                <MaterialCommunityIcons name="phone" size={mS(24)} color="#10B981" />
+                                <MaterialCommunityIcons name="phone" size={mS(18)} color="#10B981" />
                             </View>
-                            <Text style={[styles.contactLabel, { color: appColors.text }]}>Call Us</Text>
-                            <Text style={[styles.contactSublabel, { color: appColors.lightTextColor }]}>Instant Support</Text>
+                            <View style={styles.contactTextWrapper}>
+                                <Text style={[styles.contactLabel, { color: isDark ? '#F8FAFC' : appColors.text }]}>Call Us</Text>
+                                <Text style={[styles.contactSublabel, { color: isDark ? '#94A3B8' : appColors.lightTextColor }]}>Instant Support</Text>
+                            </View>
+                            <MaterialCommunityIcons name="chevron-right" size={mS(16)} color={isDark ? '#64748B' : appColors.lightTextColor} />
                         </TouchableOpacity>
 
                         <TouchableOpacity
                             activeOpacity={0.7}
-                            style={[styles.contactCard, { backgroundColor: appColors.card, borderColor: appColors.border, shadowColor: isDark ? '#000' : '#64748B' }]}
+                            style={[styles.contactCard, { backgroundColor: isDark ? 'rgba(15, 23, 42, 0.6)' : '#F4F8FF', borderColor: isDark ? 'rgba(56, 189, 248, 0.2)' : '#DBEAFE' }]}
                             onPress={handleEmail}
                         >
-                            <View style={[styles.contactIconCircle, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.1)' : '#EFF6FF' }]}>
-                                <MaterialCommunityIcons name="email" size={mS(24)} color="#3B82F6" />
+                            <View style={[styles.contactIconCircle, { backgroundColor: isDark ? 'rgba(56, 189, 248, 0.1)' : '#EFF6FF' }]}>
+                                <MaterialCommunityIcons name="email" size={mS(18)} color={isDark ? '#38BDF8' : '#3B82F6'} />
                             </View>
-                            <Text style={[styles.contactLabel, { color: appColors.text }]}>Email Us</Text>
-                            <Text style={[styles.contactSublabel, { color: appColors.lightTextColor }]}>Within 24 hours</Text>
+                            <View style={styles.contactTextWrapper}>
+                                <Text style={[styles.contactLabel, { color: isDark ? '#F8FAFC' : appColors.text }]}>Email Us</Text>
+                                <Text style={[styles.contactSublabel, { color: isDark ? '#94A3B8' : appColors.lightTextColor }]}>Within 24 hours</Text>
+                            </View>
+                            <MaterialCommunityIcons name="chevron-right" size={mS(16)} color={isDark ? '#64748B' : appColors.lightTextColor} />
                         </TouchableOpacity>
                     </View>
                 </View>
 
                 {/* --- POLISHED SEARCH BAR --- */}
                 <View style={styles.searchWrapper}>
-                    <View style={[styles.searchContainer, { backgroundColor: appColors.card, borderColor: appColors.border, shadowColor: isDark ? '#000' : '#64748B' }]}>
-                        <MaterialCommunityIcons name="magnify" size={mS(22)} color={appColors.lightTextColor} />
+                    <View style={[styles.searchContainer, { backgroundColor: isDark ? 'rgba(15, 23, 42, 0.6)' : '#FFFFFF', borderColor: isDark ? 'rgba(255,255,255,0.05)' : '#F1F5F9' }]}>
+                        <MaterialCommunityIcons name="magnify" size={mS(20)} color={isDark ? '#64748B' : appColors.lightTextColor} />
                         <TextInput
                             placeholder="Search help topics..."
-                            placeholderTextColor={appColors.lightTextColor}
-                            style={[styles.searchInput, { color: appColors.text }]}
+                            placeholderTextColor={isDark ? '#64748B' : appColors.lightTextColor}
+                            style={[styles.searchInput, { color: isDark ? '#F8FAFC' : appColors.text }]}
                             value={search}
                             onChangeText={setSearch}
                         />
@@ -117,8 +150,10 @@ const HelpScreen: React.FC<ScreenProps> = () => {
 
                 {/* --- FAQ CATEGORIES SECTION --- */}
                 <View style={styles.faqSection}>
-                    <Text style={[styles.sectionTitle, { color: appColors.text }]}>Browse Categories</Text>
-                    <View style={[styles.cardContainer, { backgroundColor: appColors.card, shadowColor: isDark ? '#000' : '#64748B' }]}>
+                    <Text style={[styles.sectionTitle, { color: isDark ? '#F8FAFC' : appColors.text, marginBottom: vS(6) }]}>Browse Categories</Text>
+                    <View style={{ width: mS(36), height: vS(3), backgroundColor: isDark ? '#0EA5E9' : '#3B82F6', marginBottom: vS(12), borderRadius: mS(2) }} />
+                    
+                    <View style={[styles.cardContainer, { backgroundColor: isDark ? 'rgba(15, 23, 42, 0.6)' : '#FFFFFF', borderColor: isDark ? 'rgba(255,255,255,0.05)' : '#F1F5F9', paddingVertical: vS(8) }]}>
                         {filteredCategories.length > 0 ? (
                             filteredCategories.map((cat, index) => (
                                 <TouchableOpacity
@@ -126,7 +161,7 @@ const HelpScreen: React.FC<ScreenProps> = () => {
                                     activeOpacity={0.7}
                                     style={[
                                         styles.categoryActionRow,
-                                        { borderBottomColor: appColors.border },
+                                        { borderBottomColor: isDark ? 'rgba(255,255,255,0.05)' : appColors.border },
                                         index === filteredCategories.length - 1 && { borderBottomWidth: 0 }
                                     ]}
                                     onPress={() =>
@@ -136,37 +171,40 @@ const HelpScreen: React.FC<ScreenProps> = () => {
                                         })
                                     }
                                 >
-                                    <View style={[styles.categoryIconBox, { backgroundColor: appColors.iconBox }]}>
-                                        <MaterialCommunityIcons name={cat.icon} size={mS(22)} color={isDark ? appColors.text : colors.button} />
+                                    <View style={[styles.categoryIconBox, { backgroundColor: isDark ? '#1E293B' : '#F8FAFC' }]}>
+                                        <MaterialCommunityIcons name={cat.icon} size={mS(22)} color={isDark ? '#60A5FA' : '#1E293B'} />
                                     </View>
                                     <View style={styles.categoryContent}>
-                                        <Text style={[styles.categoryTitle, { color: appColors.text }]}>{cat.title}</Text>
-                                        <Text style={[styles.categorySub, { color: appColors.lightTextColor }]}>{cat.faqs.length} Questions Available</Text>
+                                        <Text style={[styles.categoryTitle, { color: isDark ? '#F8FAFC' : appColors.text }]}>{cat.title}</Text>
+                                        <Text style={[styles.categorySub, { color: isDark ? '#94A3B8' : appColors.lightTextColor }]}>{cat.faqs.length} Questions Available</Text>
                                     </View>
-                                    <MaterialCommunityIcons name="chevron-right" size={mS(20)} color={appColors.border} />
+                                    <MaterialCommunityIcons name="chevron-right" size={mS(20)} color={isDark ? '#64748B' : appColors.border} />
                                 </TouchableOpacity>
                             ))
                         ) : (
                             <View style={styles.noResultsBox}>
-                                <MaterialCommunityIcons name="alert-circle-outline" size={mS(32)} color={appColors.lightTextColor} />
-                                <Text style={[styles.noResultsText, { color: appColors.lightTextColor }]}>No help topics found for "{search}"</Text>
+                                <MaterialCommunityIcons name="alert-circle-outline" size={mS(32)} color={isDark ? '#64748B' : appColors.lightTextColor} />
+                                <Text style={[styles.noResultsText, { color: isDark ? '#94A3B8' : appColors.lightTextColor }]}>No help topics found for "{search}"</Text>
                             </View>
                         )}
                     </View>
                 </View>
 
                 <View style={styles.footerInfo}>
-                    <Text style={[styles.footerText, { color: appColors.lightTextColor }]}>Version 1.0.42 (Beta)</Text>
+                    <MaterialCommunityIcons name="shield-check-outline" size={mS(24)} color={isDark ? '#0EA5E9' : "#3B82F6"} style={{ marginBottom: vS(8) }} />
+                    <Text style={[styles.footerText, { color: isDark ? '#94A3B8' : appColors.lightTextColor }]}>We're committed to providing</Text>
+                    <Text style={[styles.footerText, { color: isDark ? '#94A3B8' : appColors.lightTextColor, marginBottom: vS(16) }]}>you the best support experience.</Text>
+                    <Text style={[styles.footerText, { color: isDark ? '#64748B' : appColors.lightTextColor }]}>Version 1.0.42 (Beta)</Text>
                 </View>
             </ScrollView>
 
             {/* --- FLOATING CHATBOT BUTTON --- */}
             <TouchableOpacity
-                style={[styles.fab, { backgroundColor: '#10B981' }]}
+                style={[styles.fab, { backgroundColor: isDark ? '#3B82F6' : '#4F46E5' }]}
                 onPress={() => setIsChatbotVisible(true)}
                 activeOpacity={0.8}
             >
-                <MaterialCommunityIcons name="chat-processing-outline" size={mS(32)} color="#FFFFFF" />
+                <MaterialCommunityIcons name="chat-processing" size={mS(28)} color="#FFFFFF" />
             </TouchableOpacity>
 
             <FaqChatbotModal
@@ -188,69 +226,64 @@ const styles = StyleSheet.create({
     supportHeader: {
         paddingTop: vS(8),
         paddingHorizontal: hS(20),
-        paddingBottom: vS(32),
+        paddingBottom: vS(20),
         backgroundColor: '#FFFFFF',
-        borderBottomLeftRadius: mS(30),
-        borderBottomRightRadius: mS(30),
-        shadowColor: '#64748B',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 3,
+        borderBottomLeftRadius: 0,
+        borderBottomRightRadius: 0,
     },
     headerTitle: {
-        fontSize: mS(24),
-        fontWeight: '800',
+        fontSize: mS(26),
+        fontWeight: '900',
         color: '#1E293B',
         letterSpacing: -0.5,
     },
     headerSubtitle: {
-        fontSize: mS(14),
+        fontSize: mS(13),
         color: '#64748B',
-        marginTop: vS(4),
+        marginTop: vS(2),
         fontWeight: '500',
-        marginBottom: vS(16),
     },
     contactRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        gap: hS(16),
+        gap: hS(12),
     },
     contactCard: {
         flex: 1,
+        flexDirection: 'row',
         backgroundColor: '#FFFFFF',
-        padding: mS(16),
-        borderRadius: mS(20),
+        padding: mS(10),
+        paddingHorizontal: hS(10),
+        borderRadius: mS(10),
         borderWidth: 1,
-        borderColor: '#F1F5F9',
+        borderColor: '#E5E7EB',
         alignItems: 'center',
-        shadowColor: '#64748B',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 6,
-        elevation: 2,
+        justifyContent: 'flex-start',
     },
     contactIconCircle: {
-        width: mS(52),
-        height: mS(52),
-        borderRadius: mS(26),
+        width: mS(34),
+        height: mS(34),
+        borderRadius: mS(17),
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: vS(12),
+        marginRight: hS(8),
+    },
+    contactTextWrapper: {
+        flex: 1,
     },
     contactLabel: {
-        fontSize: mS(15),
+        fontSize: mS(13),
         fontWeight: '700',
         color: '#1E293B',
     },
     contactSublabel: {
-        fontSize: mS(12),
+        fontSize: mS(10),
         color: '#94A3B8',
-        marginTop: vS(2),
+        marginTop: vS(1),
         fontWeight: '500',
     },
     searchWrapper: {
-        marginTop: vS(24),
+        marginTop: vS(12),
         paddingHorizontal: hS(20),
     },
     searchContainer: {
@@ -260,22 +293,18 @@ const styles = StyleSheet.create({
         paddingHorizontal: hS(16),
         borderRadius: mS(16),
         borderWidth: 1,
-        borderColor: '#E2E8F0',
-        height: vS(54),
-        shadowColor: '#64748B',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.02,
-        shadowRadius: 4,
+        borderColor: '#E5E7EB',
+        height: vS(44),
     },
     searchInput: {
         flex: 1,
-        marginLeft: hS(12),
-        fontSize: mS(15),
+        marginLeft: hS(10),
+        fontSize: mS(14),
         color: '#1E293B',
         fontWeight: '500',
     },
     faqSection: {
-        marginTop: vS(32),
+        marginTop: vS(20),
         paddingHorizontal: hS(20),
     },
     sectionTitle: {
@@ -286,35 +315,32 @@ const styles = StyleSheet.create({
     },
     cardContainer: {
         backgroundColor: '#FFFFFF',
-        borderRadius: mS(24),
-        shadowColor: '#64748B',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.05,
-        shadowRadius: 16,
-        elevation: 4,
+        borderRadius: mS(12),
+        borderWidth: 1,
+        borderColor: '#F1F5F9',
         overflow: 'hidden',
     },
     categoryActionRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: mS(16),
+        padding: mS(12),
         borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
+        borderBottomColor: '#F8FAFC',
     },
     categoryIconBox: {
-        width: mS(44),
-        height: mS(44),
-        borderRadius: mS(14),
+        width: mS(40),
+        height: mS(40),
+        borderRadius: mS(12),
         backgroundColor: '#F8FAFC',
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: hS(16),
+        marginRight: hS(14),
     },
     categoryContent: {
         flex: 1,
     },
     categoryTitle: {
-        fontSize: mS(15),
+        fontSize: mS(14),
         fontWeight: '700',
         color: '#1E293B',
     },
@@ -337,7 +363,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     footerInfo: {
-        marginTop: vS(40),
+        marginTop: vS(24),
         alignItems: 'center',
     },
     footerText: {
@@ -349,12 +375,12 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: vS(30),
         right: hS(20),
-        width: mS(60),
-        height: mS(60),
-        borderRadius: mS(30),
+        width: mS(56),
+        height: mS(56),
+        borderRadius: mS(28),
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#10B981',
+        shadowColor: '#4F46E5',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,

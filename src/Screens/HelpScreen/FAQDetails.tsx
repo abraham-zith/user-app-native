@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import colors from '../../constant/colors';
 import { useAppTheme } from '../../hooks/useAppTheme';
@@ -20,9 +20,14 @@ const FAQDetails = ({ route }: any) => {
     return (
         <View style={[styles.container, { backgroundColor: appColors.background }]}>
             {/* --- MODERN HEADER --- */}
-            <View style={[styles.header, { paddingTop: insets.top, backgroundColor: appColors.card, shadowColor: isDark ? '#000' : '#64748B' }]}>
-                <Text style={[styles.headerTitle, { color: appColors.text }]}>{title}</Text>
-                <Text style={[styles.headerSubtitle, { color: appColors.lightTextColor }]}>Find answers to the most common questions</Text>
+            <View style={[styles.headerCard, { marginTop: vS(16) }]}>
+                <View style={styles.headerContentWrapper}>
+                    <View style={styles.headerTextWrapper}>
+                        <Text style={[styles.headerTitle, { color: '#1E293B' }]}>{title}</Text>
+                        <Text style={[styles.headerSubtitle, { color: '#64748B' }]}>Find answers to the most common questions</Text>
+                    </View>
+                    <Image source={require('../../assets/png/FAQImage.png')} style={styles.headerImage} />
+                </View>
             </View>
 
             <FlatList
@@ -35,39 +40,48 @@ const FAQDetails = ({ route }: any) => {
                     return (
                         <View style={[
                             styles.faqCard,
-                            { backgroundColor: appColors.card, borderColor: appColors.border, shadowColor: isDark ? '#000' : '#64748B' },
-                            isExpanded && (isDark ? { borderColor: appColors.lightTextColor + '40' } : styles.faqCardExpanded)
+                            { backgroundColor: appColors.card, borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#F1F5F9' }
                         ]}>
                             <TouchableOpacity
                                 activeOpacity={0.7}
                                 style={styles.questionRow}
                                 onPress={() => toggleExpand(item.id)}
                             >
-                                <Text style={[
-                                    styles.questionText,
-                                    { color: appColors.text },
-                                    isExpanded && (isDark ? { color: appColors.text } : styles.questionTextActive)
-                                ]}>
-                                    {item.question}
-                                </Text>
-                                <View style={[
-                                    styles.iconCircle,
-                                    { backgroundColor: appColors.iconBox },
-                                    isExpanded && (isDark ? { backgroundColor: appColors.lightTextColor + '40' } : styles.iconCircleActive)
-                                ]}>
+                                <View style={styles.questionRowLeft}>
+                                    <View style={[styles.leftIconCircle, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#EFF6FF' }]}>
+                                        <MaterialCommunityIcons
+                                            name={item.id === 'r1' ? 'map-search-outline' : (item.id === 'r2' ? 'map-marker-path' : (item.id.startsWith('d') ? 'account-tie' : 'credit-card-outline'))}
+                                            size={mS(20)}
+                                            color={isDark ? appColors.text : "#1E3A8A"}
+                                        />
+                                    </View>
+                                    <Text style={[styles.questionText, { color: appColors.text }]}>
+                                        {item.question}
+                                    </Text>
+                                </View>
+                                <View style={[styles.rightIconCircle, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#EFF6FF' }]}>
                                     <MaterialCommunityIcons
                                         name={isExpanded ? "minus" : "plus"}
-                                        size={mS(20)}
-                                        color={isExpanded ? "#FFF" : (isDark ? appColors.text : colors.button)}
+                                        size={mS(18)}
+                                        color={isDark ? appColors.text : "#1E3A8A"}
                                     />
                                 </View>
                             </TouchableOpacity>
 
                             {isExpanded && (
                                 <View style={styles.answerRow}>
-                                    <View style={[styles.answerContent, { backgroundColor: appColors.background }]}>
-                                        <Text style={[styles.answerText, { color: appColors.lightTextColor }]}>{item.answer}</Text>
-                                    </View>
+                                    <View style={[styles.separator, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#F1F5F9' }]} />
+                                    <Text style={[styles.answerText, { color: appColors.lightTextColor }]}>{item.answer}</Text>
+
+                                    {item.id === 'r1' && (
+                                        <TouchableOpacity 
+                                            style={[styles.actionBox, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.1)' : '#F4F8FE' }]} 
+                                            activeOpacity={0.8}
+                                        >
+                                            <MaterialCommunityIcons name="map-outline" size={mS(18)} color="#3B82F6" />
+                                            <Text style={styles.actionBoxText}>Go to the Trip screen to live track your ride.</Text>
+                                        </TouchableOpacity>
+                                    )}
                                 </View>
                             )}
                         </View>
@@ -83,17 +97,32 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#F8FAFC'
     },
-    header: {
-        paddingHorizontal: hS(24),
-        paddingBottom: vS(20),
-        backgroundColor: '#FFFFFF',
-        borderBottomLeftRadius: mS(30),
-        borderBottomRightRadius: mS(30),
-        shadowColor: '#64748B',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.04,
-        shadowRadius: 10,
-        elevation: 3,
+    headerCard: {
+        marginHorizontal: hS(16),
+        backgroundColor: '#F0F6FF',
+        borderRadius: mS(16),
+        overflow: 'hidden',
+        marginBottom: vS(8),
+    },
+    headerContentWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: hS(20),
+        paddingVertical: vS(12),
+        minHeight: vS(120),
+    },
+    headerTextWrapper: {
+        flex: 1,
+        zIndex: 1,
+    },
+    headerImage: {
+        position: 'absolute',
+        right: 0,
+        bottom: 0,
+        top: 0,
+        width: mS(200),
+        height: '100%',
+        resizeMode: 'cover',
     },
     headerTitle: {
         fontSize: mS(22),
@@ -104,71 +133,89 @@ const styles = StyleSheet.create({
     headerSubtitle: {
         fontSize: mS(14),
         color: '#64748B',
-        marginTop: vS(4),
+        marginTop: vS(6),
         fontWeight: '500',
+        paddingRight: hS(40),
     },
     listPadding: {
-        padding: mS(20),
-        paddingTop: vS(24),
+        padding: mS(16),
+        paddingTop: vS(4),
     },
     faqCard: {
         backgroundColor: '#FFFFFF',
-        borderRadius: mS(20),
-        marginBottom: vS(16),
+        borderRadius: mS(16),
+        marginBottom: vS(12),
         shadowColor: '#64748B',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 12,
+        shadowOpacity: 0.08,
+        shadowRadius: 16,
         elevation: 3,
-        borderWidth: 1,
-        borderColor: '#F1F5F9',
-        overflow: 'hidden',
-    },
-    faqCardExpanded: {
-        borderColor: colors.button + '40', // 25% opacity of theme color
+        marginHorizontal: hS(2),
     },
     questionRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: mS(20)
+        padding: mS(16)
+    },
+    questionRowLeft: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    leftIconCircle: {
+        width: mS(36),
+        height: mS(36),
+        borderRadius: mS(18),
+        backgroundColor: '#EFF6FF',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: hS(16),
     },
     questionText: {
         flex: 1,
         fontSize: mS(15),
         fontWeight: '700',
-        color: '#334155',
-        lineHeight: mS(20),
+        color: '#1E293B',
+        lineHeight: mS(22),
     },
-    questionTextActive: {
-        color: colors.button,
-    },
-    iconCircle: {
-        width: mS(32),
-        height: mS(32),
-        borderRadius: mS(16),
-        backgroundColor: '#F8FAFC',
+    rightIconCircle: {
+        width: mS(36),
+        height: mS(36),
+        borderRadius: mS(18),
+        backgroundColor: '#EFF6FF',
         justifyContent: 'center',
         alignItems: 'center',
         marginLeft: hS(12),
     },
-    iconCircleActive: {
-        backgroundColor: colors.button,
-    },
     answerRow: {
-        paddingBottom: vS(20),
-        paddingHorizontal: hS(20),
+        paddingBottom: vS(16),
+        paddingHorizontal: hS(16),
     },
-    answerContent: {
-        padding: mS(16),
-        backgroundColor: '#F8FAFC',
-        borderRadius: mS(14),
+    separator: {
+        height: 1,
+        backgroundColor: '#F1F5F9',
+        marginBottom: vS(12),
     },
     answerText: {
         fontSize: mS(14),
         color: '#64748B',
         lineHeight: mS(22),
         fontWeight: '500',
+    },
+    actionBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F4F8FE',
+        padding: mS(12),
+        borderRadius: mS(10),
+        marginTop: vS(12),
+    },
+    actionBoxText: {
+        color: '#3B82F6',
+        fontSize: mS(13),
+        fontWeight: '500',
+        marginLeft: hS(8),
     }
 });
 

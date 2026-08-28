@@ -7,15 +7,16 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Activity from "../Screens/NavBarMenu/ActivityScreen";
 import React from "react";
-import { Platform, View } from "react-native";
+import { Platform, View, TouchableOpacity, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
 import { RootState } from "../redux/store";
 import { useAppTheme } from "../hooks/useAppTheme";
+import { LocationSearch_Nav } from "./navigations";
 
 const Tab = createBottomTabNavigator();
 
-const TabNavigations: React.FC<ScreenProps> = ({ navigation }) => {
+const TabNavigations: React.FC<any> = ({ navigation }) => {
     const insets = useSafeAreaInsets();
     const activeTripsCount = useSelector((state: RootState) => state.tripSlice.activeTrips.length);
     const { colors: appColors, isDark } = useAppTheme();
@@ -32,26 +33,26 @@ const TabNavigations: React.FC<ScreenProps> = ({ navigation }) => {
                     marginTop: 4, // Adds space between icon and text
                 },
                 tabBarStyle: {
-                    backgroundColor: isDark ? appColors.background : '#FFFFFF',
+                    backgroundColor: isDark ? '#020813' : '#FFFFFF',
                     height: Platform.OS === 'ios' ? 85 : 75, // Slightly taller
                     borderTopWidth: 0, // Removes the default gray border completely
                     paddingBottom: Platform.OS === 'ios' ? 25 : 12,
                     paddingTop: 8,
 
                     // --- TOP SHADOW FOR IOS ---
-                    shadowColor: '#000',
+                    shadowColor: isDark ? '#007BFF' : '#000',
                     shadowOffset: {
                         width: 0,
                         height: -4, // Softer top shadow
                     },
-                    shadowOpacity: 0.05,
+                    shadowOpacity: isDark ? 0.15 : 0.05,
                     shadowRadius: 10,
 
                     // --- TOP SHADOW FOR ANDROID ---
                     elevation: 10,
 
                 },
-                tabBarActiveTintColor: isDark ? appColors.primary : colors.button,
+                tabBarActiveTintColor: isDark ? '#00C2FF' : colors.button,
                 tabBarInactiveTintColor: '#94A3B8',
                 tabBarIcon: ({ focused }) => {
                     let icons = {
@@ -61,6 +62,8 @@ const TabNavigations: React.FC<ScreenProps> = ({ navigation }) => {
                         Profile: 'person'
                     } as const;
 
+                    if (route.name === 'BookRide') return null;
+
                     const iconName = icons[route.name as keyof typeof icons];
 
                     return (
@@ -68,7 +71,7 @@ const TabNavigations: React.FC<ScreenProps> = ({ navigation }) => {
                             alignItems: 'center',
                             justifyContent: 'center',
                         }}>
-                            <MaterialIcons name={iconName} size={focused ? 28 : 24} color={focused ? isDark ? appColors.primary : colors.button : '#94A3B8'} />
+                            <MaterialIcons name={iconName} size={focused ? 28 : 24} color={focused ? (isDark ? '#00C2FF' : colors.button) : '#94A3B8'} />
                         </View>
                     )
                 },
@@ -79,6 +82,53 @@ const TabNavigations: React.FC<ScreenProps> = ({ navigation }) => {
         >
             <Tab.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
             <Tab.Screen name="Service" component={ServiceScreen} options={{ headerShown: false }} />
+
+            {/* Custom Book Ride Button */}
+            <Tab.Screen
+                name="BookRide"
+                component={View}
+                listeners={() => ({
+                    tabPress: (e) => {
+                        e.preventDefault();
+                        navigation.navigate(LocationSearch_Nav, { screenName: 'OneWay' });
+                    },
+                })}
+                options={{
+                    tabBarLabel: () => null,
+                    tabBarButton: (props) => (
+                        <View style={{ top: -24, alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+                            <TouchableOpacity
+                                activeOpacity={0.9}
+                                onPress={() => navigation.navigate(LocationSearch_Nav, { screenName: 'OneWay' })}
+                                style={{
+                                    width: 64,
+                                    height: 64,
+                                    borderRadius: 32,
+                                    backgroundColor: isDark ? '#007BFF' : colors.button, // Bright Blue
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    shadowColor: isDark ? '#00C2FF' : colors.button,
+                                    shadowOpacity: 0.8,
+                                    shadowRadius: 15,
+                                    shadowOffset: { width: 0, height: 4 },
+                                    elevation: 12,
+                                }}
+                            >
+                                <MaterialCommunityIcons name="car" size={32} color="#FFF" />
+                            </TouchableOpacity>
+                            <Text style={{
+                                color: isDark ? '#00C2FF' : colors.button,
+                                fontSize: 11,
+                                fontWeight: '700',
+                                marginTop: 6
+                            }}>
+                                Book Ride
+                            </Text>
+                        </View>
+                    )
+                }}
+            />
+
             <Tab.Screen name="Activity" component={Activity}
                 options={({ navigation }) => ({
                     headerShown: true,

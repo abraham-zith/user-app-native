@@ -268,18 +268,17 @@ const CheckoutScreen = () => {
                 contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + vS(120) }]}
                 showsVerticalScrollIndicator={false}
             >
-                <Animated.View entering={FadeInDown.duration(600)} style={styles.contentHeader}>
-                    <Text style={[styles.title, { color: appColors.text }]}>Payment Summary</Text>
-                    <Text style={[styles.subtitle, { color: appColors.secondaryText }]}>Please review the details below</Text>
-                </Animated.View>
-
                 {/* TRIP SUMMARY CARD */}
-                <Animated.View entering={FadeInUp.delay(200).duration(600)} style={[styles.summaryCard, { backgroundColor: appColors.card, borderColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9', borderWidth: isDark ? 1 : 0 }]}>
-                    <View style={styles.cardHeader}>
-                        <View style={[styles.badge, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : 'rgba(30, 64, 175, 0.1)' }]}>
-                            <Text style={[styles.badgeText, { color: isDark ? '#60A5FA' : colors.button }]}>{product.description}</Text>
+                <Animated.View entering={FadeInUp.delay(200).duration(600)} style={[styles.tripCard, { backgroundColor: appColors.card, borderColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#E2E8F0' }]}>
+                    <View style={[styles.tripCardHeader, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#F0F5FF' }]}>
+                        <View style={[styles.carIconBox, { backgroundColor: isDark ? '#1E293B' : '#FFFFFF' }]}>
+                            <MaterialCommunityIcons name="car" size={mS(24)} color={isDark ? '#60A5FA' : '#0F172A'} />
                         </View>
-                        <MaterialCommunityIcons name="credit-card-outline" size={mS(24)} color={isDark ? '#60A5FA' : colors.button} />
+                        <View style={styles.tripCardHeaderTexts}>
+                            <Text style={[styles.tripCardTitle, { color: appColors.text }]} numberOfLines={1}>{product.description}</Text>
+                            <Text style={[styles.tripCardSubtitle, { color: appColors.secondaryText }]}>22 Jul 2026 • 7:00 PM</Text>
+                        </View>
+                        <MaterialCommunityIcons name="chevron-down" size={mS(24)} color={appColors.text} />
                     </View>
 
                     {/* ROUTE INFO */}
@@ -291,61 +290,55 @@ const CheckoutScreen = () => {
                         </View>
                         <View style={styles.routeDetails}>
                             <View style={styles.locationBox}>
-                                <Text style={[styles.locationLabel, { color: isDark ? '#94A3B8' : '#94A3B8' }]}>PICKUP</Text>
+                                <Text style={[styles.locationLabel, { color: '#64748B' }]}>PICKUP</Text>
                                 <Text style={[styles.locationText, { color: appColors.text }]}>{product.pickupaddress}</Text>
                             </View>
                             <View style={[styles.locationBox, { marginTop: vS(20) }]}>
-                                <Text style={[styles.locationLabel, { color: isDark ? '#94A3B8' : '#94A3B8' }]}>DROP-OFF</Text>
+                                <Text style={[styles.locationLabel, { color: '#64748B' }]}>DROP-OFF</Text>
                                 <Text style={[styles.locationText, { color: appColors.text }]}>{product.dropaddress}</Text>
                             </View>
                         </View>
                     </View>
+                </Animated.View>
 
-                    <View style={[styles.divider, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9' }]} />
-
+                {/* PAYMENT & FARE CARD */}
+                <Animated.View entering={FadeInUp.delay(300).duration(600)} style={[styles.paymentCard, { backgroundColor: appColors.card, borderColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#E2E8F0' }]}>
                     {/* PAYMENT METHOD SELECTION */}
                     <View style={styles.methodSection}>
-                        <Text style={[styles.sectionHeader, { color: appColors.secondaryText }]}>PAYMENT METHOD</Text>
+                        <Text style={[styles.sectionHeader, { color: '#64748B' }]}>PAYMENT METHOD</Text>
                         <View style={styles.methodRow}>
                             <TouchableOpacity
-                                style={[styles.methodButton, paymentMethod === 'ONLINE' && { borderColor: '#10B981', backgroundColor: isDark ? 'rgba(59, 130, 246, 0.1)' : 'rgba(30, 64, 175, 0.05)' }]}
+                                style={[styles.methodButton, paymentMethod === 'ONLINE' && { borderColor: '#10B981', backgroundColor: '#F0FDF4' }]}
                                 onPress={() => setPaymentMethod('ONLINE')}
                             >
-                                <MaterialCommunityIcons name="credit-card" size={mS(20)} color={paymentMethod === 'ONLINE' ? '#10B981' : appColors.secondaryText} />
+                                <MaterialCommunityIcons name="credit-card" size={mS(20)} color={paymentMethod === 'ONLINE' ? '#10B981' : '#64748B'} />
                                 <Text style={[styles.methodText, { color: paymentMethod === 'ONLINE' ? '#10B981' : appColors.text }]}>Online</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={[styles.methodButton, paymentMethod === 'CASH' && { borderColor: '#10B981', backgroundColor: isDark ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.05)' }]}
+                                style={[styles.methodButton, paymentMethod === 'CASH' && { borderColor: '#10B981', backgroundColor: '#F0FDF4' }]}
                                 onPress={() => setPaymentMethod('CASH')}
                             >
-                                <MaterialCommunityIcons name="cash" size={mS(20)} color={paymentMethod === 'CASH' ? '#10B981' : appColors.secondaryText} />
+                                <MaterialCommunityIcons name="cash" size={mS(20)} color={paymentMethod === 'CASH' ? '#10B981' : '#64748B'} />
                                 <Text style={[styles.methodText, { color: paymentMethod === 'CASH' ? '#10B981' : appColors.text }]}>Cash</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={[styles.methodButton, paymentMethod === 'WALLET' && { borderColor: '#60A5FA', backgroundColor: isDark ? 'rgba(96,165,250,0.1)' : 'rgba(30,64,175,0.05)' }]}
+                                style={[styles.methodButton, paymentMethod === 'WALLET' && { borderColor: '#10B981', backgroundColor: '#F0FDF4' }]}
                                 onPress={() => setPaymentMethod('WALLET')}
                             >
-                                <MaterialCommunityIcons name="wallet" size={mS(20)} color={paymentMethod === 'WALLET' ? '#60A5FA' : appColors.secondaryText} />
-                                <Text style={[styles.methodText, { color: paymentMethod === 'WALLET' ? '#60A5FA' : appColors.text }]}>Wallet</Text>
-                                {paymentMethod === 'WALLET' && (
-                                    <Text style={{ fontSize: mS(10), color: walletBalance >= product.payable ? '#10B981' : '#EF4444', fontWeight: '700', marginLeft: hS(2) }}>
-                                        ₹{walletBalance.toFixed(0)}
-                                    </Text>
-                                )}
+                                <MaterialCommunityIcons name="wallet" size={mS(20)} color={paymentMethod === 'WALLET' ? '#10B981' : '#64748B'} />
+                                <Text style={[styles.methodText, { color: paymentMethod === 'WALLET' ? '#10B981' : appColors.text }]}>Wallet</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
 
-                    <View style={[styles.divider, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9' }]} />
-
                     {/* FARE BREAKDOWN */}
                     <View style={styles.fareSection}>
                         <View style={styles.fareRow}>
-                            <Text style={[styles.fareLabel, { color: appColors.secondaryText }]}>Ride Fare</Text>
+                            <Text style={[styles.fareLabel, { color: '#64748B' }]}>Ride Fare</Text>
                             <Text style={[styles.fareValue, { color: appColors.text }]}>₹{Number(product.Bprice).toFixed(2)}</Text>
                         </View>
                         <View style={styles.fareRow}>
-                            <Text style={[styles.fareLabel, { color: appColors.secondaryText }]}>Driver Allowance</Text>
+                            <Text style={[styles.fareLabel, { color: '#64748B' }]}>Driver Allowance</Text>
                             <Text style={[styles.fareValue, { color: appColors.text }]}>₹{Number(product.allowances).toFixed(2)}</Text>
                         </View>
                         {product.discount > 0 && (
@@ -356,45 +349,40 @@ const CheckoutScreen = () => {
                                 <Text style={[styles.fareValue, { color: '#10B981' }]}>- ₹{Number(product.discount).toFixed(2)}</Text>
                             </View>
                         )}
-                        <View style={[styles.fareRow, styles.totalRow, { borderTopColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9' }]}>
+                        <View style={[styles.dottedDivider, { borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0' }]} />
+                        <View style={[styles.fareRow, styles.totalRow]}>
                             <Text style={[styles.totalLabel, { color: appColors.text }]}>Total Payable</Text>
-                            <Text style={[styles.totalValue, { color: isDark ? '#60A5FA' : colors.button }]}>₹{Number(product.payable).toFixed(2)}</Text>
+                            <Text style={[styles.totalValue, { color: appColors.text }]}>₹{Number(product.payable).toFixed(2)}</Text>
                         </View>
-                    </View>
-
-                    <View style={[styles.securityBadge, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.1)' : '#F0FDF4' }]}>
-                        <MaterialCommunityIcons name="shield-lock" size={mS(16)} color={isDark ? '#34D399' : "#10B981"} />
-                        <Text style={[styles.securityText, { color: isDark ? '#34D399' : '#10B981' }]}>Payment Securely Processed via Razorpay</Text>
                     </View>
                 </Animated.View>
             </ScrollView>
 
             {/* STICKY FOOTER */}
-            <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, vS(20)), backgroundColor: appColors.card, borderTopColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9' }]}>
+            <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, vS(20)), backgroundColor: '#FFF' }]}>
                 <TouchableOpacity
                     onPress={handleConfirmPayment}
                     disabled={paymentStatus === 'processing'}
                     style={[
                         styles.payButton,
-                        paymentMethod === 'CASH' && { backgroundColor: '#10B981', shadowColor: '#10B981' },
                         paymentStatus === 'processing' && { opacity: 0.8 },
-                        paymentStatus === 'failed' && { backgroundColor: '#EF4444', shadowColor: '#EF4444' }
+                        paymentStatus === 'failed' && { backgroundColor: '#EF4444' }
                     ]}
                 >
                     <View style={styles.btnContent}>
                         <Text style={styles.payButtonText}>
                             {paymentStatus === 'processing' ? 'Processing...' :
                                 paymentStatus === 'failed' ? 'Retry Payment' :
-                                    paymentMethod === 'CASH' ? 'Confirm Payment (Cash)' :
-                                    paymentMethod === 'WALLET' ? `Pay ₹${Number(product.payable).toFixed(2)} via Wallet` :
                                     `Confirm & Pay ₹${Number(product.payable).toFixed(2)}`}
                         </Text>
                         {paymentStatus !== 'processing' && (
-                            <MaterialCommunityIcons
-                                name={paymentMethod === 'CASH' ? "hand-coin-outline" : paymentMethod === 'WALLET' ? "wallet" : "check-circle"}
-                                size={mS(20)}
-                                color="#FFF"
-                            />
+                            <>
+                                <MaterialCommunityIcons name="lock-outline" size={mS(18)} color="#FFF" style={{ marginLeft: hS(4) }} />
+                                <View style={{ flex: 1 }} />
+                                <View style={styles.checkCircle}>
+                                    <MaterialCommunityIcons name="check" size={mS(16)} color="#0F172A" />
+                                </View>
+                            </>
                         )}
                     </View>
                 </TouchableOpacity>
@@ -458,58 +446,49 @@ const styles = StyleSheet.create({
         paddingHorizontal: hS(20),
         paddingTop: vS(20),
     },
-    contentHeader: {
-        marginBottom: vS(24),
-    },
-    sectionHeader: {
-        fontSize: mS(12),
-        fontWeight: '800',
-        color: '#94A3B8',
-        letterSpacing: 1,
-        marginBottom: vS(16),
-        textTransform: 'uppercase'
-    },
-    title: {
-        fontSize: mS(24),
-        fontWeight: '800',
-        color: '#0F172A',
-    },
-    subtitle: {
-        fontSize: mS(14),
-        color: '#64748B',
-        marginTop: vS(4),
-    },
-    summaryCard: {
+    tripCard: {
         backgroundColor: '#FFF',
-        borderRadius: mS(24),
-        padding: mS(24),
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 5,
+        borderRadius: mS(12),
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        overflow: 'hidden',
+        marginBottom: vS(16),
     },
-    cardHeader: {
+    tripCardHeader: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: vS(24),
+        padding: mS(16),
+        backgroundColor: '#F0F5FF',
     },
-    badge: {
-        backgroundColor: 'rgba(30, 64, 175, 0.1)',
-        paddingHorizontal: hS(12),
-        paddingVertical: vS(6),
-        borderRadius: mS(100),
+    carIconBox: {
+        backgroundColor: '#FFF',
+        padding: mS(8),
+        borderRadius: mS(8),
+        marginRight: hS(12),
     },
-    badgeText: {
-        fontSize: mS(12),
+    tripCardHeaderTexts: {
+        flex: 1,
+    },
+    tripCardTitle: {
+        fontSize: mS(14),
         fontWeight: '700',
-        color: colors.button,
-        letterSpacing: 0.5,
+        textTransform: 'uppercase',
+    },
+    tripCardSubtitle: {
+        fontSize: mS(12),
+        color: '#64748B',
+        marginTop: vS(2),
+    },
+    paymentCard: {
+        backgroundColor: '#FFF',
+        borderRadius: mS(12),
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        padding: mS(16),
     },
     routeSection: {
         flexDirection: 'row',
-        marginBottom: vS(24),
+        padding: mS(16),
     },
     routeIndicator: {
         width: hS(24),
@@ -537,7 +516,7 @@ const styles = StyleSheet.create({
     locationLabel: {
         fontSize: mS(10),
         fontWeight: '800',
-        color: '#94A3B8',
+        color: '#64748B',
         letterSpacing: 1,
     },
     locationText: {
@@ -546,13 +525,14 @@ const styles = StyleSheet.create({
         color: '#1E293B',
         lineHeight: mS(20),
     },
-    divider: {
-        height: 1,
-        backgroundColor: '#F1F5F9',
-        marginVertical: vS(24),
+    sectionHeader: {
+        fontSize: mS(12),
+        fontWeight: '800',
+        letterSpacing: 1,
+        marginBottom: vS(12),
     },
     methodSection: {
-        marginBottom: vS(8),
+        marginBottom: vS(24),
     },
     methodRow: {
         flexDirection: 'row',
@@ -564,7 +544,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         paddingVertical: vS(12),
-        borderRadius: mS(12),
+        borderRadius: mS(8),
         borderWidth: 1.5,
         borderColor: '#E2E8F0',
         gap: hS(8),
@@ -590,11 +570,14 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: '#334155',
     },
+    dottedDivider: {
+        borderTopWidth: 1.5,
+        borderColor: '#E2E8F0',
+        borderStyle: 'dashed',
+        marginVertical: vS(4),
+    },
     totalRow: {
-        marginTop: vS(8),
-        paddingTop: vS(16),
-        borderTopWidth: 1,
-        borderTopColor: '#F1F5F9',
+        marginTop: vS(4),
     },
     totalLabel: {
         fontSize: mS(18),
@@ -602,24 +585,9 @@ const styles = StyleSheet.create({
         color: '#1E293B',
     },
     totalValue: {
-        fontSize: mS(24),
+        fontSize: mS(22),
         fontWeight: '900',
-        color: colors.button,
-    },
-    securityBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: vS(32),
-        backgroundColor: '#F0FDF4',
-        paddingVertical: vS(10),
-        borderRadius: mS(12),
-        gap: hS(8),
-    },
-    securityText: {
-        fontSize: mS(11),
-        color: '#10B981',
-        fontWeight: '700',
+        color: '#0F172A',
     },
     footer: {
         position: 'absolute',
@@ -629,35 +597,33 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFF',
         paddingHorizontal: hS(20),
         paddingTop: vS(16),
-        borderTopLeftRadius: mS(24),
-        borderTopRightRadius: mS(24),
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -10 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 15,
+        borderTopWidth: 0,
     },
     payButton: {
-        backgroundColor: colors.button,
-        height: vS(60),
-        borderRadius: mS(18),
+        backgroundColor: '#0F172A',
+        height: vS(56),
+        borderRadius: mS(12),
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: colors.button,
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.3,
-        shadowRadius: 12,
-        elevation: 8,
     },
     btnContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: hS(12),
+        width: '100%',
+        paddingHorizontal: hS(24),
     },
     payButtonText: {
         color: '#FFF',
-        fontSize: mS(18),
-        fontWeight: '800',
+        fontSize: mS(16),
+        fontWeight: '700',
+    },
+    checkCircle: {
+        width: mS(24),
+        height: mS(24),
+        borderRadius: mS(12),
+        backgroundColor: '#FFF',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     // Wallet PIN Modal
     modalOverlay: {

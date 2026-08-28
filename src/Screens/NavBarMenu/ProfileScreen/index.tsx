@@ -32,6 +32,7 @@ import { getLoggedUser } from "../../../service/validation";
 import Skeleton from "../../../Components/Skeleton";
 import FastImage from "react-native-fast-image";
 import { useAppTheme } from "../../../hooks/useAppTheme";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ProfileScreenSkeleton = () => {
     const insets = useSafeAreaInsets();
@@ -42,28 +43,71 @@ const ProfileScreenSkeleton = () => {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: insets.bottom + vS(20) }}
             >
-                {/* --- PREMIUM PROFILE CARD SKELETON --- */}
-                <View style={[styles.premiumCard, { backgroundColor: colors.card, shadowColor: isDark ? '#000' : '#64748B' }]}>
-                    <View style={styles.headerContent}>
-                        <Skeleton width={90} height={90} borderRadius={45} />
-                        <View style={{ marginLeft: 20, flex: 1, gap: 10 }}>
-                            <Skeleton width="70%" height={24} />
-                            <Skeleton width="50%" height={16} />
-                            <Skeleton width={100} height={30} borderRadius={20} />
+                {/* --- DRIVER APP STYLE PROFILE HEADER SKELETON --- */}
+                <View style={{ height: vS(120), backgroundColor: isDark ? colors.card : '#E2E8F0', overflow: 'hidden' }}>
+                    <Skeleton width="100%" height="100%" borderRadius={0} />
+                </View>
+
+                <View style={{ alignItems: 'center', marginTop: -mS(50), paddingHorizontal: hS(20) }}>
+                    {/* Profile Image Skeleton */}
+                    <View style={{ position: 'relative' }}>
+                        <View style={{
+                            width: mS(100),
+                            height: mS(100),
+                            borderRadius: mS(50),
+                            backgroundColor: colors.background,
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                        }}>
+                            <Skeleton width={mS(92)} height={mS(92)} borderRadius={mS(46)} />
+                        </View>
+                        {/* Camera Badge Skeleton */}
+                        <View style={{ position: 'absolute', right: 0, bottom: 0, width: mS(28), height: mS(28), borderRadius: mS(14), backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }}>
+                            <Skeleton width={mS(24)} height={mS(24)} borderRadius={mS(12)} />
+                        </View>
+                    </View>
+
+                    {/* Name, Phone, Edit Profile Skeleton */}
+                    <View style={{ alignItems: 'center', marginTop: vS(10), gap: vS(6) }}>
+                        <Skeleton width={150} height={24} borderRadius={4} />
+                        <Skeleton width={100} height={16} borderRadius={4} />
+                        <View style={{ marginTop: vS(4) }}>
+                            <Skeleton width={90} height={18} borderRadius={4} />
                         </View>
                     </View>
                 </View>
 
-                {/* --- MENU SKELETON --- */}
-                <View style={[styles.menuContainer, { backgroundColor: colors.card, shadowColor: '#000' }]}>
+                {/* --- MENU OPTIONS LIST SKELETON --- */}
+                <View style={{ marginTop: vS(15), paddingHorizontal: hS(20) }}>
                     {[1, 2, 3, 4, 5, 6].map((i) => (
-                        <View key={i} style={[styles.menuItem, { gap: 16, borderBottomColor: colors.border }]}>
-                            <Skeleton width={40} height={40} borderRadius={12} />
-                            <Skeleton width="60%" height={20} />
-                            <View style={{ flex: 1 }} />
-                            <Skeleton width={20} height={20} borderRadius={10} />
+                        <View
+                            key={i}
+                            style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                paddingVertical: vS(14),
+                                borderBottomWidth: 1,
+                                borderBottomColor: isDark ? 'rgba(255,255,255,0.05)' : '#E5E7EB'
+                            }}
+                        >
+                            <Skeleton width={mS(24)} height={mS(24)} borderRadius={mS(12)} />
+                            <View style={{ flex: 1, marginLeft: hS(16), flexDirection: 'row', alignItems: 'center' }}>
+                                <Skeleton width="40%" height={20} borderRadius={4} />
+                                {i === 1 && (
+                                    <View style={{ marginLeft: hS(10) }}>
+                                        <Skeleton width={60} height={18} borderRadius={10} />
+                                    </View>
+                                )}
+                            </View>
+                            <Skeleton width={mS(22)} height={mS(22)} borderRadius={mS(11)} />
                         </View>
                     ))}
+                </View>
+
+                {/* --- APP INFO SECTION SKELETON --- */}
+                <View style={{ alignItems: 'center', marginTop: vS(40), gap: vS(8) }}>
+                    <Skeleton width={120} height={14} borderRadius={2} />
+                    <Skeleton width={180} height={14} borderRadius={2} />
                 </View>
             </ScrollView>
         </View>
@@ -73,6 +117,15 @@ const ProfileScreenSkeleton = () => {
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const CROP_SIZE = SCREEN_WIDTH * 0.8;
+
+const DEFAULT_BACKGROUNDS = [
+    'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=800&q=80',
+    'https://images.unsplash.com/photo-1557683316-973673baf926?w=800&q=80',
+    'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&q=80',
+    'https://images.unsplash.com/photo-1519750783826-e2420f4d687f?w=800&q=80',
+    'https://images.unsplash.com/photo-1508615039623-a25605d2b022?w=800&q=80',
+    'https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?w=800&q=80'
+];
 
 const ProfileScreen: React.FC<ScreenProps> = ({ navigation }) => {
     const insets = useSafeAreaInsets();
@@ -93,6 +146,26 @@ const ProfileScreen: React.FC<ScreenProps> = ({ navigation }) => {
     const [deleteDocument] = useDeleteDocumentMutation();
     const { requestCameraPermission } = useCameraPermission();
 
+    const [bgImage, setBgImage] = useState<string>('#1E1B4B');
+    const [bgPickerVisible, setBgPickerVisible] = useState(false);
+
+    useEffect(() => {
+        const loadBg = async () => {
+            try {
+                const savedBg = await AsyncStorage.getItem('profileBg');
+                if (savedBg) setBgImage(savedBg);
+            } catch (e) { }
+        };
+        loadBg();
+    }, []);
+
+    const handleSetBgImage = async (val: string) => {
+        setBgImage(val);
+        try {
+            await AsyncStorage.setItem('profileBg', val);
+        } catch (e) { }
+        setBgPickerVisible(false);
+    };
     const imageSource = profileUri || localuser?.profile_url;
     const BASE_URL = `${Config.DEV_BACKEND_URL}/api`;
     const proxiedImageSource = imageSource ? (imageSource.startsWith('http') ? `${BASE_URL}/media/proxy?url=${encodeURIComponent(imageSource)}` : imageSource) : null;
@@ -435,121 +508,225 @@ const ProfileScreen: React.FC<ScreenProps> = ({ navigation }) => {
     }
 
     const buttons = [
-        { id: 1, name: `${user?.rating || 0.0} My Rating`, iconName: 'star', component: RatingScreen_Nav },
-        { id: 2, name: 'Help', iconName: 'help-circle-outline', component: HelpScreen_Nav },
-        // { id: 3, name: 'Payment', iconName: 'wallet-outline', component: PaymentScreen_Nav },
-        { id: 3, name: 'My Wallet', iconName: 'wallet-outline', component: WalletScreen_Nav },
-        { id: 4, name: 'Activity', iconName: 'clipboard-text-clock-outline', component: ActivityScreen_Nav },
-        { id: 5, name: 'Refer and Earn', iconName: 'gift-open-outline', component: ReferAndEarnScreen_Nav },
-        { id: 6, name: 'Settings', iconName: 'cog-outline', component: SettingsScreen_Nav },
+        { id: 1, name: `${user?.rating || '0.0'}`, subtitle: 'My Rating', iconName: 'star', component: RatingScreen_Nav, iconBgColor: '#F59E0B', iconColor: '#FFFFFF' },
+        { id: 3, name: 'My Wallet', subtitle: 'Balance & Transactions', iconName: 'wallet-outline', component: WalletScreen_Nav, iconBgColor: '#3B82F6', iconColor: '#FFFFFF' },
+        { id: 4, name: 'Activity', subtitle: 'Rides & History', iconName: 'clipboard-text-clock-outline', component: ActivityScreen_Nav, iconBgColor: '#8B5CF6', iconColor: '#FFFFFF' },
+        { id: 5, name: 'Refer and Earn', subtitle: 'Invite friends & earn rewards', iconName: 'gift-open-outline', component: ReferAndEarnScreen_Nav, iconBgColor: '#F97316', iconColor: '#FFFFFF' },
+        { id: 2, name: 'Help & Support', subtitle: 'FAQs & Contact Us', iconName: 'help-circle-outline', component: HelpScreen_Nav, iconBgColor: '#10B981', iconColor: '#FFFFFF' },
+        { id: 6, name: 'Settings', subtitle: 'App Preferences', iconName: 'cog-outline', component: SettingsScreen_Nav, iconBgColor: '#A855F7', iconColor: '#FFFFFF' },
     ]
     return (
-        <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <View style={{ flex: 1, backgroundColor: isDark ? "#020813" : colors.background }}>
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: insets.bottom + vS(20) }}
             >
-                {/* --- PREMIUM PROFILE CARD --- */}
-                <View style={[styles.premiumCard, { backgroundColor: colors.card, shadowColor: isDark ? '#000' : '#64748B' }]}>
-                    <View style={styles.headerContent}>
-                        {/* Profile Image with Edit Icon */}
-                        <View style={styles.avatarWrapper}>
-                            <TouchableOpacity
-                                onPress={() => setIsViewVisible(true)}
-                                activeOpacity={0.9}
-                                style={styles.avatarMainButton}
-                            >
-                                <View style={[styles.largeAvatarContainer, { backgroundColor: colors.iconBox, borderColor: colors.background }]}>
-                                    {imageSource ? (
-                                        <>
-                                            <FastImage
-                                                source={{ uri: proxiedImageSource || '', priority: FastImage.priority.normal }}
-                                                style={styles.largeImageStyle}
-                                                resizeMode={FastImage.resizeMode.cover}
-                                                onLoadStart={() => setIsImageLoading(true)}
-                                                onLoadEnd={() => setIsImageLoading(false)}
-                                            />
-                                            {isImageLoading && (
-                                                <View style={[StyleSheet.absoluteFillObject, styles.largePlaceholder, { backgroundColor: colors.iconBox }]}>
-                                                    <Skeleton width="100%" height="100%" borderRadius={45} />
-                                                </View>
-                                            )}
-                                        </>
-                                    ) : (
-                                        <View style={[styles.largePlaceholder, { backgroundColor: colors.iconBox }]}>
-                                            <FontAwesome name="user" size={mS(50)} color={isDark ? colors.lightTextColor : '#CBD5E1'} />
-                                        </View>
-                                    )}
-                                </View>
-                            </TouchableOpacity>
+                {/* --- DRIVER APP STYLE PROFILE HEADER --- */}
+                <View style={{ height: vS(120), backgroundColor: bgImage.startsWith('#') ? bgImage : '#1E1B4B', overflow: 'hidden' }}>
+                    {!bgImage.startsWith('#') && (
+                        <FastImage source={{ uri: bgImage }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                    )}
+                    <TouchableOpacity
+                        onPress={() => setBgPickerVisible(true)}
+                        style={{ position: 'absolute', top: Math.max(insets.top, vS(10)), right: hS(10), backgroundColor: 'rgba(0,0,0,0.4)', padding: mS(8), borderRadius: mS(20), zIndex: 10 }}
+                    >
+                        <MaterialCommunityIcons name="pencil" size={mS(16)} color="white" />
+                    </TouchableOpacity>
+                </View>
+
+                <View style={{ alignItems: 'center', marginTop: -mS(80), paddingHorizontal: hS(20) }}>
+                    {/* Profile Image with Edit Icon */}
+                    <View style={{ position: 'relative' }}>
+                        <TouchableOpacity
+                            onPress={() => setIsViewVisible(true)}
+                            activeOpacity={0.9}
+                            style={styles.avatarMainButton}
+                        >
+                            <View style={[styles.largeAvatarContainer, { backgroundColor: colors.iconBox, borderColor: colors.background, borderWidth: 4 }]}>
+                                {imageSource ? (
+                                    <>
+                                        <FastImage
+                                            source={{ uri: proxiedImageSource || '', priority: FastImage.priority.normal }}
+                                            style={styles.largeImageStyle}
+                                            resizeMode={FastImage.resizeMode.cover}
+                                            onLoadStart={() => setIsImageLoading(true)}
+                                            onLoadEnd={() => setIsImageLoading(false)}
+                                        />
+                                        {isImageLoading && (
+                                            <View style={[StyleSheet.absoluteFillObject, styles.largePlaceholder, { backgroundColor: colors.iconBox }]}>
+                                                <Skeleton width="100%" height="100%" borderRadius={45} />
+                                            </View>
+                                        )}
+                                    </>
+                                ) : (
+                                    <View style={[styles.largePlaceholder, { backgroundColor: colors.iconBox }]}>
+                                        <FontAwesome name="user" size={mS(50)} color={isDark ? colors.lightTextColor : '#CBD5E1'} />
+                                    </View>
+                                )}
+                            </View>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            onPress={() => setPickerVisible(true)}
+                            activeOpacity={0.8}
+                            style={[styles.cameraIconBadge, { borderColor: colors.background, backgroundColor: '#0F172A', right: 0, bottom: 0, borderWidth: 2 }]}
+                        >
+                            <MaterialCommunityIcons name="camera" size={mS(14)} color="white" />
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={{ alignItems: 'center', marginTop: vS(10) }}>
+                        <Text style={[styles.userName, { color: colors.text, fontSize: mS(20) }]}>{localuser?.full_name}</Text>
+
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: vS(4) }}>
+                            <Text style={[styles.userPhone, { color: colors.lightTextColor, fontSize: mS(13) }]}>{localuser?.phone_number}</Text>
+
+                            <View style={{ width: 1, height: mS(12), backgroundColor: colors.lightTextColor, marginHorizontal: hS(10) }} />
 
                             <TouchableOpacity
-                                onPress={() => setPickerVisible(true)}
-                                activeOpacity={0.8}
-                                style={[styles.cameraIconBadge, { borderColor: colors.card, backgroundColor: colors.primary }]}
-                            >
-                                <MaterialCommunityIcons name="camera" size={mS(16)} color="white" />
-                            </TouchableOpacity>
-                        </View>
-
-                        <View style={styles.userInfoContainer}>
-                            <Text style={[styles.userName, { color: colors.text }]}>{localuser?.full_name}</Text>
-                            <Text style={[styles.userPhone, { color: colors.lightTextColor }]}>{localuser?.phone_number}</Text>
-
-                            <TouchableOpacity
-                                style={[styles.editProfileBtn, { backgroundColor: colors.iconBox }]}
+                                style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'transparent' }}
                                 onPress={() => navigation.navigate(ProfilescreenComponents_Nav, { screen: ProfileUpdateScreen_Nav, params: { user } })}
                             >
                                 <MaterialCommunityIcons name="pencil" size={mS(14)} color={isDark ? colors.text : '#3B82F6'} />
-                                <Text style={[styles.editProfileText, { color: isDark ? colors.text : '#3B82F6' }]}>Edit Profile</Text>
+                                <Text style={[styles.editProfileText, { color: isDark ? colors.text : '#3B82F6', marginLeft: mS(4) }]}>Edit Profile</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
                 </View>
 
                 {/* --- MENU OPTIONS LIST --- */}
-                <View style={[styles.menuContainer, { backgroundColor: colors.card, shadowColor: '#000' }]}>
+                <View style={{ marginTop: vS(15), paddingHorizontal: hS(20) }}>
                     {buttons.map((item, index) => (
                         <TouchableOpacity
                             key={index}
                             onPress={() => navigation.navigate(ProfilescreenComponents_Nav, { screen: item.component })}
                             activeOpacity={0.7}
-                            style={[
-                                styles.menuItem,
-                                index === 0 && styles.firstMenuItem,
-                                index === buttons.length - 1 && styles.lastMenuItem,
-                                { borderBottomColor: colors.border }
-                            ]}
+                            style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                paddingVertical: isDark ? vS(8) : vS(14),
+                                paddingHorizontal: isDark ? hS(16) : 0,
+                                marginBottom: isDark ? vS(8) : 0,
+                                backgroundColor: isDark ? '#0A1931' : 'transparent',
+                                borderRadius: isDark ? 12 : 0,
+                                borderWidth: isDark ? 1 : 0,
+                                borderColor: isDark ? '#1E3A8A' : 'transparent',
+                                borderBottomWidth: isDark ? 1 : 1,
+                                borderBottomColor: isDark ? '#1E3A8A' : (isDark ? 'rgba(255,255,255,0.05)' : '#E5E7EB'),
+                                shadowColor: '#64748B',
+                                shadowOffset: { width: 0, height: 2 },
+                                shadowOpacity: isDark ? 0.05 : 0,
+                                shadowRadius: 8,
+                            }}
                         >
-                            <View style={[styles.menuIconBox, { backgroundColor: colors.iconBox }]}>
+                            {/* Icon Box */}
+                            <View style={{
+                                width: mS(38),
+                                height: mS(38),
+                                borderRadius: 10,
+                                backgroundColor: isDark ? (item.id === 1 ? 'transparent' : item.iconBgColor) : 'transparent',
+                                justifyContent: 'center',
+                                alignItems: 'center'
+                            }}>
                                 <MaterialCommunityIcons
                                     name={item.iconName}
-                                    size={mS(22)}
-                                    color={item.iconName === 'star' ? '#F59E0B' : (isDark ? colors.primary : '#64748B')}
+                                    size={item.id === 1 && isDark ? mS(34) : mS(20)}
+                                    color={isDark ? (item.id === 1 ? '#F59E0B' : item.iconColor) : (item.id === 1 ? '#F59E0B' : '#1E293B')}
                                 />
                             </View>
 
-                            <View style={styles.menuLabelContainer}>
-                                <Text style={[styles.menuLabel, { color: colors.text }]}>{item.name}</Text>
-                                {item.id === 1 && (
-                                    <View style={styles.ratingBadge}>
-                                        <Text style={styles.ratingBadgeText}>TOP RATED</Text>
-                                    </View>
-                                )}
+                            <View style={{ flex: 1, marginLeft: hS(16), justifyContent: 'center' }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                    <Text style={{ fontSize: mS(15), fontWeight: '700', color: isDark ? '#FFFFFF' : colors.text }}>{item.name}</Text>
+                                    {item.id === 1 && (
+                                        <View style={[styles.ratingBadge, isDark && { backgroundColor: '#F59E0B', borderColor: '#F59E0B', borderWidth: 0, marginLeft: 10 }]}>
+                                            <Text style={[styles.ratingBadgeText, isDark && { color: '#000000', fontWeight: '800' }]}>TOP RATED</Text>
+                                        </View>
+                                    )}
+                                </View>
+                                <Text style={{ fontSize: mS(12), color: isDark ? '#94A3B8' : colors.lightTextColor, marginTop: 2 }}>{item.subtitle}</Text>
                             </View>
 
-                            <MaterialCommunityIcons name="chevron-right" size={mS(20)} color={colors.border} />
+                            <MaterialCommunityIcons name="chevron-right" size={mS(22)} color={isDark ? '#FFFFFF' : colors.lightTextColor} />
                         </TouchableOpacity>
                     ))}
                 </View>
 
                 {/* --- APP INFO SECTION --- */}
-                <View style={styles.appInfoSection}>
-                    <Text style={[styles.versionText, { color: colors.lightTextColor }]}>Version 1.0.42 (Beta)</Text>
-                    <Text style={[styles.brandText, { color: colors.lightTextColor }]}>Made with ❤️ for T2Drive Users</Text>
+                <View style={isDark ? {
+                    marginHorizontal: hS(20),
+                    marginTop: vS(20),
+                    marginBottom: vS(10),
+                    padding: mS(16),
+                    backgroundColor: '#0A1931',
+                    borderRadius: 16,
+                    borderWidth: 1,
+                    borderColor: '#1E3A8A',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    overflow: 'hidden'
+                } : styles.appInfoSection}>
+                    {isDark && (
+                        <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#1E3A8A', justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
+                            <MaterialCommunityIcons name="information-variant" size={24} color="#60A5FA" />
+                        </View>
+                    )}
+                    <View style={isDark ? { flex: 1, paddingRight: 10 } : {}}>
+                        <Text style={isDark ? { fontSize: mS(13), fontWeight: '700', color: '#60A5FA', marginBottom: 4 } : [styles.versionText, { color: colors.lightTextColor }]}>
+                            T2Drive v1.0.42 (Beta)
+                        </Text>
+                        <Text style={isDark ? { fontSize: mS(11), color: '#94A3B8' } : [styles.brandText, { color: colors.lightTextColor }]}>
+                            Made with ❤️ for T2Drive Users
+                        </Text>
+                    </View>
+                    {isDark && (
+                        <View style={{ width: 110, height: 50 }}>
+                            <FastImage
+                                source={require('../../../assets/png/T2Drive_CarSedan.png')}
+                                style={{ width: '100%', height: '100%' }}
+                                resizeMode={FastImage.resizeMode.contain}
+                            />
+                        </View>
+                    )}
                 </View>
 
             </ScrollView>
+
+            <Modal
+                visible={bgPickerVisible}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setBgPickerVisible(false)}
+                statusBarTranslucent={true}
+                navigationBarTranslucent={true}
+            >
+                <Pressable style={styles.modaloverlay} onPress={() => setBgPickerVisible(false)}>
+                    <View style={[styles.sheet, { backgroundColor: colors.background, paddingBottom: insets.bottom + vS(20) }]}>
+                        <View style={[styles.handle, { backgroundColor: colors.border }]} />
+                        <Text style={[styles.title, { color: colors.text, marginBottom: vS(15) }]}>Select Profile Background</Text>
+
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingHorizontal: hS(20) }}>
+                            {DEFAULT_BACKGROUNDS.map((url, idx) => (
+                                <TouchableOpacity
+                                    key={idx}
+                                    onPress={() => handleSetBgImage(url)}
+                                    style={{ width: '48%', height: vS(80), marginBottom: vS(15), borderRadius: mS(8), overflow: 'hidden' }}
+                                >
+                                    <FastImage source={{ uri: url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                                </TouchableOpacity>
+                            ))}
+                            {/* Option to reset to default dark blue */}
+                            <TouchableOpacity
+                                onPress={() => handleSetBgImage('#1E1B4B')}
+                                style={{ width: '48%', height: vS(80), marginBottom: vS(15), borderRadius: mS(8), overflow: 'hidden', backgroundColor: '#1E1B4B', justifyContent: 'center', alignItems: 'center' }}
+                            >
+                                <Text style={{ color: 'white', fontWeight: '600' }}>Default Color</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </Pressable>
+            </Modal>
 
             <ProfileImagePicker
                 isVisible={pickerVisible}
@@ -733,16 +910,13 @@ const styles = StyleSheet.create({
     // --- NEW PREMIUM STYLES ---
     premiumCard: {
         backgroundColor: '#FFFFFF',
-        borderRadius: mS(24),
+        borderRadius: mS(12),
         marginHorizontal: hS(16),
         marginTop: vS(16),
-        paddingHorizontal: hS(20),
-        paddingVertical: vS(20),
-        shadowColor: '#64748B',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
-        elevation: 4,
+        paddingHorizontal: hS(16),
+        paddingVertical: vS(16),
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
     },
     headerContent: {
         flexDirection: 'row',
@@ -752,9 +926,9 @@ const styles = StyleSheet.create({
         position: 'relative',
     },
     largeAvatarContainer: {
-        width: mS(90),
-        height: mS(90),
-        borderRadius: mS(45),
+        width: mS(110),
+        height: mS(110),
+        borderRadius: mS(55),
         overflow: 'hidden',
         backgroundColor: '#F1F5F9',
         borderWidth: 3,
@@ -818,15 +992,12 @@ const styles = StyleSheet.create({
         marginLeft: hS(4),
     },
     menuContainer: {
-        marginTop: vS(24),
-        marginHorizontal: hS(20),
+        marginTop: vS(16),
+        marginHorizontal: hS(16),
         backgroundColor: '#FFFFFF',
-        borderRadius: mS(20),
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 15,
-        elevation: 2,
+        borderRadius: mS(12),
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
     },
     menuItem: {
         flexDirection: 'row',

@@ -951,13 +951,31 @@ const TripScreen: React.FC<TripScreenProps> = ({ navigation }) => {
                         )}
                     </View>
 
+                    {/* SCHEDULED TRIP DATE/TIME CARD */}
+                    {currentTrip?.booking_type === 'SCHEDULED' && (
+                        <View style={[styles.scheduledInfoCard, { top: insets.top + vS(10) }]}>
+                            <MaterialCommunityIcons name="calendar-blank" size={mS(22)} color="#2563EB" />
+                            <View style={{ marginLeft: hS(10) }}>
+                                <Text style={styles.scheduledDateText}>
+                                    {currentTrip.scheduled_start_time ? 
+                                        new Date(currentTrip.scheduled_start_time).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) 
+                                        : 'Pending Time'}
+                                </Text>
+                                <Text style={styles.scheduledRideTypeText}>
+                                    {currentTrip.trip_code ? `${currentTrip.trip_code} • ` : ''}
+                                    {currentTrip.ride_type ? currentTrip.ride_type.replace(/_/g, ' ') : 'Outstation One Way'}
+                                </Text>
+                            </View>
+                        </View>
+                    )}
+
                     {/* SOS BUTTON - Only during active trip phases */}
                     {[TripStatus.ACCEPTED, TripStatus.ARRIVING, TripStatus.ARRIVED, TripStatus.LIVE, TripStatus.WAITING, TripStatus.DAY_HALT, TripStatus.RETURN_STARTED].includes(currentStatus as any) && (
                         <TouchableOpacity
                             style={[styles.sosButton, { top: insets.top + vS(10) }]}
                             onPress={() => setShowSafetyModal(true)}
                         >
-                            <MaterialCommunityIcons name="shield-alert" size={mS(24)} color="#FFF" />
+                            <MaterialCommunityIcons name="phone" size={mS(18)} color="#EF4444" />
                             <Text style={styles.sosText}>SOS</Text>
                         </TouchableOpacity>
                     )}
@@ -1361,28 +1379,55 @@ const styles = StyleSheet.create({
         zIndex: 10,
     },
 
-    // SOS Button
+    // SOS Button & Scheduled Card
+    scheduledInfoCard: {
+        position: 'absolute',
+        left: hS(16),
+        backgroundColor: '#FFFFFF',
+        paddingHorizontal: hS(16),
+        paddingVertical: vS(12),
+        borderRadius: mS(16),
+        flexDirection: 'row',
+        alignItems: 'center',
+        elevation: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        zIndex: 1000,
+    },
+    scheduledDateText: {
+        color: '#111827',
+        fontWeight: '800',
+        fontSize: mS(14),
+    },
+    scheduledRideTypeText: {
+        color: '#6B7280',
+        fontSize: mS(11),
+        marginTop: vS(2),
+        fontWeight: '500',
+    },
     sosButton: {
         position: 'absolute',
-        right: hS(20),
-        backgroundColor: '#FF3B30',
-        paddingHorizontal: hS(15),
-        paddingVertical: vS(10),
+        right: hS(16),
+        backgroundColor: '#FFFFFF',
+        paddingHorizontal: hS(16),
+        paddingVertical: vS(12),
         borderRadius: mS(25),
         flexDirection: 'row',
         alignItems: 'center',
         elevation: 10,
-        shadowColor: '#FF3B30',
+        shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
         zIndex: 1000,
     },
     sosText: {
-        color: 'white',
-        fontWeight: '900',
+        color: '#EF4444',
+        fontWeight: '800',
         fontSize: mS(14),
-        marginLeft: hS(5),
+        marginLeft: hS(6),
     },
     safetySupportLink: {
         position: 'absolute',

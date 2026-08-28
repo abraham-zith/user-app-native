@@ -170,15 +170,15 @@ export function RoundedTrip() {
             <View style={styles.headerContainer}>
                 <View>
                     <Text style={[fonts.bold, styles.title, { color: appColors.text }]}>
-                        Recent Round Trip
+                        Round Trip Overview
                     </Text>
-                    <Text style={[styles.subtitle, { color: appColors.text }]}>
-                        Your circular journeys
+                    <Text style={[styles.subtitle, { color: appColors.secondaryText }]}>
+                        Your circular journey at a glance
                     </Text>
                 </View>
-                <TouchableOpacity style={[styles.filterButton, { backgroundColor: appColors.primary + '15' }]}>
-                    <Ionicons name="funnel" size={18} color={appColors.primary} />
-                </TouchableOpacity>
+                {/* <TouchableOpacity style={styles.simpleViewAllBtn} onPress={() => navigation.navigate('Activity')}>
+                    <Text style={styles.simpleViewAllText}>View All <Ionicons name="chevron-forward" size={mS(14)} /></Text>
+                </TouchableOpacity> */}
             </View>
 
             {/* Overview Stats */}
@@ -211,23 +211,34 @@ export function RoundedTrip() {
 
             {/* Featured Trip Section */}
             {featuredTrip && (
-                <View style={[styles.featuredContainer, { backgroundColor: isDark ? '#1F2937' : '#F3F4F6' }]}>
-                    <View style={styles.featuredBadge}>
-                        <Ionicons name="flame" size={12} color="#fff" />
-                        <Text style={styles.badgeText}>MOST RECENT</Text>
-                    </View>
+                <View style={[styles.featuredContainer, { backgroundColor: '#0F172A', overflow: 'hidden' }]}>
                     <Image
                         source={require('../../../assets/png/RoundedTripImage.png')}
                         style={styles.featuredImage}
-                        height={vS(220)}
+                        height={vS(120)}
                     />
-                    <View style={[styles.featuredOverlay, { backgroundColor: isDark ? "#1E3A8A" : appColors.primary }]}>
-                        <Text style={styles.featuredTitle} numberOfLines={1}>
-                            {featuredTrip.pickup_address} → {featuredTrip.drop_address}
+                    <View style={styles.featuredBadge}>
+                        <Ionicons name="time" size={12} color="#fff" />
+                        <Text style={styles.badgeText}>MOST RECENT</Text>
+                    </View>
+                    <View style={[styles.featuredOverlay, {
+                        backgroundColor: appColors.button,
+                    }]}>
+                        <View style={[styles.featuredStatusPill, { backgroundColor: getRoundTripStatusColor(featuredTrip.trip_status, appColors) }]}>
+                            <Ionicons name="close-circle" size={10} color="#FFF" />
+                            <Text style={styles.featuredStatusText}>{featuredTrip.trip_status?.toUpperCase()}</Text>
+                        </View>
+                        <Text style={[styles.featuredTitle, { color: '#FFF' }]} numberOfLines={1}>
+                            {featuredTrip.pickup_address}
                         </Text>
-                        <Text style={styles.featuredMeta}>
-                            {featuredTrip.distance_km} km • ₹{featuredTrip.total_fare} • {featuredTrip.trip_status}
-                        </Text>
+                        <View style={styles.featuredMetaRow}>
+                            <Text style={[styles.featuredMeta, { color: 'rgba(255,255,255,0.7)' }]}>
+                                {featuredTrip.distance_km} km • ₹{featuredTrip.total_fare}
+                            </Text>
+                            <TouchableOpacity style={styles.featuredBtn} onPress={() => navigation.navigate(RideDetails_Nav, { rideData: featuredTrip })}>
+                                <Text style={styles.featuredBtnText}>View Details <Ionicons name="arrow-forward" size={12} color="#0F172A" /></Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
             )}
@@ -259,15 +270,16 @@ export function RoundedTrip() {
             <View style={styles.listContainer}>
                 <View style={styles.listHeader}>
                     <Text style={[fonts.bold, styles.listTitle, { color: appColors.text }]}>
-                        Recent Trips
+                        Recent Round Trips
                     </Text>
-                    {roundTrips.length > 3 && (
-                        <TouchableOpacity onPress={() => navigation.navigate('Activity')}>
-                            <Text style={[styles.listCount, { color: appColors.primary, backgroundColor: 'transparent' }]}>
-                                See all
-                            </Text>
-                        </TouchableOpacity>
-                    )}
+                    {/* {roundTrips.length > 3 && ( */}
+                    <TouchableOpacity style={styles.simpleViewAllBtn} onPress={() => navigation.navigate('Activity')}>
+                        <Text style={styles.simpleViewAllText}>View All <Ionicons name="chevron-forward" size={mS(14)} /></Text>
+                    </TouchableOpacity>
+                    {/* <TouchableOpacity style={styles.simpleViewAllBtn} onPress={() => navigation.navigate('Activity')}>
+                        <Text style={styles.simpleViewAllText}>See All <Ionicons name="chevron-forward" size={mS(14)} /></Text>
+                    </TouchableOpacity> */}
+                    {/* )} */}
                 </View>
 
                 <FlatList
@@ -298,7 +310,7 @@ export function RoundedTrip() {
             </View>
 
             {/* Benefits Section */}
-            <View style={[styles.benefitsContainer, { backgroundColor: isDark ? '#1F2937' : '#F9FAFB', borderColor: appColors.border }]}>
+            <View style={[styles.benefitsContainer, { backgroundColor: isDark ? '#0A1931' : '#F9FAFB', borderColor: isDark ? 'transparent' : appColors.border }]}>
                 <Text style={[fonts.bold, styles.benefitsTitle, { color: appColors.text }]}>
                     Why Round Trips?
                 </Text>
@@ -321,8 +333,9 @@ interface OverviewCardProps {
 }
 
 function OverviewCard({ icon, label, value, appColors, iconColor, iconBgColor }: OverviewCardProps) {
+    const isDark = useAppTheme().isDark;
     return (
-        <View style={[styles.overviewCard, { backgroundColor: appColors.cardBg, borderColor: appColors.border }]}>
+        <View style={[styles.overviewCard, { backgroundColor: isDark ? '#0A1931' : appColors.card, borderColor: isDark ? 'transparent' : appColors.border }]}>
             <View style={[styles.overviewIcon, { backgroundColor: iconBgColor || appColors.primary + '15' }]}>
                 <Ionicons name={icon as any} size={20} color={iconColor || appColors.primary} />
             </View>
@@ -409,121 +422,59 @@ export function RoundTripCard({
         });
     };
 
+    const dateStr = trip.scheduled_start_time ? new Date(trip.scheduled_start_time).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+
     return (
-        <TouchableOpacity
-            style={[
-                styles.tripCard,
-                {
-                    backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
-                    borderColor: appColors.border,
-                }
-            ]}
-            activeOpacity={0.7}
-        >
-            {/* Status Badge */}
-            <View style={styles.tripCardTop}>
-                <View
-                    style={[
-                        styles.statusBadge,
-                        { backgroundColor: getStatusColor(trip.trip_status) + '20' }
-                    ]}
-                >
-                    <Ionicons
-                        name={getStatusIcon(trip.trip_status) as any}
-                        size={13}
-                        color={getStatusColor(trip.trip_status)}
-                    />
-                    <Text
-                        style={[
-                            styles.statusText,
-                            { color: getStatusColor(trip.trip_status) }
-                        ]}
-                    >
-                        {trip.trip_status}
-                    </Text>
+        <View style={[styles.recentTripCard, { backgroundColor: isDark ? '#0A1931' : appColors.card, borderColor: isDark ? 'transparent' : appColors.border }]}>
+            <View style={styles.rtcHeader}>
+                <View style={[styles.rtcStatusBadge, { backgroundColor: getStatusColor(trip.trip_status) + '15' }]}>
+                    <Ionicons name={getStatusIcon(trip.trip_status) as any} size={mS(10)} color={getStatusColor(trip.trip_status)} />
+                    <Text style={[styles.rtcStatusText, { color: getStatusColor(trip.trip_status) }]}>{trip.trip_status}</Text>
                 </View>
-                {trip.rating && trip.rating > 0 && (
-                    <View style={styles.ratingBadge}>
-                        <Ionicons name="star" size={12} color="#FCD34D" />
-                        <Text style={styles.ratingText}>{trip.rating}</Text>
-                    </View>
-                )}
+                <View style={styles.rtcDateWrapper}>
+                    <Ionicons name="calendar-outline" size={mS(12)} color={appColors.secondaryText} style={{ marginRight: hS(4) }} />
+                    <Text style={[styles.rtcDate, { color: appColors.secondaryText }]}>{dateStr}</Text>
+                </View>
             </View>
 
-            {/* Route Info */}
-            <View style={styles.routeContainer}>
-                <View style={styles.routePoint}>
-                    <View style={[styles.routeDot, { backgroundColor: appColors.primary }]} />
-                    <Text style={[fonts.bold, styles.routeText, { color: appColors.text }]} numberOfLines={1}>
-                        {trip.pickup_address}
-                    </Text>
+            <View style={styles.rtcLocations}>
+                <View style={styles.rtcDots}>
+                    <View style={[styles.rtcDot, { backgroundColor: '#3B82F6' }]} />
+                    <View style={styles.rtcLine} />
+                    <View style={[styles.rtcDot, { backgroundColor: '#EF4444' }]} />
                 </View>
-
-                <View style={styles.routeLine}>
-                    <View style={[styles.line, { backgroundColor: appColors.border }]} />
-                    <Ionicons name="arrow-forward" size={14} color={appColors.primary} />
+                <View style={styles.rtcAddresses}>
+                    <Text style={[styles.rtcAddressText, { color: appColors.text }]} numberOfLines={1}>{trip.pickup_address}</Text>
+                    <Text style={[styles.rtcAddressText, { color: appColors.text }]} numberOfLines={1}>{trip.drop_address}</Text>
                 </View>
+            </View>
 
-                <View style={styles.routePoint}>
-                    <View style={[styles.routeDot, { backgroundColor: appColors.primary }]} />
-                    <Text style={[fonts.bold, styles.routeText, { color: appColors.text }]} numberOfLines={1}>
-                        {trip.drop_address}
+            <View style={[styles.rtcStatsRow, { borderTopColor: appColors.border, borderBottomColor: appColors.border }]}>
+                <View style={styles.rtcStatBox}>
+                    <Text style={[styles.rtcStatLabel, { color: appColors.secondaryText }]}>Distance</Text>
+                    <Text style={[styles.rtcStatValue, { color: appColors.text }]}>{trip.distance_km} km</Text>
+                </View>
+                <View style={[styles.rtcStatDivider, { backgroundColor: appColors.border }]} />
+                <View style={styles.rtcStatBox}>
+                    <Text style={[styles.rtcStatLabel, { color: appColors.secondaryText }]}>Fare</Text>
+                    <Text style={[styles.rtcStatValue, { color: '#3B82F6' }]}>₹{trip.total_fare || '0.00'}</Text>
+                </View>
+                <View style={[styles.rtcStatDivider, { backgroundColor: appColors.border }]} />
+                <View style={styles.rtcStatBox}>
+                    <Text style={[styles.rtcStatLabel, { color: appColors.secondaryText }]}>Status</Text>
+                    <Text style={[styles.rtcStatValue, { color: getStatusColor(trip.trip_status) }]}>
+                        {trip.trip_status.charAt(0).toUpperCase() + trip.trip_status.slice(1).toLowerCase()}
                     </Text>
                 </View>
             </View>
 
-            {/* Details Grid */}
-            <View style={styles.detailsGrid}>
-                <DetailItem icon="calendar-outline" label="Date" value={formatDate(new Date(trip.scheduled_start_time || trip.original_scheduled_start_time))} appColors={appColors} />
-                <DetailItem icon="navigate-outline" label="Distance" value={`${trip.distance_km} km`} appColors={appColors} />
-            </View>
-
-            {/* Price and Action */}
-            <View style={styles.tripCardBottom}>
-                <View>
-                    <Text style={[styles.priceLabel, { color: appColors.secondaryText }]}>Fare</Text>
-                    <Text style={[fonts.bold, styles.priceValue, { color: appColors.primary }]}>
-                        ₹{trip.total_fare}
-                    </Text>
-                </View>
-                <View style={{ flexDirection: 'row', gap: hS(8) }}>
-                    <TouchableOpacity
-                        style={[styles.bookAgainButton, { backgroundColor: appColors.primary + '15' }]}
-                        activeOpacity={0.7}
-                        onPress={() => handleBookAgain(trip)}
-                    >
-                        <Text style={[styles.bookAgainText, { color: appColors.primary }]}>Book Again</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={[styles.detailsButton, { backgroundColor: appColors.button }]}
-                        activeOpacity={0.7}
-                        onPress={() => navigation.navigate(RideDetails_Nav, { rideData: trip })}
-                    >
-                        <Text style={styles.detailsButtonText}>View Details</Text>
-                        <Ionicons name="arrow-forward" size={14} color="#fff" />
-                    </TouchableOpacity>
-                </View>
-            </View>
-        </TouchableOpacity>
-    );
-}
-
-// Detail Item Component
-interface DetailItemProps {
-    icon: string;
-    label: string;
-    value: string;
-    appColors: any;
-}
-
-function DetailItem({ icon, label, value, appColors }: DetailItemProps) {
-    return (
-        <View style={styles.detailItem}>
-            <Ionicons name={icon as any} size={14} color={appColors.primary} />
-            <View style={{ flex: 1 }}>
-                <Text style={[styles.detailLabel, { color: appColors.secondaryText }]}>{label}</Text>
-                <Text style={[styles.detailValue, { color: appColors.text }]}>{value}</Text>
+            <View style={styles.rtcActions}>
+                <TouchableOpacity style={[styles.rtcBtnOutline, { borderColor: '#3B82F6' }]} onPress={() => handleBookAgain(trip)}>
+                    <Text style={[styles.rtcBtnOutlineText, { color: '#3B82F6' }]}>Book Again</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.rtcBtnFilled, { backgroundColor: '#0F172A' }]} onPress={() => navigation.navigate(RideDetails_Nav, { rideData: trip })}>
+                    <Text style={styles.rtcBtnFilledText}>View Details <Ionicons name="arrow-forward" size={mS(12)} color="#FFF" /></Text>
+                </TouchableOpacity>
             </View>
         </View>
     );
@@ -588,16 +539,21 @@ const styles = StyleSheet.create({
     },
     overviewCard: {
         flex: 1,
-        borderRadius: 12,
-        paddingHorizontal: hS(12),
+        borderRadius: mS(12),
+        paddingHorizontal: hS(10),
         paddingVertical: vS(14),
         borderWidth: 1,
         alignItems: 'center',
         justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 1,
     },
     overviewIcon: {
-        width: hS(40),
-        height: hS(40),
+        width: hS(36),
+        height: hS(36),
         borderRadius: hS(20),
         justifyContent: 'center',
         alignItems: 'center',
@@ -617,23 +573,30 @@ const styles = StyleSheet.create({
 
     // Featured Section
     featuredContainer: {
-        borderRadius: 16,
-        overflow: 'hidden',
-        position: 'relative',
-        height: vS(240),
+        borderRadius: mS(16),
+        marginTop: vS(16),
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 3,
+    },
+    featuredImage: {
+        width: '100%',
+        borderTopLeftRadius: mS(16),
+        borderTopRightRadius: mS(16),
     },
     featuredBadge: {
         position: 'absolute',
         top: vS(12),
         right: hS(12),
         flexDirection: 'row',
-        backgroundColor: 'rgba(0, 0, 0, 0.6)',
-        paddingHorizontal: hS(10),
-        paddingVertical: vS(5),
-        borderRadius: 20,
-        zIndex: 10,
-        gap: hS(4),
         alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        paddingHorizontal: hS(8),
+        paddingVertical: vS(4),
+        borderRadius: mS(12),
+        gap: hS(4),
     },
     badgeText: {
         color: '#fff',
@@ -641,15 +604,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         letterSpacing: 0.5,
     },
-    featuredImage: {
-        width: '100%',
-        height: '100%',
-    },
     featuredOverlay: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
         paddingHorizontal: hS(16),
         paddingVertical: vS(16),
     },
@@ -664,26 +619,165 @@ const styles = StyleSheet.create({
         fontSize: mS(11),
         fontWeight: '500',
     },
-
-    // Actions Row
-    actionsRow: {
+    featuredStatusPill: {
         flexDirection: 'row',
-        gap: hS(10),
-        justifyContent: 'space-between',
+        alignItems: 'center',
+        alignSelf: 'flex-start',
+        paddingHorizontal: hS(6),
+        paddingVertical: vS(2),
+        borderRadius: mS(4),
+        gap: hS(4),
+        marginBottom: vS(8),
     },
-    actionButton: {
-        flex: 1,
+    featuredStatusText: {
+        color: '#FFF',
+        fontSize: mS(9),
+        fontWeight: '700',
+    },
+    featuredMetaRow: {
         flexDirection: 'row',
-        paddingVertical: vS(12),
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    featuredBtn: {
+        backgroundColor: '#FFFFFF',
         paddingHorizontal: hS(12),
-        borderRadius: 10,
+        paddingVertical: vS(6),
+        borderRadius: mS(8),
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: hS(4),
+    },
+    featuredBtnText: {
+        color: '#0F172A',
+        fontSize: mS(11),
+        fontWeight: '700',
+    },
+
+    // Recent Trip Card Styles
+    recentTripCard: {
+        width: hS(280),
+        borderRadius: mS(12),
+        borderWidth: 1,
+        padding: mS(14),
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 1,
+    },
+    rtcHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: vS(14),
+    },
+    rtcStatusBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: hS(6),
+        paddingVertical: vS(2),
+        borderRadius: mS(4),
+        gap: hS(4),
+    },
+    rtcStatusText: {
+        fontSize: mS(9),
+        fontWeight: '700',
+    },
+    rtcDateWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    rtcDate: {
+        fontSize: mS(10),
+        fontWeight: '500',
+    },
+    rtcLocations: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: vS(14),
+    },
+    rtcDots: {
+        alignItems: 'center',
+        width: hS(16),
+        marginRight: hS(8),
+    },
+    rtcDot: {
+        width: mS(8),
+        height: mS(8),
+        borderRadius: mS(4),
+    },
+    rtcLine: {
+        width: 1,
+        height: vS(12),
+        borderLeftWidth: 1,
+        borderColor: '#CBD5E1',
+        borderStyle: 'dashed',
+        marginVertical: vS(2),
+    },
+    rtcAddresses: {
+        flex: 1,
+        justifyContent: 'space-between',
+        height: vS(32),
+    },
+    rtcAddressText: {
+        fontSize: mS(11),
+        fontWeight: '600',
+    },
+    rtcStatsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        borderTopWidth: 1,
+        borderBottomWidth: 1,
+        paddingVertical: vS(10),
+        marginBottom: vS(14),
+    },
+    rtcStatBox: {
+        flex: 1,
+        alignItems: 'center',
+    },
+    rtcStatLabel: {
+        fontSize: mS(9),
+        marginBottom: vS(2),
+    },
+    rtcStatValue: {
+        fontSize: mS(11),
+        fontWeight: '700',
+    },
+    rtcStatDivider: {
+        width: 1,
+        height: '100%',
+    },
+    rtcActions: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        gap: hS(10),
+    },
+    rtcBtnOutline: {
+        flex: 1,
+        borderWidth: 1,
+        borderRadius: mS(8),
+        paddingVertical: vS(8),
         alignItems: 'center',
         justifyContent: 'center',
-        gap: hS(6),
     },
-    actionLabel: {
-        fontSize: mS(12),
+    rtcBtnOutlineText: {
+        fontSize: mS(11),
         fontWeight: '600',
+    },
+    rtcBtnFilled: {
+        flex: 1,
+        borderRadius: mS(8),
+        paddingVertical: vS(8),
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'row',
+    },
+    rtcBtnFilledText: {
+        fontSize: mS(11),
+        fontWeight: '600',
+        color: '#FFFFFF',
     },
 
     // List Container
@@ -701,165 +795,31 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         lineHeight: vS(20),
     },
-    listCount: {
-        fontSize: mS(14),
+    simpleViewAllBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    simpleViewAllText: {
+        fontSize: mS(12),
         fontWeight: '600',
-        paddingHorizontal: hS(8),
-        paddingVertical: vS(4),
-        borderRadius: 6,
+        color: '#3B82F6',
     },
     listContent: {
         paddingHorizontal: hS(4),
         gap: hS(12),
     },
 
-    // Trip Card
-    tripCard: {
-        width: hS(300),
-        borderRadius: 14,
-        borderWidth: 1,
-        padding: hS(16),
+    emptyContainer: {
+        alignItems: "center",
+        paddingVertical: vS(30),
         gap: vS(12),
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
     },
-    tripCardTop: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    statusBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: hS(8),
-        paddingVertical: vS(4),
-        borderRadius: 6,
-        gap: hS(4),
-    },
-    statusText: {
-        fontSize: mS(10),
-        fontWeight: '600',
-    },
-    ratingBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: hS(3),
-        paddingHorizontal: hS(6),
-        paddingVertical: vS(3),
-        borderRadius: 4,
-    },
-    ratingText: {
-        fontSize: mS(11),
-        fontWeight: '600',
-        color: '#FCD34D',
-    },
-
-    // Route Container
-    routeContainer: {
-        gap: vS(10),
-    },
-    routePoint: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: hS(10),
-    },
-    routeDot: {
-        width: hS(10),
-        height: hS(10),
-        borderRadius: hS(5),
-    },
-    routeText: {
+    emptyText: {
         fontSize: mS(14),
+        fontWeight: "600",
     },
-    routeLine: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: hS(8),
-        marginLeft: hS(5),
-    },
-    line: {
-        flex: 1,
-        height: 2,
-    },
-
-    // Details Grid
-    detailsGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: hS(12),
-    },
-    detailItem: {
-        flex: 1,
-        minWidth: hS(140),
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: hS(8),
-    },
-    detailLabel: {
-        fontSize: mS(10),
-        fontWeight: '500',
-        marginBottom: vS(2),
-    },
-    detailValue: {
-        fontSize: mS(12),
-        fontWeight: '600',
-    },
-
-    // Trip Card Bottom
-    tripCardBottom: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingTop: vS(8),
-        borderTopWidth: 1,
-        borderTopColor: 'rgba(0, 0, 0, 0.05)',
-    },
-    priceLabel: {
-        fontSize: mS(10),
-        fontWeight: '500',
-        marginBottom: vS(2),
-    },
-    priceValue: {
-        fontSize: mS(16),
-        fontWeight: '700',
-    },
-    bookAgainButton: {
-        paddingVertical: vS(8),
-        paddingHorizontal: hS(12),
-        borderRadius: 8,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    bookAgainText: {
-        fontSize: mS(11),
-        fontWeight: '600',
-    },
-    detailsButton: {
-        flexDirection: 'row',
-        paddingVertical: vS(8),
-        paddingHorizontal: hS(14),
-        borderRadius: 8,
-        alignItems: 'center',
-        gap: hS(6),
-    },
-    detailsButtonText: {
-        color: '#fff',
-        fontSize: mS(11),
-        fontWeight: '600',
-    },
-
-    // Separator
-    separator: {
-        height: 1,
-        marginVertical: vS(4),
-    },
-
-    // Benefits Container
     benefitsContainer: {
-        borderRadius: 12,
+        borderRadius: mS(12),
         borderWidth: 1,
         paddingHorizontal: hS(16),
         paddingVertical: vS(14),
@@ -886,13 +846,18 @@ const styles = StyleSheet.create({
         fontSize: mS(12),
         fontWeight: '500',
     },
-    emptyContainer: {
-        alignItems: "center",
-        paddingVertical: vS(30),
-        gap: vS(12),
+    actionButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: vS(12),
+        paddingHorizontal: hS(16),
+        borderRadius: mS(12),
+        gap: hS(8),
+        marginVertical: vS(8),
     },
-    emptyText: {
+    actionLabel: {
         fontSize: mS(14),
-        fontWeight: "600",
+        fontWeight: '600',
     },
 });

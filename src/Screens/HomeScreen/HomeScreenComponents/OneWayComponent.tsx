@@ -222,7 +222,7 @@ export const OneWayComponent: React.FC<OneWayProps> = ({ onSelectLocation }) => 
     );
 
     return (
-        <View style={[styles.container, { backgroundColor: appColors.background }]}>
+        <View style={[styles.container, { backgroundColor: isDark ? '#020813' : appColors.background }]}>
             <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
                 {/* Hero Section */}
                 {/* <View style={[styles.heroSection, { backgroundColor: appColors.primary }]}>
@@ -238,21 +238,15 @@ export const OneWayComponent: React.FC<OneWayProps> = ({ onSelectLocation }) => 
                     </View>
                 </View> */}
 
-                {/* Quick Stats */}
-                <View style={styles.statsSection}>
-                    {QUICK_STATS.map((stat, idx) => (
-                        <View key={idx} style={[styles.statCard, { backgroundColor: isDark ? '#1F2937' : '#FFFFFF', borderColor: appColors.border }]}>
-                            <View style={[styles.statIconBox, { backgroundColor: stat.color + '20' }]}>
-                                <MaterialCommunityIcons name={stat.icon} size={mS(20)} color={stat.color} />
-                            </View>
-                            <Text style={[styles.statValue, { color: appColors.text }]}>{stat.value}</Text>
-                            <Text style={[styles.statLabel, { color: appColors.text }]}>{stat.label}</Text>
-                        </View>
-                    ))}
-                </View>
+                <View style={{ height: vS(10) }} />
                 {/* Popular Routes Section */}
                 <View style={styles.popularRoutesContainer}>
-                    <Text style={[styles.sectionTitle, { color: appColors.text }]}>Popular Routes</Text>
+                    <View style={styles.sectionHeader}>
+                        <Text style={[styles.sectionTitle, { color: appColors.text }]}>Popular Routes</Text>
+                        <TouchableOpacity style={styles.simpleViewAllBtn}>
+                            <Text style={styles.simpleViewAllText}>Scroll to View All <MaterialCommunityIcons name="chevron-right" size={mS(14)} /></Text>
+                        </TouchableOpacity>
+                    </View>
 
                     <ScrollView
                         horizontal
@@ -266,16 +260,16 @@ export const OneWayComponent: React.FC<OneWayProps> = ({ onSelectLocation }) => 
                                 style={[
                                     styles.catCard,
                                     {
-                                        backgroundColor: appColors.card,
-                                        borderColor: appColors.border
+                                        backgroundColor: isDark ? '#0A1931' : appColors.card,
+                                        borderColor: isDark ? 'transparent' : '#F1F5F9'
                                     }
                                 ]}
                             >
                                 <View style={[
                                     styles.iconCircle,
-                                    { backgroundColor: isDark ? `${item.color}20` : item.bgColor }
+                                    isDark && { backgroundColor: `${item.color}20` }
                                 ]}>
-                                    <MaterialCommunityIcons name={item.icon} size={mS(26)} color={item.color} />
+                                    <MaterialCommunityIcons name={item.icon} size={mS(28)} color={item.color} />
                                 </View>
                                 <Text numberOfLines={1} style={[styles.catText, { color: appColors.text }]}>
                                     {item.name}
@@ -289,15 +283,13 @@ export const OneWayComponent: React.FC<OneWayProps> = ({ onSelectLocation }) => 
                 <View style={styles.trendingSection}>
                     <View style={styles.sectionHeader}>
                         <Text style={[styles.sectionTitle, { color: appColors.text }]}>Recent Trips</Text>
-                        <TouchableOpacity style={[styles.seeAllButton, { backgroundColor: appColors.primary }]} onPress={() => {
+                        <TouchableOpacity style={styles.simpleViewAllBtn} onPress={() => {
                             navigation.navigate(TabNavigation_Nav, { screen: 'Activity' })
                         }}>
-                            <Text style={styles.seeAllText}>See All</Text>
-                            <Ionicons name="chevron-forward" size={16} color="#fff" />
+                            <Text style={styles.simpleViewAllText}>See All <MaterialCommunityIcons name="chevron-right" size={mS(14)} /></Text>
                         </TouchableOpacity>
                     </View>
                     {recentOneWayTrips.length > 0 ? (
-
                         <FlatList
                             data={recentOneWayTrips.slice(0, 5)}
                             keyExtractor={(item) => item.trip_id}
@@ -305,15 +297,59 @@ export const OneWayComponent: React.FC<OneWayProps> = ({ onSelectLocation }) => 
                             showsHorizontalScrollIndicator={false}
                             contentContainerStyle={{ paddingRight: hS(20) }}
                             ItemSeparatorComponent={() => <View style={{ width: hS(12) }} />}
-                            renderItem={({ item: trip }) => (
-                                <RoundTripCard
-                                    trip={trip}
-                                    appColors={appColors}
-                                    isDark={isDark}
-                                    getStatusColor={(status) => getRoundTripStatusColor(status, appColors)}
-                                    getStatusIcon={getRoundTripStatusIcon}
-                                />
-                            )}
+                            renderItem={({ item: trip }) => {
+                                const dateStr = trip.scheduled_start_time ? new Date(trip.scheduled_start_time).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+                                return (
+                                    <View style={[styles.recentTripCard, { backgroundColor: isDark ? '#0A1931' : appColors.card, borderColor: isDark ? 'transparent' : appColors.border }]}>
+                                        <View style={styles.rtcHeader}>
+                                            <View style={[styles.rtcStatusBadge, { backgroundColor: isDark ? '#10B981' : '#ECFDF5' }]}>
+                                                <MaterialCommunityIcons name="check-circle" size={mS(10)} color={isDark ? '#FFFFFF' : '#10B981'} />
+                                                <Text style={[styles.rtcStatusText, { color: isDark ? '#FFFFFF' : '#10B981' }]}>COMPLETED</Text>
+                                            </View>
+                                            <Text style={[styles.rtcDate, { color: appColors.secondaryText }]}>{dateStr}</Text>
+                                        </View>
+
+                                        <View style={styles.rtcLocations}>
+                                            <View style={styles.rtcDots}>
+                                                <View style={[styles.rtcDot, { backgroundColor: '#3B82F6' }]} />
+                                                <View style={[styles.rtcLine, { borderColor: isDark ? '#1E3A8A' : '#CBD5E1' }]} />
+                                                <View style={[styles.rtcDot, { backgroundColor: '#EF4444' }]} />
+                                            </View>
+                                            <View style={styles.rtcAddresses}>
+                                                <Text style={[styles.rtcAddressText, { color: isDark ? '#FFFFFF' : appColors.text }]} numberOfLines={1}>{trip.pickup_address}</Text>
+                                                <Text style={[styles.rtcAddressText, { color: isDark ? '#FFFFFF' : appColors.text }]} numberOfLines={1}>{trip.drop_address}</Text>
+                                            </View>
+                                            <MaterialCommunityIcons name="chevron-right" size={mS(20)} color={isDark ? '#9CA3AF' : appColors.icon} />
+                                        </View>
+
+                                        <View style={[styles.rtcStatsRow, { borderTopColor: isDark ? '#1E3A8A' : appColors.border, borderBottomColor: isDark ? '#1E3A8A' : appColors.border }]}>
+                                            <View style={styles.rtcStatBox}>
+                                                <Text style={[styles.rtcStatLabel, { color: appColors.secondaryText }]}>Distance</Text>
+                                                <Text style={[styles.rtcStatValue, { color: isDark ? '#FFFFFF' : appColors.text }]}>{trip.distance_km} km</Text>
+                                            </View>
+                                            <View style={[styles.rtcStatDivider, { backgroundColor: isDark ? '#1E3A8A' : appColors.border }]} />
+                                            <View style={styles.rtcStatBox}>
+                                                <Text style={[styles.rtcStatLabel, { color: appColors.secondaryText }]}>Fare</Text>
+                                                <Text style={[styles.rtcStatValue, { color: '#3B82F6' }]}>₹{trip.total_fare || '0.00'}</Text>
+                                            </View>
+                                            <View style={[styles.rtcStatDivider, { backgroundColor: isDark ? '#1E3A8A' : appColors.border }]} />
+                                            <View style={styles.rtcStatBox}>
+                                                <Text style={[styles.rtcStatLabel, { color: appColors.secondaryText }]}>Status</Text>
+                                                <Text style={[styles.rtcStatValue, { color: '#10B981' }]}>Completed</Text>
+                                            </View>
+                                        </View>
+
+                                        <View style={styles.rtcActions}>
+                                            <TouchableOpacity style={[styles.rtcBtnOutline, { borderColor: '#3B82F6' }]} onPress={() => handleBookAgain(trip)}>
+                                                <Text style={[styles.rtcBtnOutlineText, { color: '#3B82F6' }]}>Book Again</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity style={[styles.rtcBtnFilled, { backgroundColor: isDark ? '#007BFF' : '#0F172A' }]} onPress={() => navigation.navigate(RideDetails_Nav, { trip_id: trip.trip_id })}>
+                                                <Text style={styles.rtcBtnFilledText}>View Details <MaterialCommunityIcons name="arrow-right" size={mS(12)} color="#FFF" /></Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                )
+                            }}
                         />
                     ) : (
                         <View style={styles.emptyContainer}>
@@ -326,19 +362,19 @@ export const OneWayComponent: React.FC<OneWayProps> = ({ onSelectLocation }) => 
 
 
                 {/* Why Choose Us */}
-                <View style={[styles.whyChooseSection, { backgroundColor: isDark ? '#1F2937' : '#F9FAFB' }]}>
+                <View style={[styles.whyChooseSection, { backgroundColor: isDark ? '#0A1931' : '#FFFFFF' }]}>
                     <Text style={[styles.sectionTitle, { color: appColors.text }]}>Why Choose Us?</Text>
 
                     <View style={styles.benefitsGrid}>
                         {[
-                            { icon: 'clock-fast', title: 'Quick Booking', desc: 'Book in seconds' },
-                            { icon: 'lock-outline', title: 'Safe & Secure', desc: 'Verified drivers' },
-                            { icon: 'wallet-outline', title: 'Transparent Pricing', desc: 'No hidden charges' },
-                            { icon: 'headset', title: '24/7 Support', desc: 'Always here to help' },
+                            { icon: 'shield-check-outline', title: 'Verified Drivers', desc: '2.5K+', color: '#3B82F6', bgColor: '#EFF6FF' },
+                            { icon: 'check-decagram-outline', title: 'Safe & Secure', desc: 'Your safety first', color: '#10B981', bgColor: '#ECFDF5' },
+                            { icon: 'headphones', title: '24/7 Support', desc: 'Always here to help', color: '#8B5CF6', bgColor: '#F5F3FF' },
+                            { icon: 'currency-inr', title: 'Transparent Pricing', desc: 'No hidden charges', color: '#F59E0B', bgColor: '#FFFBEB' },
                         ].map((benefit, idx) => (
-                            <View key={idx} style={[styles.benefitCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF' }]}>
-                                <View style={[styles.benefitIcon, { backgroundColor: appColors.primary + '15' }]}>
-                                    <MaterialCommunityIcons name={benefit.icon} size={mS(20)} color={appColors.primary} />
+                            <View key={idx} style={[styles.benefitCard]}>
+                                <View style={[styles.benefitIcon, { backgroundColor: isDark ? `${benefit.color}20` : benefit.bgColor }]}>
+                                    <MaterialCommunityIcons name={benefit.icon} size={mS(20)} color={benefit.color} />
                                 </View>
                                 <Text style={[styles.benefitTitle, { color: appColors.text }]}>{benefit.title}</Text>
                                 <Text style={[styles.benefitDesc, { color: appColors.secondaryText }]}>{benefit.desc}</Text>
@@ -349,17 +385,21 @@ export const OneWayComponent: React.FC<OneWayProps> = ({ onSelectLocation }) => 
 
                 {/* CTA Section */}
                 {firstCoupon && (
-                    <View style={[styles.ctaSection, { backgroundColor: appColors.primary }]}>
-                        <MaterialCommunityIcons name="lightning-bolt" size={mS(32)} color="rgba(255,255,255,0.3)" style={styles.ctaIcon} />
-                        <Text style={styles.ctaTitle}>Special Offer</Text>
-                        <Text style={styles.ctaSubtitle}>
+                    <View style={[styles.ctaSection, {
+                        backgroundColor: isDark ? '#1E293B' : appColors.primary,
+                        borderWidth: isDark ? 1 : 0,
+                        borderColor: isDark ? appColors.border : 'transparent'
+                    }]}>
+                        <MaterialCommunityIcons name="lightning-bolt" size={mS(32)} color={isDark ? appColors.primary : "rgba(255,255,255,0.3)"} style={styles.ctaIcon} />
+                        <Text style={[styles.ctaTitle, { color: '#FFFFFF' }]}>Special Offer</Text>
+                        <Text style={[styles.ctaSubtitle, { color: isDark ? '#9CA3AF' : 'rgba(255, 255, 255, 0.9)' }]}>
                             {`Get ${firstCoupon.discount_type === 'PERCENTAGE' ? `${firstCoupon.discount_value}%` : `₹${firstCoupon.discount_value}`} off on your ride`}
                         </Text>
-                        <Text style={styles.ctaCode}>
+                        <Text style={[styles.ctaCode, { color: isDark ? appColors.primary : '#FFFFFF' }]}>
                             Use code: {firstCoupon.code}
                         </Text>
-                        <TouchableOpacity style={styles.ctaButton} onPress={handleClaimOffer}>
-                            <Text style={styles.ctaButtonText}>Claim Offer</Text>
+                        <TouchableOpacity style={[styles.ctaButton, { backgroundColor: isDark ? appColors.primary : '#FFFFFF' }]} onPress={handleClaimOffer}>
+                            <Text style={[styles.ctaButtonText, { color: isDark ? '#FFFFFF' : colors.button }]}>Claim Offer</Text>
                         </TouchableOpacity>
                     </View>
                 )}
@@ -491,43 +531,128 @@ const styles = StyleSheet.create({
         marginRight: hS(-10),
     },
 
-    // Stats Section
-    statsSection: {
-        flexDirection: 'row',
-        paddingHorizontal: hS(20),
-        paddingVertical: vS(16),
-        gap: hS(10),
-        marginTop: vS(-12),
-        marginBottom: vS(8),
-    },
-    statCard: {
-        flex: 1,
-        paddingVertical: vS(14),
-        paddingHorizontal: hS(12),
+    // Recent Trip Card
+    recentTripCard: {
+        width: hS(280),
         borderRadius: mS(12),
         borderWidth: 1,
-        alignItems: 'center',
-        gap: vS(8),
-        ...Platform.select({
-            ios: { shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } },
-            android: { elevation: 2 }
-        })
+        padding: mS(14),
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 1,
     },
-    statIconBox: {
-        width: hS(36),
-        height: hS(36),
-        borderRadius: hS(18),
-        justifyContent: 'center',
+    rtcHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: vS(14),
+    },
+    rtcStatusBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#ECFDF5',
+        paddingHorizontal: hS(6),
+        paddingVertical: vS(2),
+        borderRadius: mS(4),
+        gap: hS(4),
+    },
+    rtcStatusText: {
+        fontSize: mS(9),
+        fontWeight: '700',
+        color: '#10B981',
+    },
+    rtcDate: {
+        fontSize: mS(10),
+        fontWeight: '500',
+    },
+    rtcLocations: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: vS(14),
+    },
+    rtcDots: {
+        alignItems: 'center',
+        width: hS(16),
+        marginRight: hS(8),
+    },
+    rtcDot: {
+        width: mS(8),
+        height: mS(8),
+        borderRadius: mS(4),
+    },
+    rtcLine: {
+        width: 1,
+        height: vS(12),
+        borderLeftWidth: 1,
+        borderColor: '#CBD5E1',
+        borderStyle: 'dashed',
+        marginVertical: vS(2),
+    },
+    rtcAddresses: {
+        flex: 1,
+        justifyContent: 'space-between',
+        height: vS(32),
+    },
+    rtcAddressText: {
+        fontSize: mS(11),
+        fontWeight: '600',
+    },
+    rtcStatsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        borderTopWidth: 1,
+        borderBottomWidth: 1,
+        paddingVertical: vS(10),
+        marginBottom: vS(14),
+    },
+    rtcStatBox: {
+        flex: 1,
         alignItems: 'center',
     },
-    statValue: {
-        fontSize: mS(14),
+    rtcStatLabel: {
+        fontSize: mS(9),
+        marginBottom: vS(2),
+    },
+    rtcStatValue: {
+        fontSize: mS(11),
         fontWeight: '700',
     },
-    statLabel: {
-        fontSize: mS(9),
-        fontWeight: '500',
-        textAlign: 'center',
+    rtcStatDivider: {
+        width: 1,
+        height: '100%',
+    },
+    rtcActions: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        gap: hS(10),
+    },
+    rtcBtnOutline: {
+        flex: 1,
+        borderWidth: 1,
+        borderRadius: mS(8),
+        paddingVertical: vS(8),
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    rtcBtnOutlineText: {
+        fontSize: mS(11),
+        fontWeight: '600',
+    },
+    rtcBtnFilled: {
+        flex: 1,
+        borderRadius: mS(8),
+        paddingVertical: vS(8),
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'row',
+    },
+    rtcBtnFilledText: {
+        fontSize: mS(11),
+        fontWeight: '600',
+        color: '#FFFFFF',
     },
 
     // Trending Routes
@@ -546,18 +671,14 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: '#1E293B',
     },
-    seeAllButton: {
+    simpleViewAllBtn: {
         flexDirection: 'row',
-        paddingHorizontal: hS(12),
-        paddingVertical: vS(8),
-        borderRadius: 8,
         alignItems: 'center',
-        gap: hS(4),
     },
-    seeAllText: {
+    simpleViewAllText: {
         fontSize: mS(12),
         fontWeight: '600',
-        color: '#fff',
+        color: '#3B82F6',
     },
     trendingGrid: {
         gap: vS(10),
@@ -712,29 +833,27 @@ const styles = StyleSheet.create({
         gap: hS(12),
     },
     catCard: {
-        width: hS(90),
-        height: vS(105),
+        width: hS(80),
+        height: vS(85),
         backgroundColor: '#FFFFFF',
-        borderRadius: mS(16),
+        borderRadius: mS(12),
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
         borderColor: '#F1F5F9',
-        ...Platform.select({
-            ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
-            android: { elevation: 4 }
-        })
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 1,
     },
     iconCircle: {
-        width: hS(48),
-        height: hS(48),
-        borderRadius: hS(24),
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: vS(10),
+        marginBottom: vS(6),
     },
     catText: {
-        fontSize: mS(12),
+        fontSize: mS(11),
         fontWeight: '700',
         color: '#334155',
         paddingHorizontal: hS(4),
@@ -749,32 +868,29 @@ const styles = StyleSheet.create({
     },
     benefitsGrid: {
         flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: hS(12),
+        justifyContent: 'space-between',
         marginTop: vS(12),
     },
     benefitCard: {
-        width: '48%',
-        paddingVertical: vS(16),
-        paddingHorizontal: hS(12),
-        borderRadius: mS(14),
+        width: '24%',
         alignItems: 'center',
-        gap: vS(8),
+        gap: vS(4),
     },
     benefitIcon: {
-        width: hS(44),
-        height: hS(44),
-        borderRadius: hS(22),
+        width: hS(40),
+        height: hS(40),
+        borderRadius: hS(20),
         justifyContent: 'center',
         alignItems: 'center',
+        marginBottom: vS(4),
     },
     benefitTitle: {
-        fontSize: mS(12),
+        fontSize: mS(10),
         fontWeight: '700',
         textAlign: 'center',
     },
     benefitDesc: {
-        fontSize: mS(10),
+        fontSize: mS(8),
         textAlign: 'center',
     },
 

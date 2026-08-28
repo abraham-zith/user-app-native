@@ -35,6 +35,9 @@ interface RapidoItemProps {
     onPress?: () => void;
     showArrow?: boolean;
     color?: string;
+    iconColor?: string;
+    iconBgColor?: string;
+    isCritical?: boolean;
 }
 
 const Settings = ({ navigation }: ScreenProps) => {
@@ -71,30 +74,30 @@ const Settings = ({ navigation }: ScreenProps) => {
         );
     };
 
-    const ActionRow = ({ icon, title, subtitle, onPress, showArrow = true, isCritical = false }: RapidoItemProps & { isCritical?: boolean }) => (
-        <TouchableOpacity
-            activeOpacity={0.7}
-            style={[styles.actionRow, { borderBottomColor: colors.border }]}
-            onPress={onPress}
-        >
-            <View style={[
-                styles.rowIconBox,
-                { backgroundColor: colors.iconBox },
-                isCritical && { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEF2F2' }
-            ]}>
-                <MaterialCommunityIcons
-                    name={icon}
-                    size={mS(20)}
-                    color={isCritical ? '#EF4444' : isDark ? colors.primary : colors.button}
-                />
+    const ActionRow = ({ icon, title, subtitle, onPress, showArrow = true, isCritical = false, iconColor, iconBgColor, isCircularIcon = false, hideBorder = false }: RapidoItemProps & { isCircularIcon?: boolean, hideBorder?: boolean }) => (
+        <TouchableOpacity activeOpacity={0.7} onPress={onPress}>
+            <View style={[styles.actionRow, { borderBottomWidth: 0, paddingHorizontal: hS(20) }]}>
+                <View style={[
+                    styles.rowIconBox,
+                    isCircularIcon && { borderRadius: mS(24) },
+                    { backgroundColor: iconBgColor || 'transparent' },
+                    isCritical && { backgroundColor: isDark ? 'transparent' : 'transparent' }
+                ]}>
+                    <MaterialCommunityIcons
+                        name={icon}
+                        size={mS(20)}
+                        color={isCritical ? '#EF4444' : (iconColor || (isDark ? colors.text : '#1E293B'))}
+                    />
+                </View>
+                <View style={styles.rowContent}>
+                    <Text style={[styles.rowTitle, { color: isCritical ? '#EF4444' : colors.text }]}>{title}</Text>
+                    {subtitle && <Text style={[styles.rowSubtitle, { color: isCritical ? '#F87171' : colors.lightTextColor }]}>{subtitle}</Text>}
+                </View>
+                {showArrow && (
+                    <MaterialCommunityIcons name="chevron-right" size={mS(20)} color={isCritical ? '#EF4444' : colors.lightTextColor} />
+                )}
             </View>
-            <View style={styles.rowContent}>
-                <Text style={[styles.rowTitle, { color: colors.text }, isCritical && { color: '#EF4444' }]}>{title}</Text>
-                {subtitle && <Text style={[styles.rowSubtitle, { color: colors.lightTextColor }]}>{subtitle}</Text>}
-            </View>
-            {showArrow && !isCritical && (
-                <MaterialCommunityIcons name="chevron-right" size={mS(20)} color={colors.border} />
-            )}
+            {!hideBorder && <View style={{ height: 1, backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0', marginLeft: hS(20) + mS(36) + hS(14) }} />}
         </TouchableOpacity>
     );
 
@@ -161,100 +164,137 @@ const Settings = ({ navigation }: ScreenProps) => {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + vS(20) }]}
             >
-                {/* --- GENERAL SECTION --- */}
-                <View style={styles.sectionHeader}>
-                    <Text style={[styles.sectionTitle, { color: colors.lightTextColor }]}>General</Text>
-                </View>
-
-                <View style={[styles.cardContainer, { backgroundColor: colors.card, shadowColor: colors.text }]}>
+                <View style={{ marginTop: vS(10) }}>
                     <ActionRow
                         icon="account-outline"
+                        iconColor="#3B82F6"
+                        iconBgColor={isDark ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF'}
+                        isCircularIcon={true}
                         title="Profile"
                         subtitle={localuser?.phone_number}
                         onPress={() => navigation.navigate(ProfilescreenComponents_Nav, { screen: ProfileUpdateScreen_Nav, params: { localuser } })}
                     />
-                    <ActionRow
-                        icon="heart-outline"
-                        title="Favourites"
-                        subtitle="Manage favourite locations"
-                        onPress={() => handleNavigation(FavouritelocationScreens_Nav)}
-                    />
+                </View>
+
+                {/* --- ACCOUNT SECTION --- */}
+                <View style={styles.sectionHeader}>
+                    <Text style={[styles.sectionTitle, { color: '#64748B' }]}>ACCOUNT</Text>
+                </View>
+                <View>
                     <ActionRow
                         icon="wallet-outline"
+                        iconColor="#10B981"
                         title="My Wallet"
                         subtitle="Manage balance & transactions"
                         onPress={() => handleNavigation(WalletScreen_Nav)}
                     />
                     <ActionRow
                         icon="ticket-percent-outline"
+                        iconColor="#F59E0B"
                         title="Offers"
-                        subtitle="View available coupons & discounts"
+                        subtitle="View coupons & discounts"
                         onPress={() => handleNavigation(OffersScreen_Nav)}
+                        hideBorder={true}
+                    />
+                </View>
+
+                {/* --- PREFERENCES SECTION --- */}
+                <View style={styles.sectionHeader}>
+                    <Text style={[styles.sectionTitle, { color: '#64748B' }]}>PREFERENCES</Text>
+                </View>
+                <View>
+                    <ActionRow
+                        icon="heart-outline"
+                        iconColor="#EF4444"
+                        title="Favourites"
+                        subtitle="Manage favourite locations"
+                        onPress={() => handleNavigation(FavouritelocationScreens_Nav)}
                     />
                     <ActionRow
                         icon="tune"
+                        iconColor="#8B5CF6"
                         title="Preferences"
-                        subtitle='Manage Preferences'
+                        subtitle='Manage your preferences'
                         onPress={() => handleNavigation(PreferencesScreen_Nav)}
                     />
                     <ActionRow
                         icon="bell-ring-outline"
+                        iconColor="#F59E0B"
                         title="Notifications"
+                        subtitle="Manage notification settings"
                         onPress={() => handleNavigation(NotificationScreen_Nav)}
                         showArrow={true}
+                        hideBorder={true}
                     />
                 </View>
 
                 {/* --- OTHERS SECTION --- */}
                 <View style={styles.sectionHeader}>
-                    <Text style={[styles.sectionTitle, { color: colors.lightTextColor }]}>Others</Text>
+                    <Text style={[styles.sectionTitle, { color: '#64748B' }]}>OTHERS</Text>
                 </View>
-
-                <View style={[styles.cardContainer, { backgroundColor: colors.card, shadowColor: colors.text }]}>
+                <View>
                     <ActionRow
                         icon="palette-outline"
+                        iconColor="#3B82F6"
                         title="Theme"
                         subtitle={mode === 'system' ? 'System Default' : mode === 'dark' ? 'Dark Mode' : 'Light Mode'}
                         onPress={() => setThemeVisible(true)}
                     />
                     <ActionRow
                         icon="shield-check-outline"
+                        iconColor="#10B981"
                         title="Safety"
                         subtitle="Emergency contacts & Insurance"
                         onPress={() => handleNavigation(SafetyScreen_Nav)}
                     />
                     <ActionRow
                         icon="help-circle-outline"
+                        iconColor="#8B5CF6"
                         title="Support"
+                        subtitle="Help centre & Contact us"
                         onPress={() => handleNavigation(HelpContactScreen_Nav)}
                     />
                     <ActionRow
                         icon="information-outline"
+                        iconColor="#64748B"
                         title="About T2Drive"
+                        subtitle="App info & version"
                         onPress={() => handleNavigation(AboutVdriveScreen_Nav)}
+                        hideBorder={true}
                     />
                 </View>
 
                 {/* --- ACCOUNT ACTIONS --- */}
-                <View style={styles.sectionHeader}>
-                    <Text style={[styles.sectionTitle, { color: colors.lightTextColor }]}>Account Actions</Text>
-                </View>
-
-                <View style={[styles.cardContainer, { marginBottom: vS(30), backgroundColor: colors.card, shadowColor: colors.text }]}>
-                    <ActionRow
-                        icon="logout"
-                        title="Logout"
-                        isCritical={true}
+                <View style={{ marginTop: vS(12), marginBottom: vS(20), paddingHorizontal: hS(16), gap: vS(12) }}>
+                    <TouchableOpacity
+                        activeOpacity={0.7}
                         onPress={() => setLogoutVisible(true)}
-                        showArrow={false}
-                    />
-                    <ActionRow
-                        icon="trash-can-outline"
-                        title="Delete Account"
-                        isCritical={true}
+                        style={[styles.criticalCard, { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.1)' : '#FEF2F2' }]}
+                    >
+                        <View style={styles.criticalCardIconBox}>
+                            <MaterialCommunityIcons name="logout" size={mS(20)} color="#EF4444" />
+                        </View>
+                        <View style={styles.rowContent}>
+                            <Text style={styles.criticalCardTitle}>Logout</Text>
+                            <Text style={styles.criticalCardSubtitle}>Sign out from your account</Text>
+                        </View>
+                        <MaterialCommunityIcons name="chevron-right" size={mS(20)} color="#EF4444" />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        activeOpacity={0.7}
                         onPress={() => handleDelete()}
-                        showArrow={false}
-                    />
+                        style={[styles.criticalCard, { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.1)' : '#FEF2F2' }]}
+                    >
+                        <View style={styles.criticalCardIconBox}>
+                            <MaterialCommunityIcons name="trash-can-outline" size={mS(20)} color="#EF4444" />
+                        </View>
+                        <View style={styles.rowContent}>
+                            <Text style={styles.criticalCardTitle}>Delete Account</Text>
+                            <Text style={styles.criticalCardSubtitle}>Permanently remove account</Text>
+                        </View>
+                        <MaterialCommunityIcons name="chevron-right" size={mS(20)} color="#EF4444" />
+                    </TouchableOpacity>
                 </View>
 
                 <Text style={styles.versionText}>Version 1.0.42 (Beta)</Text>
@@ -320,9 +360,9 @@ const styles = StyleSheet.create({
         paddingBottom: vS(30),
     },
     sectionHeader: {
-        marginTop: vS(20),
+        marginTop: vS(12),
         marginHorizontal: hS(20),
-        marginBottom: vS(8),
+        marginBottom: vS(4),
     },
     sectionTitle: {
         fontSize: mS(13),
@@ -342,28 +382,26 @@ const styles = StyleSheet.create({
     actionRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: vS(16),
-        paddingHorizontal: hS(16),
-        borderBottomWidth: 1,
+        paddingVertical: vS(10),
     },
     rowIconBox: {
-        width: mS(40),
-        height: mS(40),
-        borderRadius: mS(12),
+        width: mS(36),
+        height: mS(36),
+        borderRadius: mS(10),
         justifyContent: 'center',
         alignItems: 'center',
     },
     rowContent: {
         flex: 1,
-        marginLeft: hS(16),
+        marginLeft: hS(14),
     },
     rowTitle: {
-        fontSize: mS(15),
+        fontSize: mS(14),
         fontWeight: '700',
     },
     rowSubtitle: {
-        fontSize: mS(12),
-        marginTop: vS(2),
+        fontSize: mS(11),
+        marginTop: vS(1),
         fontWeight: '500',
     },
     versionText: {
@@ -459,6 +497,30 @@ const styles = StyleSheet.create({
         fontSize: mS(16),
         fontWeight: '600',
         marginLeft: hS(16),
+    },
+    criticalCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: vS(12),
+        paddingHorizontal: hS(16),
+        borderRadius: mS(16),
+    },
+    criticalCardIconBox: {
+        width: mS(36),
+        height: mS(36),
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    criticalCardTitle: {
+        fontSize: mS(14),
+        fontWeight: '700',
+        color: '#EF4444',
+    },
+    criticalCardSubtitle: {
+        fontSize: mS(11),
+        marginTop: vS(1),
+        fontWeight: '500',
+        color: '#F87171',
     },
 });
 

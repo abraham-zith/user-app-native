@@ -1,229 +1,21 @@
-// import React, { useEffect, useState } from 'react';
-// import {
-//     View, Text, FlatList, TextInput, StyleSheet,
-//     TouchableOpacity, ActivityIndicator, PermissionsAndroid, Platform
-// } from 'react-native';
-// import Contacts from 'react-native-contacts';
-// import { hS, mS, vS } from '../../lib/responsive';
-// import colors from '../../constant/colors';
-
-// const ContactListScreen = ({ navigation, route }: any) => {
-//     const [contacts, setContacts] = useState<any[]>([]);
-//     const { onSelectContact } = route.params;
-//     const [filteredContacts, setFilteredContacts] = useState<any[]>([]);
-//     const [loading, setLoading] = useState(true);
-//     const [search, setSearch] = useState('');
-
-//     useEffect(() => {
-//         loadContacts();
-//     }, []);
-
-//     const openCreateContactForm = () => {
-//         const newPerson = {
-//             givenName: "", // You can pre-fill this if you want
-//             phoneNumbers: [{ label: "mobile", number: "" }],
-//         };
-
-//         Contacts.openContactForm(newPerson).then((contact) => {
-//             // This is called when the user saves the contact
-//             if (contact) {
-//                 loadContacts(); // Refresh your list to show the new contact
-//             }
-//         }).catch(err => console.warn(err));
-//     };
-
-//     const loadContacts = async () => {
-//         try {
-//             if (Platform.OS === 'android') {
-//                 const granted = await PermissionsAndroid.request(
-//                     PermissionsAndroid.PERMISSIONS.READ_CONTACTS
-//                 );
-//                 if (granted !== PermissionsAndroid.RESULTS.GRANTED) return;
-//             }
-
-//             const allContacts = await Contacts.getAll();
-//             // Sort alphabetically
-//             const sorted = allContacts.sort((a, b) =>
-//                 (a.displayName || "").localeCompare(b.displayName || "")
-//             );
-//             setContacts(sorted);
-//             setFilteredContacts(sorted);
-//         } catch (err) {
-//             console.error(err);
-//         } finally {
-//             setLoading(false);
-//         }
-//     };
-
-//     const handleSearch = (text: string) => {
-//         setSearch(text);
-//         const filtered = contacts.filter(c =>
-//             c.displayName?.toLowerCase().includes(text.toLowerCase()) ||
-//             c.phoneNumbers.some((p: any) => p.number.includes(text))
-//         );
-//         setFilteredContacts(filtered);
-//     };
-
-//     const renderItem = ({ item }: any) => {
-//         const phone = item.phoneNumbers[0]?.number || "No number";
-//         const initials = item.displayName ? item.displayName[0] : "?";
-
-//         return (
-//             <TouchableOpacity
-//                 style={styles.contactCard}
-//                 onPress={() => onSelectContact({ name: item.displayName, phone })}
-//             >
-//                 <View style={styles.avatar}><Text style={styles.avatarText}>{initials.toUpperCase()}</Text></View>
-//                 <View>
-//                     <Text style={styles.name}>{item.displayName}</Text>
-//                     <Text style={styles.phone}>{phone}</Text>
-//                 </View>
-//             </TouchableOpacity>
-//         );
-//     };
-
-//     if (loading) return <ActivityIndicator style={{ flex: 1 }} size="large" />;
-
-//     return (
-//         <View style={[styles.container, {
-//             paddingVertical: vS(20)
-//         }]}>
-
-//             <TextInput
-//                 style={styles.searchBar}
-//                 placeholder="Search contacts..."
-//                 placeholderTextColor={'#ccc'}
-//                 value={search}
-//                 onChangeText={handleSearch}
-//             />
-//             <View style={styles.section}>
-//                 <View style={styles.sectionHeader}>
-//                     <Text style={styles.sectionTitle}>All Contacts</Text>
-//                     <TouchableOpacity style={styles.createButton} onPress={openCreateContactForm}>
-//                         <Text style={styles.createButtonText}>+ New</Text>
-//                     </TouchableOpacity>
-//                 </View>
-//             </View>
-//             <FlatList
-//                 data={filteredContacts}
-//                 keyExtractor={(item) => item.recordID || item.rawContactId}
-//                 renderItem={renderItem}
-//                 initialNumToRender={15}
-//             />
-//         </View>
-//     );
-// };
-
-// const styles = StyleSheet.create({
-//     container: {
-//         flex: 1,
-//         backgroundColor: '#F8FAFC', // Soft off-white
-//     },
-//     // Search Bar - Floating effect
-//     searchBar: {
-//         marginHorizontal: hS(20),
-//         marginTop: vS(10),
-//         paddingHorizontal: hS(16),
-//         paddingVertical: vS(12),
-//         borderRadius: mS(14),
-//         backgroundColor: '#FFFFFF',
-//         fontSize: mS(16),
-//         color: '#1E293B',
-//         // Shadow for iOS
-//         shadowColor: '#000',
-//         shadowOffset: { width: 0, height: 2 },
-//         shadowOpacity: 0.05,
-//         shadowRadius: 10,
-//         // Elevation for Android
-//         elevation: 3,
-//         borderWidth: Platform.OS === 'android' ? 1 : 0,
-//         borderColor: '#E2E8F0',
-//     },
-//     section: {
-//         marginTop: vS(24),
-//         paddingHorizontal: hS(20),
-//     },
-//     sectionHeader: {
-//         flexDirection: 'row',
-//         justifyContent: 'space-between',
-//         alignItems: 'center',
-//         marginBottom: vS(16),
-//     },
-//     sectionTitle: {
-//         fontSize: mS(20),
-//         fontWeight: '800', // Extra bold for a modern look
-//         color: '#0F172A',
-//         letterSpacing: -0.5,
-//     },
-//     createButton: {
-//         backgroundColor: colors.button || '#007AFF',
-//         paddingVertical: vS(8),
-//         paddingHorizontal: hS(16),
-//         borderRadius: mS(20), // Pill shape
-//         flexDirection: 'row',
-//         alignItems: 'center',
-//     },
-//     createButtonText: {
-//         color: '#FFF',
-//         fontSize: mS(14),
-//         fontWeight: '700',
-//     },
-//     // Contact Cards
-//     contactCard: {
-//         flexDirection: 'row',
-//         marginHorizontal: hS(20),
-//         marginVertical: vS(4), // Slight gap between cards
-//         padding: hS(12),
-//         alignItems: 'center',
-//         backgroundColor: '#FFFFFF',
-//         borderRadius: mS(16),
-//         // Subtle Border
-//         borderWidth: 1,
-//         borderColor: '#F1F5F9',
-//     },
-//     avatar: {
-//         width: hS(52),
-//         height: hS(52),
-//         borderRadius: hS(26),
-//         backgroundColor: '#E0F2FE', // Light blue background
-//         justifyContent: 'center',
-//         alignItems: 'center',
-//         marginRight: hS(16),
-//     },
-//     avatarText: {
-//         color: '#007AFF', // Darker blue text
-//         fontSize: mS(18),
-//         fontWeight: '700',
-//     },
-//     name: {
-//         fontSize: mS(16),
-//         fontWeight: '600',
-//         color: '#1E293B',
-//         marginBottom: vS(2),
-//     },
-//     phone: {
-//         color: '#64748B', // Muted slate color
-//         fontSize: mS(13),
-//         fontWeight: '400',
-//     },
-// });
-
-// export default ContactListScreen;
-
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import {
     View, Text, SectionList, TextInput, StyleSheet,
     TouchableOpacity, ActivityIndicator, PermissionsAndroid, Platform,
-    Image,
-    Alert
+    Image, Alert, Dimensions
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Contacts from 'react-native-contacts';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { hS, mS, vS } from '../../lib/responsive';
-import colors from '../../constant/colors';
 import AntDesign from 'react-native-vector-icons/AntDesign'
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useAppTheme } from '../../hooks/useAppTheme';
+
+const RECENT_CONTACTS_KEY = '@recent_contacts';
+const FAVORITE_CONTACTS_KEY = '@favorite_contacts';
+
+const { width, height } = Dimensions.get('window');
 
 const ContactListScreen = ({ navigation, route }: any) => {
     const { colors, isDark } = useAppTheme();
@@ -232,20 +24,45 @@ const ContactListScreen = ({ navigation, route }: any) => {
     const [filteredContacts, setFilteredContacts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const [activeTab, setActiveTab] = useState('All');
+    const [recentNumbers, setRecentNumbers] = useState<string[]>([]);
+    const [favoriteNumbers, setFavoriteNumbers] = useState<string[]>([]);
 
-    const { onSelectContact } = route.params;
+    const { onSelectContact } = route.params || {};
+
+    const sectionListRef = useRef<SectionList>(null);
 
     useEffect(() => {
-        loadContacts();
+        loadStorageAndContacts();
     }, []);
 
-    const loadContacts = async () => {
+    const loadStorageAndContacts = async () => {
         try {
+            // 1. Load async storage first
+            const [recentsJson, favsJson] = await Promise.all([
+                AsyncStorage.getItem(RECENT_CONTACTS_KEY),
+                AsyncStorage.getItem(FAVORITE_CONTACTS_KEY)
+            ]);
+
+            if (recentsJson) {
+                const recentsParsed = JSON.parse(recentsJson);
+                // LocationSelection/index.tsx stores objects {name, phone}, we just need phones for fast lookup
+                const rPhones = recentsParsed.map((r: any) => r.phone?.replace(/\D/g, '').slice(-10)).filter(Boolean);
+                setRecentNumbers(rPhones);
+            }
+            if (favsJson) {
+                setFavoriteNumbers(JSON.parse(favsJson));
+            }
+
+            // 2. Load contacts
             if (Platform.OS === 'android') {
                 const granted = await PermissionsAndroid.request(
                     PermissionsAndroid.PERMISSIONS.READ_CONTACTS
                 );
-                if (granted !== PermissionsAndroid.RESULTS.GRANTED) return;
+                if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+                    setLoading(false);
+                    return;
+                }
             }
 
             const allContacts = await Contacts.getAll();
@@ -256,13 +73,11 @@ const ContactListScreen = ({ navigation, route }: any) => {
             setFilteredContacts(sorted);
         } catch (err) {
             Alert.alert('Something Went Wrong!!!', 'Try Again Later');
-            // console.error(err);
         } finally {
             setLoading(false);
         }
     };
 
-    // Helper: Group contacts by their first letter
     const formatDataForSections = (data: any[]) => {
         const sectionsMap: { [key: string]: any[] } = {};
 
@@ -281,7 +96,24 @@ const ContactListScreen = ({ navigation, route }: any) => {
             }));
     };
 
-    const sections = useMemo(() => formatDataForSections(filteredContacts), [filteredContacts]);
+    const sections = useMemo(() => {
+        // Filter contacts based on active tab
+        let displayList = filteredContacts;
+        if (activeTab === 'Recent') {
+            displayList = filteredContacts.filter(c => {
+                const phone = c.phoneNumbers[0]?.number?.replace(/\D/g, '').slice(-10);
+                return phone && recentNumbers.includes(phone);
+            });
+        } else if (activeTab === 'Favorites') {
+            displayList = filteredContacts.filter(c => {
+                const phone = c.phoneNumbers[0]?.number?.replace(/\D/g, '').slice(-10);
+                return phone && favoriteNumbers.includes(phone);
+            });
+        }
+        return formatDataForSections(displayList);
+    }, [filteredContacts, activeTab, recentNumbers, favoriteNumbers]);
+
+    const alphabetIndex = "ABCDEFGHIJKLMNOPQRSTUVWXYZ#".split("");
 
     const handleSearch = (text: string) => {
         setSearch(text);
@@ -298,64 +130,114 @@ const ContactListScreen = ({ navigation, route }: any) => {
             phoneNumbers: [{ label: "mobile", number: "" }],
         };
         Contacts.openContactForm(newPerson).then((contact) => {
-            if (contact) loadContacts();
-        }).catch(() => {});
+            if (contact) loadStorageAndContacts();
+        }).catch(() => { });
     };
 
-    // const openEditContactForm = (item: any) => {
-    //     // The 'item' must be the full contact object returned by Contacts.getAll()
-    //     Contacts.openExistingContact(item)
-    //         .then((updatedContact) => {
-    //             // If the user saves changes, updatedContact is returned
-    //             if (updatedContact) {
-    //                 loadContacts(); // Refresh list to show new info
-    //             }
-    //         })
-    //         .catch(err => console.warn("Edit failed: ", err));
-    // };
+    const toggleFavorite = async (rawPhone: string) => {
+        if (!rawPhone) return;
+        const phone = rawPhone.replace(/\D/g, '').slice(-10);
+        if (!phone) return;
 
-    const renderItem = ({ item }: any) => {
+        setFavoriteNumbers(prev => {
+            let newFavs;
+            if (prev.includes(phone)) {
+                newFavs = prev.filter(p => p !== phone);
+            } else {
+                newFavs = [...prev, phone];
+            }
+            AsyncStorage.setItem(FAVORITE_CONTACTS_KEY, JSON.stringify(newFavs)).catch(console.error);
+            return newFavs;
+        });
+    };
 
+    const scrollToSection = (letter: string) => {
+        const index = sections.findIndex(sec => sec.title === letter);
+        if (sectionListRef.current && index !== -1) {
+            sectionListRef.current.scrollToLocation({
+                sectionIndex: index,
+                itemIndex: 0,
+                animated: true,
+            });
+        }
+    };
+
+    const renderItem = ({ item, index, section }: any) => {
         const rawPhone = item.phoneNumbers[0]?.number || "";
         const phone = item.phoneNumbers[0]?.number || "No number";
-        // const cleanPhone = rawPhone.replace(/\D/g, '').slice(-10);
         const initials = item.displayName ? item.displayName[0] : "?";
+
+        const isFirst = index === 0;
+        const isLast = index === section.data.length - 1;
+
+        const cleanPhone = rawPhone.replace(/\D/g, '').slice(-10);
+        const isFavorite = cleanPhone && favoriteNumbers.includes(cleanPhone);
 
         return (
             <TouchableOpacity
-                style={[styles.contactCard, { backgroundColor: colors.card, borderBottomColor: colors.border }]}
-                onPress={() => onSelectContact({ name: item.displayName, phone: phone })}
+                activeOpacity={0.7}
+                style={[
+                    styles.contactCard,
+                    {
+                        backgroundColor: isDark ? colors.card : '#FFFFFF',
+                        borderBottomWidth: isLast ? 0 : StyleSheet.hairlineWidth,
+                        borderBottomColor: isDark ? 'rgba(255,255,255,0.05)' : '#F1F5F9',
+                        borderTopLeftRadius: isFirst ? mS(16) : 0,
+                        borderTopRightRadius: isFirst ? mS(16) : 0,
+                        borderBottomLeftRadius: isLast ? mS(16) : 0,
+                        borderBottomRightRadius: isLast ? mS(16) : 0,
+                    }
+                ]}
+                onPress={() => {
+                    // Navigate back first to avoid UI lag, the parent 'onSelectContact' will save it to recents
+                    navigation.goBack();
+                    if (onSelectContact) onSelectContact({ name: item.displayName, phone: phone });
+                }}
             >
-                <View style={[styles.avatar, { backgroundColor: isDark ? 'rgba(37, 99, 235, 0.15)' : '#152D5E33' }]}>
+                <View style={[styles.avatar, { backgroundColor: isDark ? 'rgba(37, 99, 235, 0.15)' : '#EBF4FF' }]}>
                     {item.thumbnailPath ? (
                         <Image source={{ uri: item.thumbnailPath }} style={styles.avatarImage} />
                     ) : (
-                        <Text style={[styles.avatarText, { color: isDark ? colors.primary : colors.button }]}>{initials.toUpperCase()}</Text>
+                        <Text style={[styles.avatarText, { color: isDark ? colors.primary : '#1E3A8A' }]}>
+                            {initials.toUpperCase()}
+                        </Text>
                     )}
                 </View>
+
                 <View style={styles.contactInfo}>
-                    <Text style={[styles.name, { color: colors.text }]}>{item.displayName}</Text>
-                    <Text style={[styles.phone, { color: colors.secondaryText }]}>{rawPhone}</Text>
+                    <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
+                        {item.displayName}
+                    </Text>
+                    <Text style={[styles.phone, { color: colors.secondaryText }]}>
+                        {rawPhone}
+                    </Text>
                 </View>
-                {/* <TouchableOpacity onPress={() => openEditContactForm(item)} style={{ padding: 10 }}>
-                    <AntDesign name="edit" size={18} color="#94A3B8" />
-                </TouchableOpacity> */}
+
+                <TouchableOpacity
+                    style={styles.starContainer}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    onPress={() => toggleFavorite(rawPhone)}
+                >
+                    {isFavorite ? (
+                        <MaterialCommunityIcons name="star" size={22} color="#F59E0B" />
+                    ) : (
+                        <MaterialCommunityIcons name="star-outline" size={22} color={isDark ? '#475569' : '#94A3B8'} />
+                    )}
+                </TouchableOpacity>
             </TouchableOpacity>
         );
     };
 
     if (loading) return (
-        <View style={[styles.center, { backgroundColor: colors.background }]}>
-            <ActivityIndicator color={colors.button} size="large" />
+        <View style={[styles.center, { backgroundColor: isDark ? colors.background : '#F9FAFB' }]}>
+            <ActivityIndicator color={colors.primary} size="large" />
         </View>
     );
 
     return (
-        <View style={[styles.container, {
-            backgroundColor: colors.background
-        }]}>
+        <View style={[styles.container, { backgroundColor: isDark ? colors.background : '#F9FAFB' }]}>
             {/* Header Area */}
-            <View style={[styles.navHeader, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+            <View style={[styles.navHeader, { paddingTop: insets.top, backgroundColor: isDark ? colors.background : '#F9FAFB' }]}>
                 <TouchableOpacity
                     activeOpacity={0.7}
                     onPress={() => navigation.goBack()}
@@ -364,39 +246,85 @@ const ContactListScreen = ({ navigation, route }: any) => {
                     <MaterialCommunityIcons name="arrow-left" size={mS(24)} color={colors.text} />
                 </TouchableOpacity>
                 <Text style={[styles.navTitle, { color: colors.text }]}>Select Contact</Text>
+
+                <TouchableOpacity onPress={openCreateContactForm} style={styles.rightHeaderButton}>
+                    <AntDesign name="user" size={mS(20)} color={colors.text} />
+                </TouchableOpacity>
             </View>
 
-            <View style={[styles.headerContainer, { backgroundColor: colors.background }]}>
-                <View style={[styles.searchSection, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: isDark ? 1 : 0 }]}>
-                    <AntDesign name="search1" size={20} color={colors.secondaryText} style={styles.searchIcon} />
-                    <TextInput
-                        style={[styles.searchBar, { color: colors.text }]}
-                        placeholder="Search contacts..."
-                        placeholderTextColor={colors.secondaryText}
-                        value={search}
-                        onChangeText={handleSearch}
-                    />
-                </View>
-                <View style={styles.sectionHeaderRow}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Contacts</Text>
-                    <TouchableOpacity style={styles.createButton} onPress={openCreateContactForm}>
-                        <Text style={styles.createButtonText}>+ New</Text>
+            {/* Search Bar */}
+            <View style={[styles.searchSection, { backgroundColor: isDark ? colors.card : '#FFFFFF', borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0', borderWidth: 1 }]}>
+                <AntDesign name="search1" size={20} color={isDark ? '#94A3B8' : '#64748B'} style={styles.searchIcon} />
+                <TextInput
+                    style={[styles.searchBar, { color: colors.text }]}
+                    placeholder="Search contacts..."
+                    placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
+                    value={search}
+                    onChangeText={handleSearch}
+                />
+            </View>
+
+            {/* Filter Pills */}
+            <View style={styles.filterRow}>
+                {['All', 'Recent', 'Favorites'].map((tab) => (
+                    <TouchableOpacity
+                        key={tab}
+                        activeOpacity={0.7}
+                        onPress={() => setActiveTab(tab)}
+                        style={[
+                            styles.filterPill,
+                            {
+                                backgroundColor: activeTab === tab
+                                    ? (isDark ? colors.primary : '#1E3A8A')
+                                    : (isDark ? colors.card : '#F1F5F9')
+                            }
+                        ]}
+                    >
+                        <Text style={[
+                            styles.filterText,
+                            {
+                                color: activeTab === tab
+                                    ? '#FFFFFF'
+                                    : (isDark ? '#94A3B8' : '#1E293B')
+                            }
+                        ]}>
+                            {tab}
+                        </Text>
                     </TouchableOpacity>
-                </View>
+                ))}
             </View>
 
-            <SectionList
-                sections={sections}
-                keyExtractor={(item) => item.recordID || item.rawContactId}
-                renderItem={renderItem}
-                stickySectionHeadersEnabled={true}
-                renderSectionHeader={({ section: { title } }) => (
-                    <View style={[styles.alphabetHeader, { backgroundColor: isDark ? colors.background : '#F1F5F9' }]}>
-                        <Text style={[styles.alphabetText, { color: colors.secondaryText }]}>{title}</Text>
-                    </View>
-                )}
-                contentContainerStyle={styles.listContent}
-            />
+            <View style={styles.listWrapper}>
+                <SectionList
+                    ref={sectionListRef}
+                    sections={sections}
+                    keyExtractor={(item) => item.recordID || item.rawContactId}
+                    renderItem={renderItem}
+                    stickySectionHeadersEnabled={false}
+                    renderSectionHeader={({ section: { title } }) => (
+                        <View style={styles.alphabetHeader}>
+                            <Text style={[styles.alphabetText, { color: isDark ? '#E2E8F0' : '#1E293B' }]}>{title}</Text>
+                        </View>
+                    )}
+                    contentContainerStyle={styles.listContent}
+                    showsVerticalScrollIndicator={false}
+                />
+
+                {/* A-Z Index Sidebar */}
+                <View style={styles.alphabetSidebar}>
+                    {alphabetIndex.map((letter) => (
+                        <TouchableOpacity
+                            key={letter}
+                            onPress={() => scrollToSection(letter)}
+                            style={styles.sidebarLetterContainer}
+                        >
+                            <Text style={[styles.sidebarLetter, { color: isDark ? colors.primary : '#2563EB' }]}>
+                                {letter}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            </View>
         </View>
     );
 };
@@ -404,96 +332,87 @@ const ContactListScreen = ({ navigation, route }: any) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F8FAFC',
     },
     center: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center'
     },
-    headerContainer: {
-        paddingTop: vS(10),
-        backgroundColor: '#F8FAFC',
+    navHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: hS(16),
+        paddingVertical: vS(12),
+        justifyContent: 'space-between',
+    },
+    backButton: {
+        padding: mS(8),
+    },
+    navTitle: {
+        fontSize: mS(18),
+        fontWeight: '700',
+    },
+    rightHeaderButton: {
+        padding: mS(8),
     },
     searchSection: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FFFFFF',
         marginHorizontal: hS(20),
         marginTop: vS(10),
-        borderRadius: mS(12),
-        // Shadow Effect
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 3,
+        marginBottom: vS(16),
+        borderRadius: mS(24),
     },
     searchIcon: {
-        paddingLeft: hS(15),
+        paddingLeft: hS(16),
     },
     searchBar: {
-        flex: 1, // Takes up remaining space
+        flex: 1,
         paddingRight: hS(16),
-        paddingLeft: hS(10), // Space between icon and text
-        paddingVertical: vS(12),
-        fontSize: mS(16),
-        color: '#152D5E',
+        paddingLeft: hS(10),
+        paddingVertical: vS(14),
+        fontSize: mS(15),
     },
-    sectionHeaderRow: {
+    filterRow: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
         paddingHorizontal: hS(20),
-        marginTop: vS(15),
-        marginBottom: vS(10),
+        marginBottom: vS(16),
+        gap: hS(10),
     },
-    sectionTitle: {
-        fontSize: mS(22),
-        fontWeight: '800',
-        color: '#0F172A',
-    },
-    createButton: {
-        backgroundColor: colors.button,
-        paddingVertical: vS(6),
-        paddingHorizontal: hS(14),
+    filterPill: {
+        paddingVertical: vS(8),
+        paddingHorizontal: hS(16),
         borderRadius: mS(20),
     },
-    createButtonText: {
-        color: '#FFF',
+    filterText: {
+        fontSize: mS(14),
+        fontWeight: '600',
+    },
+    listWrapper: {
+        flex: 1,
+        flexDirection: 'row',
+    },
+    listContent: {
+        paddingHorizontal: hS(20),
+        paddingBottom: vS(40),
+    },
+    alphabetHeader: {
+        paddingVertical: vS(12),
+        paddingLeft: hS(4),
+    },
+    alphabetText: {
         fontSize: mS(14),
         fontWeight: '700',
     },
-    alphabetHeader: {
-        backgroundColor: '#F1F5F9',
-        paddingHorizontal: hS(20),
-        paddingVertical: vS(4),
-    },
-    alphabetText: {
-        fontSize: mS(13),
-        fontWeight: '700',
-        color: '#64748B',
-    },
-    listContent: {
-        paddingBottom: vS(30),
-    },
     contactCard: {
         flexDirection: 'row',
-        marginHorizontal: hS(20),
-        marginVertical: vS(4),
-        padding: hS(12),
+        padding: hS(14),
         alignItems: 'center',
-        backgroundColor: '#FFFFFF',
-        borderRadius: mS(16),
-        // Subtle Border
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        borderColor: '#F1F5F9',
     },
     avatar: {
-        width: hS(44),
-        height: hS(44),
-        borderRadius: hS(22),
-        backgroundColor: '#152D5E33',
+        width: hS(48),
+        height: hS(48),
+        borderRadius: hS(24),
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: hS(16),
@@ -501,43 +420,40 @@ const styles = StyleSheet.create({
     avatarImage: {
         width: '100%',
         height: '100%',
-        borderRadius: hS(22),
+        borderRadius: hS(24),
     },
     avatarText: {
-        color: colors.button,
-        fontSize: mS(16),
-        fontWeight: '700',
+        fontSize: mS(20),
+        fontWeight: '600',
     },
     contactInfo: {
         flex: 1,
+        justifyContent: 'center',
     },
     name: {
         fontSize: mS(16),
         fontWeight: '600',
-        color: '#1E293B',
+        marginBottom: vS(2),
     },
     phone: {
-        color: '#64748B',
         fontSize: mS(13),
-        marginTop: vS(2),
     },
-    navHeader: {
-        flexDirection: 'row',
+    starContainer: {
+        padding: hS(8),
+    },
+    alphabetSidebar: {
+        width: hS(30),
         alignItems: 'center',
-        paddingHorizontal: hS(16),
-        paddingVertical: vS(12),
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(0,0,0,0.05)',
+        justifyContent: 'center',
+        paddingRight: hS(10),
     },
-    backButton: {
-        padding: mS(8),
-        marginRight: hS(8),
+    sidebarLetterContainer: {
+        paddingVertical: vS(1),
     },
-    navTitle: {
-        fontSize: mS(18),
-        fontWeight: '800',
-        letterSpacing: -0.5,
-    },
+    sidebarLetter: {
+        fontSize: mS(10),
+        fontWeight: '700',
+    }
 });
 
 export default ContactListScreen;

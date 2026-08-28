@@ -99,8 +99,29 @@ const OnRideView: React.FC<OnRideViewProps> = ({
     // ==================== HANDLERS ====================
     const onShareTrip = async () => {
         try {
+            const driverName = driver?.driverName || 'your driver';
+            const vehicleInfo = [driver?.carModel, driver?.carPlate].filter(Boolean).join(' ') || 'vehicle';
+            const destinationName = destination || 'my destination';
+            const pickupName = pickup || 'my pickup location';
+
+            const now = new Date();
+            const dateStr = now.toLocaleDateString();
+            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            const shareMessage = `I'm on a T2Drive trip!
+Date: ${dateStr}
+Time: ${timeStr}
+
+Driver: ${driverName}
+Vehicle: ${vehicleInfo}
+
+Pickup: ${pickupName}
+Destination: ${destinationName}
+
+Track my live ride here: https://t2drive.in/trip/share/${tripData.trip_id}`;
+
             await Share.share({
-                message: `I'm on a T2Drive trip to ${destination}. Track me here: t2driveapp://trips/${tripData.trip_id}`,
+                message: shareMessage,
                 title: 'Share Trip Status',
             });
         } catch (error: any) {
@@ -163,7 +184,7 @@ const OnRideView: React.FC<OnRideViewProps> = ({
                             styles.timelineFill,
                             {
                                 width: (status === TripStatus.LIVE || status === TripStatus.RETURN_STARTED) ? '75%' : (status === TripStatus.WAITING || status === TripStatus.DAY_HALT) ? '90%' : status === TripStatus.ARRIVED ? '50%' : '20%',
-                                backgroundColor: isDark ? 'rgba(59, 130, 246, 0.3)' : '#BFDBFE'
+                                backgroundColor: isDark ? 'rgba(37, 99, 235, 0.8)' : '#2563EB'
                             }
                         ]} />
                         <View style={[
@@ -173,22 +194,15 @@ const OnRideView: React.FC<OnRideViewProps> = ({
                             <MaterialCommunityIcons name="car-side" size={mS(24)} color={appColors.primary} />
                         </View>
                     </View>
-                    <View style={styles.locationPoints}>
-                        {[TripStatus.LIVE, TripStatus.WAITING, TripStatus.DAY_HALT, TripStatus.RETURN_STARTED].includes(status as any) ? (
-                            <View style={styles.point}>
-                                <View style={[styles.dot, styles.pickupDot]} />
-                                <Text numberOfLines={1} style={[styles.pointText, { color: appColors.secondaryText }]}>{pickup}</Text>
-                            </View>
-                        ) : (
-                            <View style={styles.point}>
-                                <View style={[styles.dot, styles.pickupDot]} />
-                                <Text numberOfLines={1} style={[styles.pointText, { color: appColors.secondaryText }]}>{pickup}</Text>
-                            </View>
-                        )}
-                        {/* <View style={styles.point}>
-                            <Text numberOfLines={1} style={[styles.pointText, styles.destText]}>{destination}</Text>
-                            <View style={[styles.dot, styles.destDot]} />
-                        </View> */}
+                    <View style={styles.locationPointsRow}>
+                        <View style={styles.locationColLeft}>
+                            <Text style={styles.locLabel}>PICKUP</Text>
+                            <Text numberOfLines={1} style={[styles.locValue, { color: '#2563EB' }]}>{pickup.split(',')[0]}</Text>
+                        </View>
+                        <View style={styles.locationColRight}>
+                            <Text style={styles.locLabelRight}>DROP-OFF</Text>
+                            <Text numberOfLines={1} style={[styles.locValueRight, { color: appColors.text }]}>{destination.split(',')[0]}</Text>
+                        </View>
                     </View>
                 </View>
             </View>
@@ -219,20 +233,31 @@ const OnRideView: React.FC<OnRideViewProps> = ({
                         )}
                     </View>
                     <View style={styles.carInfo}>
-                        <Text style={[styles.driverNameSmall, { color: appColors.text }]} numberOfLines={1}>
-                            {driver?.driverName || 'Driver'}
-                        </Text>
-                        <Text style={[styles.vehicleInfoSmall, { color: appColors.secondaryText }]} numberOfLines={1}>
-                            {driver?.carModel || 'Sedan'} • {driver?.carPlate || 'TN 02'}
-                        </Text>
+                        <View style={styles.nameRow}>
+                            <Text style={[styles.driverNameSmall, { color: appColors.text }]} numberOfLines={1}>
+                                {driver?.driverName || 'Driver'}
+                            </Text>
+                            <MaterialCommunityIcons name="check-decagram" size={mS(16)} color="#2563EB" />
+                        </View>
+                        <View style={styles.vehicleRow}>
+                            <Text style={[styles.vehicleInfoSmall, { color: appColors.secondaryText }]} numberOfLines={1}>
+                                {driver?.carModel || 'Sedan'}
+                            </Text>
+                            {/* <View style={styles.platePill}>
+                                <Text style={styles.plateText}>{driver?.carPlate || 'TN 02 AB 1234'}</Text>
+                            </View> */}
+                        </View>
                     </View>
                 </View>
 
                 {/* Right: Huge ETA and "On time" */}
                 <View style={styles.glanceRight}>
-                    <Text style={[styles.hugeEta, { color: appColors.text }]}>
-                        {status === TripStatus.ACCEPTED ? '—' : `${eta} min`}
-                    </Text>
+                    <View style={styles.etaBlock}>
+                        <Text style={[styles.hugeEta, { color: appColors.text }]}>
+                            {status === TripStatus.ACCEPTED ? '—' : `${eta} min`}
+                        </Text>
+                        <Text style={[styles.etaAwayText, { color: appColors.text }]}>away</Text>
+                    </View>
                     <View style={styles.statusIndicator}>
                         <View style={styles.onTimeDot} />
                         <Text style={styles.onTimeText}>On time</Text>
@@ -276,29 +301,15 @@ const OnRideView: React.FC<OnRideViewProps> = ({
             </View>
 
             {/* ZONE 3: TRIP DETAILS (THE "INFORMATION" AREA) */}
-            <View style={[styles.zone3, { backgroundColor: isDark ? appColors.iconBox : '#F9FAFB', borderColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F3F4F6' }]}>
-                <View style={[styles.routeSummary, { borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F3F4F6' }]}>
-                    <View style={styles.routeItem}>
-                        <Text style={styles.routeIcon}>📍</Text>
-                        <Text style={styles.routeLabel} numberOfLines={1}>Pickup: </Text>
-                        <Text style={[styles.routeValue, {
-                            color: isDark ? appColors.primary : appColors.button
-                        }]} numberOfLines={1}>{pickup.split(',')[0]}</Text>
-                    </View>
-                    <View style={styles.routeItem}>
-                        <Text style={styles.routeIcon}>🏁</Text>
-                        <Text style={[styles.routeLabel, { color: appColors.secondaryText }]} numberOfLines={1}>Drop-off: </Text>
-                        <Text style={[styles.routeValue, { color: appColors.text }]} numberOfLines={1}>{destination.split(',')[0]}</Text>
-                    </View>
-                </View>
-
+            <View style={[styles.zone3, { backgroundColor: isDark ? appColors.iconBox : '#FFFFFF', borderColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F3F4F6' }]}>
                 <View style={styles.fareInfo}>
                     <Text style={[styles.fareLabel, { color: appColors.secondaryText }]}>Fare</Text>
                     <View style={styles.fareRow}>
                         <Text style={[styles.fareValue, { color: appColors.text }]}>₹{tripData?.total_fare || '0'}</Text>
                         <View style={[styles.paymentBadge, { backgroundColor: isDark ? '#1E293B' : '#F3F4F6' }]}>
                             <MaterialCommunityIcons name="cash" size={mS(12)} color={appColors.secondaryText} />
-                            <Text style={[styles.paymentText, { color: appColors.secondaryText }]}>{tripData.payment_type || 'Cash'}</Text>
+                            <Text style={[styles.paymentText, { color: appColors.secondaryText }]}>{tripData.payment_type || 'Cash/Online'}</Text>
+                            {/* <MaterialCommunityIcons name="chevron-up" size={mS(16)} color={appColors.secondaryText} /> */}
                         </View>
                     </View>
                 </View>
@@ -359,33 +370,41 @@ const styles = StyleSheet.create({
         top: -10,
         marginLeft: -12,
     },
-    locationPoints: {
+    locationPointsRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
     },
-    point: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: hS(8),
+    locationColLeft: {
         flex: 1,
+        alignItems: 'flex-start',
     },
-    pointText: {
-        fontSize: mS(12),
-        fontWeight: '600',
-        color: '#4B5563',
+    locationColRight: {
         flex: 1,
+        alignItems: 'flex-end',
     },
-    destText: {
+    locLabel: {
+        fontSize: mS(10),
+        fontWeight: '700',
+        color: '#6B7280',
+        marginBottom: vS(2),
+    },
+    locLabelRight: {
+        fontSize: mS(10),
+        fontWeight: '700',
+        color: '#6B7280',
+        marginBottom: vS(2),
         textAlign: 'right',
     },
-    dot: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
+    locValue: {
+        fontSize: mS(13),
+        fontWeight: '700',
     },
-    pickupDot: { backgroundColor: '#10B981' },
-    destDot: { backgroundColor: '#EF4444' },
+    locValueRight: {
+        fontSize: mS(13),
+        fontWeight: '700',
+        textAlign: 'right',
+    },
 
     // Info Cards
     infoRow: {
@@ -524,30 +543,57 @@ const styles = StyleSheet.create({
         marginLeft: hS(10),
         flex: 1,
     },
+    nameRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: hS(4),
+        marginBottom: vS(2),
+    },
     driverNameSmall: {
         fontSize: mS(15),
         fontWeight: '800',
-        color: '#111827',
+    },
+    vehicleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: hS(8),
     },
     vehicleInfoSmall: {
         fontSize: mS(11),
-        color: '#6B7280',
         fontWeight: '500',
+    },
+    platePill: {
+        backgroundColor: '#EFF6FF',
+        paddingHorizontal: hS(6),
+        paddingVertical: vS(2),
+        borderRadius: mS(4),
+    },
+    plateText: {
+        fontSize: mS(10),
+        color: '#1D4ED8',
+        fontWeight: '700',
     },
     glanceRight: {
         alignItems: 'flex-end',
         paddingLeft: hS(10),
     },
+    etaBlock: {
+        alignItems: 'center',
+        marginBottom: vS(2),
+    },
     hugeEta: {
-        fontSize: mS(24),
+        fontSize: mS(18),
         fontWeight: '900',
-        color: '#111827',
-        lineHeight: mS(28),
+        lineHeight: mS(22),
+    },
+    etaAwayText: {
+        fontSize: mS(11),
+        fontWeight: '600',
+        lineHeight: mS(12),
     },
     statusIndicator: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: vS(2),
     },
     onTimeDot: {
         width: mS(6),
@@ -564,38 +610,12 @@ const styles = StyleSheet.create({
 
     // Zone 3: Trip Details
     zone3: {
-        backgroundColor: '#F9FAFB',
+        backgroundColor: '#FFFFFF',
         borderRadius: mS(20),
         padding: mS(16),
         marginBottom: vS(20),
         borderWidth: 1,
         borderColor: '#F3F4F6',
-    },
-    routeSummary: {
-        marginBottom: vS(12),
-        paddingBottom: vS(12),
-        borderBottomWidth: 1,
-        borderBottomColor: '#F3F4F6',
-    },
-    routeItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: vS(6),
-    },
-    routeIcon: {
-        fontSize: mS(12),
-        marginRight: hS(8),
-    },
-    routeLabel: {
-        fontSize: mS(12),
-        fontWeight: '700',
-        color: '#9CA3AF',
-    },
-    routeValue: {
-        fontSize: mS(12),
-        fontWeight: '600',
-        // color: '#1F2937',
-        flex: 1,
     },
     fareInfo: {
         flexDirection: 'row',

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Platform, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Platform, Dimensions, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Animated, { FadeInDown, FadeInUp, FadeInLeft } from 'react-native-reanimated';
@@ -7,11 +7,19 @@ import { useAppTheme } from '../../../../hooks/useAppTheme';
 import { hS, mS, vS } from '../../../../lib/responsive';
 import colors from '../../../../constant/colors';
 
+import { useSelector } from 'react-redux';
+import { RootState } from '../../../../redux/store';
+
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const RatingInfoScreen = () => {
     const insets = useSafeAreaInsets();
     const { colors: appColors, isDark } = useAppTheme();
+    const user = useSelector((state: RootState) => state.userSlice.user);
+
+    const currentRating = user?.rating ? Number(user.rating).toFixed(2) : '0.00';
+    const totalTrips = user?.total_trips || 0;
+
     const steps = [
         {
             id: 1,
@@ -27,7 +35,7 @@ const RatingInfoScreen = () => {
             desc: "Your rating is private. Captains cannot see individual ratings you give them, and they can't see who gave you a score.",
             icon: "shield-account",
             color: "#6366F1",
-            delay: 500
+            delay: 400
         },
         {
             id: 3,
@@ -35,15 +43,15 @@ const RatingInfoScreen = () => {
             desc: "We take the sum of all your star points and divide it by the total number of rated trips.",
             icon: "calculator-variant-outline",
             color: "#10B981",
-            delay: 700
+            delay: 500
         },
         {
             id: 4,
             title: "Rolling 500 Trips",
-            desc: "To keep things fair, only your last 500 rated trips count. Old scores won't haunt you forever.",
-            icon: "history",
+            desc: "Your rating is calculated based on your last 500 rated trips to keep it fair and up to date.",
+            icon: "trophy-outline",
             color: "#3B82F6",
-            delay: 900
+            delay: 600
         }
     ];
 
@@ -56,18 +64,26 @@ const RatingInfoScreen = () => {
                 ]}
                 showsVerticalScrollIndicator={false}
             >
-                {/* PREMIUM HERO SECTION */}
+                {/* HERO SECTION */}
                 <Animated.View entering={FadeInDown.duration(800)} style={styles.heroSection}>
-                    <View style={[styles.heroCard, { shadowColor: isDark ? '#000' : colors.button }]}>
-                        <View style={styles.heroIconBox}>
-                            <Icon name="star-face" size={mS(48)} color="#FFF" />
+                    <View style={[styles.heroCard, { backgroundColor: '#021638' }]}>
+                        <View style={styles.heroContentRow}>
+                            <View style={styles.heroIconBox}>
+                                <Image
+                                    source={require("../../../../assets/png/RatingScreenImage.png")}
+                                    style={styles.heroImage}
+                                    resizeMode="contain"
+                                />
+                            </View>
+                            <View style={styles.heroTextContainer}>
+                                <Text style={styles.heroTitle}>Your Community{'\n'}Reputation</Text>
+                                <Text style={styles.heroSubtitle}>Understanding how ratings{'\n'}empower the T2Drive network</Text>
+                            </View>
                         </View>
-                        <Text style={styles.heroTitle}>Your Community Reputation</Text>
-                        <Text style={styles.heroSubtitle}>Understanding how ratings empower the T2Drive network</Text>
                     </View>
                 </Animated.View>
 
-                {/* INSIGHT TIMELINE */}
+                {/* TIMELINE SECTION */}
                 <View style={styles.timelineContainer}>
                     {steps.map((step, index) => (
                         <Animated.View
@@ -76,43 +92,72 @@ const RatingInfoScreen = () => {
                             style={styles.stepItem}
                         >
                             <View style={styles.timelineAnchor}>
-                                <View style={[styles.outerDot, { borderColor: step.color + '40', backgroundColor: appColors.background }]}>
+                                {index !== 0 && <View style={[styles.verticalLineTop, { backgroundColor: appColors.border }]} />}
+                                <View style={[styles.outerDot, { borderColor: step.color, backgroundColor: appColors.background }]}>
                                     <View style={[styles.innerDot, { backgroundColor: step.color }]} />
                                 </View>
-                                {index !== steps.length - 1 && <View style={[styles.verticalLine, { backgroundColor: appColors.border }]} />}
+                                {index !== steps.length - 1 && <View style={[styles.verticalLineBottom, { backgroundColor: appColors.border }]} />}
                             </View>
 
-                            <View style={[styles.stepCard, { backgroundColor: appColors.card, shadowColor: isDark ? '#000' : '#000' }]}>
+                            <View style={[styles.stepCard, { backgroundColor: isDark ? appColors.card : '#FFF', borderColor: isDark ? appColors.border : 'transparent', borderWidth: isDark ? 1 : 0 }]}>
                                 <View style={[styles.stepIconBox, { backgroundColor: step.color + '15' }]}>
                                     <Icon name={step.icon} size={mS(24)} color={step.color} />
                                 </View>
                                 <View style={styles.stepTextContent}>
                                     <Text style={[styles.stepTitle, { color: appColors.text }]}>{step.title}</Text>
-                                    <Text style={[styles.stepDesc, { color: appColors.lightTextColor }]}>{step.desc}</Text>
+                                    <Text style={[styles.stepDesc, { color: appColors.lightTextColor }]} numberOfLines={4}>{step.desc}</Text>
+                                </View>
+                                <View style={styles.stepRightContent}>
+                                    <Text style={[styles.stepNumber, { color: step.color }]}>{`0${step.id}`}</Text>
+                                    <Icon name="chevron-right" size={mS(20)} color={appColors.lightTextColor} style={{ marginTop: vS(6) }} />
                                 </View>
                             </View>
                         </Animated.View>
                     ))}
                 </View>
 
-                {/* FORMULA CARD */}
-                <Animated.View entering={FadeInUp.delay(1100).duration(800)} style={styles.formulaSection}>
-                    <View style={[styles.formulaCard, { backgroundColor: isDark ? appColors.card : '#1E293B', borderWidth: isDark ? 1 : 0, borderColor: appColors.border }]}>
-                        <View style={styles.formulaHeader}>
-                            <Icon name="function-variant" size={mS(20)} color={isDark ? appColors.lightTextColor : "#64748B"} />
-                            <Text style={[styles.formulaHeaderText, { color: isDark ? appColors.lightTextColor : "#94A3B8" }]}>HOW WE CALCULATE</Text>
-                        </View>
-                        <View style={styles.formulaBody}>
-                            <Text style={styles.formulaText}>
-                                Average = <Text style={[styles.boldWhite, { color: isDark ? appColors.text : '#FFF' }]}>Total Points</Text> ÷ <Text style={[styles.boldWhite, { color: isDark ? appColors.text : '#FFF' }]}>Rated Trips</Text>
-                            </Text>
-                        </View>
-                        <View style={[styles.formulaBadge, isDark && { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]}>
-                            <Icon name="check-decagram" size={mS(14)} color="#10B981" />
-                            <Text style={styles.badgeText}>Verified Fairness Model</Text>
+                {/* CURRENT RATING CARD */}
+                <Animated.View entering={FadeInUp.delay(800).duration(800)}>
+                    <View style={[styles.ratingCard, { backgroundColor: isDark ? appColors.card : '#F8FAFC', borderWidth: isDark ? 1 : 0, borderColor: appColors.border }]}>
+                        <View style={styles.ratingCardRow}>
+                            <View style={styles.ratingLeft}>
+                                <Text style={[styles.ratingTitle, { color: appColors.text }]}>Your Current Rating</Text>
+                                <View style={styles.ratingScoreRow}>
+                                    <Text style={[styles.ratingScoreText, { color: '#3B82F6' }]}>{currentRating}</Text>
+                                    <Icon name="star" size={mS(24)} color="#3B82F6" />
+                                </View>
+                                <Text style={[styles.ratingSubtitle, { color: appColors.lightTextColor }]}>Based on last {totalTrips} rated trips</Text>
+
+                            </View>
+
+                            <View style={[styles.ratingDivider, { backgroundColor: appColors.border }]} />
+
+                            <View style={styles.ratingRight}>
+                                <View style={styles.starsRow}>
+                                    {[1, 2, 3, 4, 5].map((star, i) => (
+                                        <Icon key={i} name={i < 4 ? "star" : "star-half-full"} size={mS(18)} color="#3B82F6" />
+                                    ))}
+                                </View>
+                                <Text style={[styles.excellentText, { color: appColors.text }]}>Excellent</Text>
+                                <View style={[styles.goodStandingBadge, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#DCFCE7' }]}>
+                                    <Icon name="arrow-up" size={mS(12)} color="#10B981" />
+                                    <Text style={styles.goodStandingText}>Good standing</Text>
+                                </View>
+                            </View>
                         </View>
                     </View>
                 </Animated.View>
+
+                {/* BOTTOM DISCLAIMER */}
+                <View style={styles.disclaimerContainer}>
+                    <View style={[styles.disclaimerIconBox, { backgroundColor: isDark ? appColors.card : '#F1F5F9' }]}>
+                        <Icon name="shield-check-outline" size={mS(20)} color={isDark ? appColors.text : "#1E293B"} />
+                    </View>
+                    <Text style={[styles.disclaimerText, { color: appColors.lightTextColor }]}>
+                        Ratings help us build a safe, respectful and reliable community for everyone.
+                    </Text>
+                </View>
+
             </ScrollView>
         </View>
     );
@@ -121,168 +166,223 @@ const RatingInfoScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F8FAFC',
     },
     scrollContent: {
-        paddingHorizontal: hS(20),
-        paddingTop: vS(10),
+        paddingHorizontal: hS(16),
+        paddingTop: vS(12),
     },
     heroSection: {
-        marginBottom: vS(32),
+        marginBottom: vS(20),
     },
     heroCard: {
-        backgroundColor: colors.button,
-        borderRadius: mS(24),
-        padding: mS(24),
+        borderRadius: mS(16),
+        paddingVertical: vS(20),
+        paddingHorizontal: hS(16),
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        elevation: 5,
+        overflow: 'hidden',
+    },
+    heroContentRow: {
+        flexDirection: 'row',
         alignItems: 'center',
-        shadowColor: colors.button,
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.2,
-        shadowRadius: 20,
-        elevation: 8,
+        gap: hS(12),
     },
     heroIconBox: {
-        width: mS(80),
-        height: mS(80),
-        borderRadius: mS(40),
-        backgroundColor: 'rgba(255,255,255,0.15)',
+        width: mS(100),
+        height: mS(100),
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: vS(16),
+        backgroundColor: 'transparent !important',
+    },
+    heroImage: {
+        width: '100%',
+        height: '100%',
+        backgroundColor: 'transparent !important',
+    },
+    heroTextContainer: {
+        flex: 1,
     },
     heroTitle: {
-        fontSize: mS(22),
-        fontWeight: '900',
+        fontSize: mS(18),
+        fontWeight: '800',
         color: '#FFF',
-        textAlign: 'center',
+        marginBottom: vS(6),
     },
     heroSubtitle: {
-        fontSize: mS(14),
-        color: 'rgba(255,255,255,0.7)',
-        textAlign: 'center',
-        marginTop: vS(6),
-        lineHeight: mS(20),
+        fontSize: mS(12),
+        color: '#94A3B8',
+        lineHeight: mS(16),
     },
     timelineContainer: {
-        paddingLeft: hS(10),
+        paddingLeft: hS(4),
+        marginBottom: vS(12),
     },
     stepItem: {
         flexDirection: 'row',
-        marginBottom: vS(4),
+        minHeight: vS(80),
     },
     timelineAnchor: {
-        width: hS(40),
+        width: hS(24),
         alignItems: 'center',
     },
     outerDot: {
-        width: mS(20),
-        height: mS(20),
-        borderRadius: mS(10),
-        borderWidth: 2,
+        width: mS(12),
+        height: mS(12),
+        borderRadius: mS(6),
+        borderWidth: 1.5,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#FFF',
+        marginTop: vS(28),
         zIndex: 2,
     },
     innerDot: {
-        width: mS(10),
-        height: mS(10),
-        borderRadius: mS(5),
+        width: mS(6),
+        height: mS(6),
+        borderRadius: mS(3),
     },
-    verticalLine: {
-        width: 2,
+    verticalLineTop: {
+        width: 1,
+        height: vS(28),
+        position: 'absolute',
+        top: 0,
+    },
+    verticalLineBottom: {
+        width: 1,
         flex: 1,
-        backgroundColor: '#E2E8F0',
-        marginVertical: vS(-2),
+        position: 'absolute',
+        top: vS(28) + mS(12),
+        bottom: 0,
     },
     stepCard: {
         flex: 1,
         flexDirection: 'row',
-        backgroundColor: '#FFF',
-        borderRadius: mS(20),
-        padding: mS(16),
-        marginBottom: vS(24),
-        marginLeft: hS(10),
+        borderRadius: mS(12),
+        padding: mS(14),
+        marginLeft: hS(8),
+        marginBottom: vS(16),
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
+        shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.04,
-        shadowRadius: 10,
+        shadowRadius: 6,
         elevation: 2,
+        alignItems: 'center',
     },
     stepIconBox: {
-        width: mS(48),
-        height: mS(48),
-        borderRadius: mS(14),
+        width: mS(44),
+        height: mS(44),
+        borderRadius: mS(22),
         justifyContent: 'center',
         alignItems: 'center',
     },
     stepTextContent: {
         flex: 1,
-        marginLeft: hS(16),
+        marginLeft: hS(12),
+        marginRight: hS(8),
     },
     stepTitle: {
-        fontSize: mS(16),
-        fontWeight: '800',
-        color: '#1E293B',
+        fontSize: mS(13),
+        fontWeight: '700',
         marginBottom: vS(4),
     },
     stepDesc: {
-        fontSize: mS(13),
-        color: '#64748B',
-        lineHeight: mS(20),
+        fontSize: mS(11),
+        lineHeight: mS(16),
     },
-    formulaSection: {
-        marginTop: vS(8),
+    stepRightContent: {
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        height: '100%',
+        paddingTop: vS(2),
     },
-    formulaCard: {
-        backgroundColor: '#1E293B',
-        borderRadius: mS(20),
+    stepNumber: {
+        fontSize: mS(12),
+        fontWeight: '800',
+    },
+    ratingCard: {
+        borderRadius: mS(16),
         padding: mS(20),
+        marginBottom: vS(16),
+    },
+    ratingCardRow: {
+        flexDirection: 'row',
         alignItems: 'center',
     },
-    formulaHeader: {
+    ratingLeft: {
+        flex: 1.2,
+    },
+    ratingTitle: {
+        fontSize: mS(13),
+        fontWeight: '700',
+        marginBottom: vS(10),
+    },
+    ratingScoreRow: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: hS(8),
-        marginBottom: vS(12),
+        marginBottom: vS(10),
     },
-    formulaHeaderText: {
-        fontSize: mS(11),
+    ratingScoreText: {
+        fontSize: mS(36),
         fontWeight: '900',
-        color: '#94A3B8',
-        letterSpacing: 1.5,
     },
-    formulaBody: {
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        paddingHorizontal: hS(16),
-        paddingVertical: vS(12),
-        borderRadius: mS(12),
-        marginBottom: vS(16),
-        width: '100%',
-        alignItems: 'center',
+    ratingSubtitle: {
+        fontSize: mS(11),
+        lineHeight: mS(16),
     },
-    formulaText: {
-        fontSize: mS(15),
-        color: '#CBD5E1',
-        fontStyle: 'italic',
+    ratingDivider: {
+        width: 1,
+        height: '100%',
+        marginHorizontal: hS(16),
     },
-    boldWhite: {
-        color: '#FFF',
-        fontWeight: '800',
+    ratingRight: {
+        flex: 1,
+        alignItems: 'flex-start',
+        paddingVertical: vS(8),
     },
-    formulaBadge: {
+    starsRow: {
+        flexDirection: 'row',
+        gap: hS(2),
+        marginBottom: vS(8),
+    },
+    excellentText: {
+        fontSize: mS(12),
+        fontWeight: '700',
+        marginBottom: vS(10),
+    },
+    goodStandingBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: hS(6),
-        backgroundColor: '#F0FDF4',
-        paddingHorizontal: hS(12),
+        paddingHorizontal: hS(8),
         paddingVertical: vS(4),
-        borderRadius: mS(100),
+        borderRadius: mS(6),
+        gap: hS(4),
     },
-    badgeText: {
-        fontSize: mS(11),
-        fontWeight: '700',
+    goodStandingText: {
         color: '#10B981',
+        fontSize: mS(10),
+        fontWeight: '700',
+    },
+    disclaimerContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: vS(8),
+        gap: hS(12),
+        paddingHorizontal: hS(8),
+    },
+    disclaimerIconBox: {
+        width: mS(36),
+        height: mS(36),
+        borderRadius: mS(18),
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    disclaimerText: {
+        flex: 1,
+        fontSize: mS(11),
+        lineHeight: mS(16),
     }
 });
 

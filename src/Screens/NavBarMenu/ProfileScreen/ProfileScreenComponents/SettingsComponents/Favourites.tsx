@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     StyleSheet,
     View,
@@ -21,17 +21,36 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SavedLocation } from '../../../../../service/utils/storage';
 import { useUpdateUserMutation } from '../../../../../service/userApi';
 import { updateUserStore } from '../../../../../redux/userSlice';
-// 👈 Import your responsive utilities
 import { hS, vS, mS } from '../../../../../lib/responsive';
 import { useAppTheme } from "../../../../../hooks/useAppTheme";
+import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const RECENT_LOCATIONS_KEY = '@recent_locations';
 
 const Favourites = () => {
     const insets = useSafeAreaInsets();
+    const navigation = useNavigation();
     const localuser = useSelector((state: RootState) => state?.userSlice?.user);
     const [savedPlaces, setSavedPlaces] = useState(localuser?.favourite_places || []);
+    const [recentLocations, setRecentLocations] = useState<SavedLocation[]>([]);
     const dispatch = useDispatch();
     const [updateUser] = useUpdateUserMutation();
     const { colors: appColors, isDark } = useAppTheme();
+
+    useEffect(() => {
+        const fetchRecentLocations = async () => {
+            try {
+                const data = await AsyncStorage.getItem(RECENT_LOCATIONS_KEY);
+                if (data) {
+                    setRecentLocations(JSON.parse(data));
+                }
+            } catch (error) {
+                console.log('Failed to fetch recent locations', error);
+            }
+        };
+        fetchRecentLocations();
+    }, []);
 
     const [selectedItem, setSelectedItem] = useState<any>(null);
     const [optionsVisible, setOptionsVisible] = useState(false);
@@ -102,45 +121,141 @@ const Favourites = () => {
         await handleSync(updated);
     };
 
-    const getIcon = (type: string) => {
-        switch (type?.toLowerCase()) {
-            case 'home': return 'home-outline';
-            case 'work': return 'briefcase-outline';
-            default: return 'map-marker-outline';
-        }
+    const getIconColor = (type: string, isDarkTheme: boolean) => {
+        const lowerType = type?.toLowerCase();
+        if (lowerType?.includes('home')) return { bg: isDarkTheme ? 'rgba(59, 130, 246, 0.15)' : '#E8F2FF', color: '#3B82F6' };
+        if (lowerType?.includes('office') || lowerType?.includes('work')) return { bg: isDarkTheme ? 'rgba(168, 85, 247, 0.15)' : '#F4E8FF', color: '#A855F7' };
+        if (lowerType?.includes('fitness') || lowerType?.includes('gym')) return { bg: isDarkTheme ? 'rgba(249, 115, 22, 0.15)' : '#FFEDD5', color: '#F97316' };
+        if (lowerType?.includes('restaurant') || lowerType?.includes('food')) return { bg: isDarkTheme ? 'rgba(239, 68, 68, 0.15)' : '#FDE8E8', color: '#EF4444' };
+        if (lowerType?.includes('airport')) return { bg: isDarkTheme ? 'rgba(16, 185, 129, 0.15)' : '#D1FAE5', color: '#10B981' };
+        return { bg: isDarkTheme ? 'rgba(107, 114, 128, 0.15)' : '#F3F4F6', color: '#6B7280' };
     };
 
-    const renderItem = ({ item }: { item: any }) => (
-        <TouchableOpacity style={[styles.card, { backgroundColor: appColors.card, borderColor: appColors.border }]} activeOpacity={0.8}>
-            <View style={styles.cardLeft}>
-                <View style={[styles.iconContainer, { backgroundColor: item.showname?.toLowerCase() === 'home' ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#E8F5E9') : item.showname?.toLowerCase() === 'work' ? (isDark ? 'rgba(33, 150, 243, 0.15)' : '#E3F2FD') : appColors.iconBox }]}>
-                    <MaterialCommunityIcons
-                        name={getIcon(item.showname)}
-                        size={mS(24)}
-                        color={item.showname?.toLowerCase() === 'home' ? '#4CAF50' : item.showname?.toLowerCase() === 'work' ? '#2196F3' : colors.icon}
-                    />
+    const getIcon = (type: string) => {
+        const lowerType = type?.toLowerCase();
+        if (lowerType?.includes('home')) return 'home-outline';
+        if (lowerType?.includes('office') || lowerType?.includes('work')) return 'briefcase-outline';
+        if (lowerType?.includes('fitness') || lowerType?.includes('gym')) return 'dumbbell';
+        if (lowerType?.includes('restaurant') || lowerType?.includes('food')) return 'silverware-fork-knife';
+        if (lowerType?.includes('airport')) return 'airplane';
+        return 'map-marker-outline';
+    };
+
+    const renderCustomHeader = () => (
+        <View style={[styles.customHeader, { paddingTop: insets.top + vS(10) }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <TouchableOpacity style={[styles.headerIconBtn, { backgroundColor: isDark ? '#FFFFFF' : '#FFFFFF' }]} onPress={() => navigation.goBack()}>
+                    <MaterialCommunityIcons name="arrow-left" size={mS(20)} color="#111827" />
+                </TouchableOpacity>
+                <Text style={[styles.headerTitle, { color: isDark ? "#FFF" : "#111827" }]}>Favourites</Text>
+            </View>
+            {/* <TouchableOpacity style={styles.headerIconBtn}>
+                <MaterialCommunityIcons name="plus" size={mS(20)} color="#3B82F6" />
+            </TouchableOpacity> */}
+        </View>
+    );
+
+    const renderItem = ({ item, index }: { item: any, index: number }) => {
+        const iconTheme = getIconColor(item.showname || item.name, isDark);
+        const isRecent = index < 2;
+
+        return (
+            <View style={[styles.card, { backgroundColor: isDark ? 'transparent' : '#FFFFFF', borderColor: isDark ? '#334155' : '#E5E7EB' }]}>
+                <View style={styles.cardLeft}>
+                    <View style={[styles.iconContainer, { backgroundColor: iconTheme.bg }]}>
+                        <MaterialCommunityIcons
+                            name={getIcon(item.showname || item.name)}
+                            size={mS(20)}
+                            color={iconTheme.color}
+                        />
+                    </View>
+                    <View style={styles.textGroup}>
+                        <View style={styles.titleRow}>
+                            <Text style={[styles.titleText, { color: isDark ? '#FFF' : '#111827' }]} numberOfLines={1}>{item?.showname || item?.name || 'Other'}</Text>
+                            {isRecent && (
+                                <View style={[styles.recentBadge, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.9)' : '#E8F2FF' }]}>
+                                    <Text style={[styles.recentBadgeText, { color: isDark ? '#3B82F6' : '#3B82F6' }]}>Recent</Text>
+                                </View>
+                            )}
+                        </View>
+                        <Text style={[styles.addressText, { color: isDark ? '#9CA3AF' : '#6B7280' }]} numberOfLines={1}>
+                            {item.address || 'No address provided'}
+                        </Text>
+
+                        <View style={styles.metaRow}>
+                            <MaterialCommunityIcons name="map-marker-outline" size={mS(10)} color={isDark ? "#9CA3AF" : "#9CA3AF"} />
+                            <Text style={[styles.metaText, { color: isDark ? '#9CA3AF' : '#9CA3AF' }]}>2.3 km</Text>
+                            <Text style={[styles.metaDot, { color: isDark ? '#4B5563' : '#D1D5DB' }]}>•</Text>
+                            <MaterialCommunityIcons name="clock-outline" size={mS(10)} color={isDark ? "#9CA3AF" : "#9CA3AF"} />
+                            <Text style={[styles.metaText, { color: isDark ? '#9CA3AF' : '#9CA3AF' }]}>8 min</Text>
+                        </View>
+                    </View>
                 </View>
-                <View style={styles.textGroup}>
-                    <Text style={[styles.titleText, { color: appColors.text }]}>{item?.showname || item?.name || 'Other'}</Text>
-                    <Text style={[styles.addressText, { color: appColors.secondaryText }]} numberOfLines={1}>
-                        {item.address || 'No address provided'}
+                <View style={styles.actionGroup}>
+                    <TouchableOpacity style={[styles.actionCircleButton, { backgroundColor: isDark ? '#1E293B' : '#F8FAFC' }]}>
+                        <MaterialCommunityIcons name="star-outline" size={mS(16)} color="#3B82F6" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.actionCircleButton, { backgroundColor: isDark ? '#1E293B' : '#F8FAFC' }]}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        onPress={() => handleOpenOptions(item)}
+                    >
+                        <MaterialCommunityIcons name="dots-vertical" size={mS(16)} color={isDark ? '#9CA3AF' : "#6B7280"} />
+                    </TouchableOpacity>
+                </View>
+            </View>
+        );
+    };
+
+    const renderListFooter = () => (
+        <View style={styles.footerSection}>
+            <View style={styles.sectionHeaderRow}>
+                <Text style={[styles.sectionHeader, { color: isDark ? '#9CA3AF' : '#6B7280' }]}>RECENT LOCATIONS</Text>
+                <TouchableOpacity>
+                    <Text style={styles.viewAllText}>View All</Text>
+                </TouchableOpacity>
+            </View>
+
+            <View style={styles.recentContainer}>
+                {recentLocations.map((loc, index) => (
+                    <TouchableOpacity
+                        key={loc.id || index.toString()}
+                        style={[
+                            styles.recentCard,
+                            { backgroundColor: isDark ? '#1E293B' : '#F3F4F6' },
+                            index !== recentLocations.length - 1 && { marginBottom: vS(8) }
+                        ]}
+                    >
+                        <MaterialCommunityIcons name="history" size={mS(18)} color={isDark ? "#9CA3AF" : "#6B7280"} style={styles.recentIcon} />
+                        <View style={styles.recentTextGroup}>
+                            <Text style={[styles.recentTitle, { color: isDark ? '#FFF' : '#111827' }]} numberOfLines={1}>{loc.showname || loc.name}</Text>
+                            <Text style={[styles.recentSubtitle, { color: isDark ? '#9CA3AF' : '#6B7280' }]} numberOfLines={1}>{loc.address}</Text>
+                        </View>
+                    </TouchableOpacity>
+                ))}
+                {recentLocations.length === 0 && (
+                    <Text style={{ color: isDark ? '#9CA3AF' : '#9CA3AF', fontSize: mS(13), fontStyle: 'italic', paddingHorizontal: hS(4) }}>No recent locations yet.</Text>
+                )}
+            </View>
+
+            <View style={[styles.proTipCard, { backgroundColor: isDark ? '#082f49' : '#EFF6FF' }]}>
+                <View style={styles.proTipIconContainer}>
+                    <MaterialCommunityIcons name="lightbulb-outline" size={mS(20)} color={isDark ? "#38bdf8" : "#3B82F6"} />
+                </View>
+                <View style={styles.proTipTextGroup}>
+                    <Text style={[styles.proTipTitle, { color: isDark ? '#FFF' : '#1E3A8A' }]}>Pro Tip</Text>
+                    <Text style={[styles.proTipDesc, { color: isDark ? '#bae6fd' : '#64748B' }]}>
+                        Save your frequent destinations as favourites for faster bookings.
                     </Text>
                 </View>
             </View>
-            <TouchableOpacity
-                style={styles.moreButton}
-                hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
-                onPress={() => handleOpenOptions(item)}
-            >
-                <MaterialCommunityIcons name="dots-vertical" size={mS(20)} color={appColors.secondaryText} />
-            </TouchableOpacity>
-        </TouchableOpacity>
+        </View>
     );
 
     const EmptyList = () => (
         <View style={styles.emptyContainer}>
             <View style={[styles.emptyIconWrapper, { backgroundColor: appColors.iconBox }]}>
-                <MaterialCommunityIcons name="map-marker-star-outline" size={mS(80)} color={appColors.secondaryText} />
+                <MaterialCommunityIcons name="map-marker-star-outline" size={mS(60)} color={appColors.secondaryText} />
             </View>
             <Text style={[styles.emptyText, { color: appColors.text }]}>No Saved Places</Text>
             <Text style={[styles.emptySubText, { color: appColors.secondaryText }]}>Save your favorite destinations for a faster booking experience.</Text>
@@ -148,8 +263,11 @@ const Favourites = () => {
     );
 
     return (
-        <View style={[styles.container, { backgroundColor: appColors.background }]}>
-            <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={appColors.background} />
+        <View style={[styles.container, { backgroundColor: isDark ? '#0F172A' : '#F8FAFC' }]}>
+            <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={isDark ? '#0F172A' : '#F8FAFC'} />
+
+            {renderCustomHeader()}
+
             <View style={styles.content}>
                 <FlatList
                     data={savedPlaces}
@@ -157,6 +275,12 @@ const Favourites = () => {
                     keyExtractor={(item, index) => item.id?.toString() || index.toString()}
                     contentContainerStyle={styles.listContainer}
                     showsVerticalScrollIndicator={false}
+                    ListHeaderComponent={() => (
+                        <View style={styles.listHeaderWrapper}>
+                            <Text style={[styles.sectionHeaderMain, { color: isDark ? '#9CA3AF' : '#6B7280' }]}>SAVED PLACES</Text>
+                        </View>
+                    )}
+                    ListFooterComponent={renderListFooter}
                     ListEmptyComponent={EmptyList}
                 />
             </View>
@@ -237,32 +361,65 @@ const Favourites = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+    },
+    customHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: hS(16),
+        paddingBottom: vS(12),
+        backgroundColor: 'transparent',
+    },
+    headerIconBtn: {
+        width: mS(40),
+        height: mS(40),
+        borderRadius: mS(20),
         backgroundColor: '#FFFFFF',
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 3,
+        elevation: 2,
+    },
+    headerTitle: {
+        fontSize: mS(18),
+        fontWeight: '700',
+        marginLeft: hS(14),
     },
     content: {
         flex: 1,
     },
     listContainer: {
-        paddingHorizontal: hS(20),
-        paddingTop: vS(15),
+        paddingHorizontal: hS(16),
         paddingBottom: vS(30),
         flexGrow: 1,
     },
+    listHeaderWrapper: {
+        paddingTop: vS(4),
+        paddingBottom: vS(10),
+    },
+    sectionHeaderMain: {
+        fontSize: mS(11),
+        fontWeight: '700',
+        color: '#6B7280',
+        letterSpacing: 0.8,
+        marginLeft: hS(4),
+    },
     card: {
-        backgroundColor: '#FFFFFF',
         flexDirection: 'row',
         alignItems: 'center',
-        padding: mS(16),
+        padding: mS(12),
         borderRadius: mS(20),
-        marginBottom: vS(16),
+        marginBottom: vS(10),
         borderWidth: 1,
-        borderColor: '#F0F0F0',
-        // Premium subtle shadow
+        borderColor: '#E5E7EB',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 12,
-        elevation: 2,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.02,
+        shadowRadius: 3,
+        elevation: 1,
     },
     cardLeft: {
         flexDirection: 'row',
@@ -270,29 +427,138 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     iconContainer: {
-        width: mS(48),
-        height: mS(48),
+        width: mS(44),
+        height: mS(44),
         borderRadius: mS(14),
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: hS(16),
+        marginRight: hS(12),
     },
     textGroup: {
         flex: 1,
+        justifyContent: 'center',
     },
-    titleText: {
-        fontSize: mS(17),
-        fontWeight: '700',
-        color: '#1A1A1A',
+    titleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
         marginBottom: vS(2),
     },
-    addressText: {
-        fontSize: mS(13),
-        color: '#808080',
-        lineHeight: mS(18),
+    titleText: {
+        fontSize: mS(14),
+        fontWeight: '700',
+        flexShrink: 1,
     },
-    moreButton: {
-        padding: mS(8),
+    recentBadge: {
+        backgroundColor: '#E8F2FF',
+        paddingHorizontal: hS(6),
+        paddingVertical: vS(2),
+        borderRadius: mS(6),
+        marginLeft: hS(6),
+    },
+    recentBadgeText: {
+        fontSize: mS(9),
+        fontWeight: '700',
+        color: '#3B82F6',
+    },
+    addressText: {
+        fontSize: mS(11.5),
+        marginBottom: vS(4),
+    },
+    metaRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    metaText: {
+        fontSize: mS(11),
+        color: '#9CA3AF',
+        marginLeft: hS(3),
+        fontWeight: '500',
+    },
+    metaDot: {
+        fontSize: mS(11),
+        color: '#D1D5DB',
+        marginHorizontal: hS(6),
+    },
+    actionGroup: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginLeft: hS(8),
+    },
+    actionCircleButton: {
+        width: mS(32),
+        height: mS(32),
+        borderRadius: mS(16),
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginLeft: hS(6),
+    },
+    footerSection: {
+        marginTop: vS(12),
+    },
+    sectionHeaderRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: vS(12),
+        paddingHorizontal: hS(4),
+    },
+    sectionHeader: {
+        fontSize: mS(11),
+        fontWeight: '700',
+        color: '#6B7280',
+        letterSpacing: 0.8,
+    },
+    viewAllText: {
+        fontSize: mS(13),
+        fontWeight: '600',
+        color: '#3B82F6',
+    },
+    recentContainer: {
+        marginBottom: vS(8),
+    },
+    recentCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: mS(14),
+        borderRadius: mS(16),
+    },
+    recentIcon: {
+        marginRight: hS(14),
+    },
+    recentTextGroup: {
+        flex: 1,
+    },
+    recentTitle: {
+        fontSize: mS(13.5),
+        fontWeight: '600',
+        marginBottom: vS(1),
+    },
+    recentSubtitle: {
+        fontSize: mS(11.5),
+    },
+    proTipCard: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        padding: mS(16),
+        borderRadius: mS(20),
+        marginTop: vS(8),
+        marginBottom: vS(20),
+    },
+    proTipIconContainer: {
+        marginRight: hS(12),
+        marginTop: vS(2),
+    },
+    proTipTextGroup: {
+        flex: 1,
+    },
+    proTipTitle: {
+        fontSize: mS(14),
+        fontWeight: '700',
+        marginBottom: vS(2),
+    },
+    proTipDesc: {
+        fontSize: mS(11.5),
+        lineHeight: mS(16),
     },
     emptyContainer: {
         flex: 1,
