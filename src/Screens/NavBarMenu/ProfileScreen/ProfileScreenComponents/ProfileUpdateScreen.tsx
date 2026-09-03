@@ -1,8 +1,9 @@
-import { ActivityIndicator, Alert, Animated, Modal, Platform, Pressable, ScrollView, StyleSheet, TextInput, ToastAndroid, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native"
+import { ActivityIndicator, Alert, Animated, Modal, Platform, Pressable, ScrollView, StyleSheet, TextInput, ToastAndroid, TouchableOpacity, TouchableWithoutFeedback, View, Image } from "react-native"
 import { Text } from "../../../../Components"
 import { Styles } from "../../../../lib/styles"
 import Button from "../../../../Components/Button"
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Svg, { Path } from 'react-native-svg';
 import fonts from "../../../../constant/fonts";
 import { useRoute } from "@react-navigation/native";
 import colorsConstant from "../../../../constant/colors";
@@ -13,13 +14,16 @@ import { RootState } from '../../../../redux/store';
 import { useDispatch, useSelector } from "react-redux";
 import { skipToken } from '@reduxjs/toolkit/query';
 import { updateUserStore } from "../../../../redux/userSlice";
-import { useUpdateUserMutation } from "../../../../service/userApi";
+import { useUpdateUserMutation, useGetUploadUrlMutation, useDeleteDocumentMutation } from "../../../../service/userApi";
+import ImagePicker from "react-native-image-crop-picker";
 import { useAddTrustedContactMutation, useRemoveTrustedContactMutation, useGetTrustedContactsQuery } from "../../../../service/sosApi";
 import DateTimePickerComponent from "../../../../Components/DateTimePicker";
 import RelationshipSelectionModal from "../../../../Components/RelationshipSelectionModal";
 import { hS, mS, vS } from "../../../../lib/responsive";
 import { ContactScreen_Nav } from "../../../../Navigations/navigations";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Config from "react-native-config";
 
 
 
@@ -27,9 +31,16 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
     const { colors, isDark } = useAppTheme();
     const route = useRoute<any>();
     const [updateUser] = useUpdateUserMutation();
+    const [getUploadUrl] = useGetUploadUrlMutation();
+    const [deleteDocument] = useDeleteDocumentMutation();
     const [addTrustedContact] = useAddTrustedContactMutation();
     const [removeTrustedContact] = useRemoveTrustedContactMutation();
-    const dispatch = useDispatch()
+    const dispatch = useDispatch();
+    const insets = useSafeAreaInsets();
+
+    useEffect(() => {
+        navigation.setOptions({ headerShown: false });
+    }, [navigation]);
 
     const minDate = new Date();
     minDate.setFullYear(minDate.getFullYear() - 100);
@@ -40,10 +51,14 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
         user?.id ? { userId: user.id } : skipToken
     );
 
+    const BASE_URL = `${Config.DEV_BACKEND_URL}/api`;
+    const proxiedImageSource = user?.profile_url ? (user.profile_url.startsWith('http') ? `${BASE_URL}/media/proxy?url=${encodeURIComponent(user.profile_url)}` : user.profile_url) : null;
+
     const [isUpdating, setIsUpdating] = useState(false);
     const [visible, setVisible] = useState(false);
     const [relationshipModalVisible, setRelationshipModalVisible] = useState(false);
     const [selectedContact, setSelectedContact] = useState<{ name: string, phone: string } | null>(null);
+    const [imageError, setImageError] = useState(false);
 
     useEffect(() => {
         const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
@@ -95,6 +110,10 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
 
 
     useEffect(() => {
+        setImageError(false);
+    }, [user?.profile_url]);
+
+    useEffect(() => {
         if (visible) {
             Animated.timing(slideAnim, {
                 toValue: 1,
@@ -110,6 +129,60 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
         }
     }, [visible]);
 
+
+    const handleEditProfilePicture = async () => {
+        try {
+            const image = await ImagePicker.openPicker({
+                width: 500,
+                height: 500,
+                cropping: true,
+                cropperCircleOverlay: true,
+                mediaType: 'photo',
+            });
+            const uri = image.path;
+            const mimeType = image.mime || 'image/jpeg';
+
+            setIsUpdating(true);
+
+            if (user?.profile_url) {
+                const oldFilename = user.profile_url.split('/').pop();
+                if (oldFilename) {
+                    try {
+                        await deleteDocument({ userId: user.id, documentType: oldFilename }).unwrap();
+                    } catch (e) { }
+                }
+            }
+
+            const filename = uri.split('/').pop() || `profile_${Date.now()}`;
+            const urlResponse = await getUploadUrl({
+                userId: user.id,
+                documentType: `profile_picture_${filename}`,
+                contentType: mimeType,
+            }).unwrap();
+
+            const uploadUrl = urlResponse.data?.uploadUrl || urlResponse.data?.data?.uploadUrl;
+
+            const responseFile = await fetch(uri);
+            const imageBlob = await responseFile.blob();
+            const uploadResponse = await fetch(uploadUrl, {
+                method: 'PUT',
+                body: imageBlob,
+                headers: { 'Content-Type': mimeType },
+            });
+            if (!uploadResponse.ok) throw new Error("Upload failed");
+
+            const publicUrl = uploadUrl.split('?')[0];
+            const updateResponse = await updateUser({ id: user.id, profile_url: publicUrl }).unwrap();
+            if (updateResponse.success) {
+                dispatch(updateUserStore({ profile_url: publicUrl }));
+                if (Platform.OS === 'android') ToastAndroid.show("Profile picture updated", ToastAndroid.SHORT);
+            }
+        } catch (error) {
+            console.log(error);
+        } finally {
+            setIsUpdating(false);
+        }
+    };
 
     if (!user) {
         return (
@@ -280,7 +353,6 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
         navigation.navigate(ContactScreen_Nav, {
             onSelectContact: async (SelectedContact: any) => {
                 if (SelectedContact) {
-                    navigation.goBack();
 
                     const incomingPhone = SelectedContact.phone?.replace(/[^0-9]/g, '') || '';
                     const cleanphone = SelectedContact.phone?.replace(/\+91/g, '').replace(/[^0-9]/g, '');
@@ -428,17 +500,68 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
     };
 
     return (
-        <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <View style={{ flex: 1, backgroundColor: isDark ? colors.background : '#F8FAFC' }}>
+            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: vS(200) }}>
+                <Svg height="100%" width="100%" viewBox="0 0 1440 320" preserveAspectRatio="none">
+                    <Path
+                        fill={isDark ? 'rgba(30, 58, 138, 0.1)' : '#EBF4FF'}
+                        d="M0,96L80,112C160,128,320,160,480,170.7C640,181,800,171,960,154.7C1120,139,1280,117,1360,106.7L1440,96L1440,0L1360,0C1280,0,1120,0,960,0C800,0,640,0,480,0C320,0,160,0,80,0L0,0Z"
+                    />
+                </Svg>
+            </View>
+
+            {/* Custom Header with back button */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: hS(20), paddingTop: insets.top + vS(10), paddingBottom: vS(10), zIndex: 10 }}>
+                <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                    <MaterialCommunityIcons name="arrow-left" size={mS(24)} color={isDark ? colors.text : '#0F172A'} />
+                </TouchableOpacity>
+                <Text style={{ fontSize: mS(20), fontWeight: '700', color: isDark ? colors.text : '#0F172A', marginLeft: hS(16) }}>Profile</Text>
+            </View>
+
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: vS(30) }}
             >
-                {/* --- Section: Personal Details --- */}
-                <View style={styles.sectionHeader}>
-                    <Text style={[styles.sectionTitle, { color: colors.lightTextColor }]}>Personal Information</Text>
+                {/* --- CUSTOM HEADER (FROM SCREENSHOT) --- */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: hS(20), paddingTop: vS(10), paddingBottom: vS(10) }}>
+                    <View style={{ width: mS(70), height: mS(70), borderRadius: mS(35), backgroundColor: isDark ? '#1E3A8A' : '#FFFFFF', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
+                        {proxiedImageSource && !imageError ? (
+                            <Image
+                                source={{ uri: proxiedImageSource }}
+                                style={{ width: '100%', height: '100%', resizeMode: 'cover' }}
+                                onError={() => setImageError(true)}
+                            />
+                        ) : (
+                            <MaterialCommunityIcons name="account-outline" size={mS(36)} color={isDark ? '#60A5FA' : '#1E3A8A'} />
+                        )}
+                    </View>
+
+                    <View style={{ flex: 1, marginLeft: hS(16) }}>
+                        <Text style={{ fontSize: mS(18), fontWeight: '800', color: isDark ? '#F8FAFC' : '#0F172A' }}>{user?.full_name || 'User'}</Text>
+                        <Text style={{ fontSize: mS(12), color: isDark ? '#94A3B8' : '#64748B', marginTop: vS(2) }}>Member since</Text>
+                        <Text style={{ fontSize: mS(13), fontWeight: '700', color: isDark ? '#F8FAFC' : '#0F172A' }}>{formatDate(user?.created_at)}</Text>
+                    </View>
+
+                    <TouchableOpacity
+                        style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? 'rgba(37, 99, 235, 0.2)' : '#FFFFFF', paddingHorizontal: hS(12), paddingVertical: vS(6), borderRadius: mS(20), borderWidth: 1, borderColor: isDark ? '#38BDF8' : '#E2E8F0' }}
+                        onPress={handleEditProfilePicture}
+                        activeOpacity={0.7}
+                    >
+                        <MaterialCommunityIcons name="pencil-outline" size={mS(14)} color={isDark ? '#38BDF8' : '#2563EB'} />
+                        <Text style={{ fontSize: mS(13), fontWeight: '600', color: isDark ? '#38BDF8' : '#2563EB', marginLeft: hS(4) }}>Edit</Text>
+                    </TouchableOpacity>
                 </View>
 
-                <View style={[styles.cardContainer, { backgroundColor: colors.card }, isDark && { shadowColor: colors.text }]}>
+                {/* --- Section: Personal Details --- */}
+                <View style={styles.sectionHeader}>
+                    <Text style={[styles.sectionTitle, { color: isDark ? '#94A3B8' : colors.lightTextColor, textTransform: 'uppercase', letterSpacing: 1, fontWeight: '800', fontSize: mS(14) }]}>Personal Information</Text>
+                </View>
+
+                <View style={[
+                    styles.cardContainer, 
+                    { backgroundColor: isDark ? colors.card : '#FFFFFF' }, 
+                    isDark && { shadowColor: 'transparent', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }
+                ]}>
                     {buttons.slice(0, 5).map((item, index) => {
                         const isEditable = ['Name', 'Email', 'Date of Birth', 'Gender'].includes(item.Label);
                         return (
@@ -449,8 +572,7 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
                                     styles.actionRow,
                                     index === 0 && styles.firstRow,
                                     index === 4 && styles.lastRow,
-                                    !isEditable && { backgroundColor: isDark ? colors.background : '#F8FAFC' },
-                                    { borderBottomColor: colors.divider }
+                                    { borderBottomColor: isDark ? 'rgba(255,255,255,0.05)' : '#F1F5F9' }
                                 ]}
                                 onPress={() => {
                                     if (isEditable) {
@@ -459,28 +581,26 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
                                     }
                                 }}
                             >
-                                <View style={[styles.rowIconBox, { backgroundColor: colors.iconBox }]}>
+                                <View style={[styles.rowIconBox, { backgroundColor: isDark ? '#1E293B' : colors.iconBox }]}>
                                     <MaterialCommunityIcons
                                         name={item.iconName}
                                         size={mS(20)}
-                                        color={isEditable ? (isDark ? colors.primary : colors.button) : colors.lightTextColor}
+                                        color={isDark ? '#38BDF8' : colors.button}
                                     />
                                 </View>
 
                                 <View style={styles.rowContent}>
-                                    <Text style={[styles.rowLabel, { color: colors.lightTextColor }]}>{item.Label}</Text>
+                                    <Text style={[styles.rowLabel, { color: isDark ? '#94A3B8' : colors.lightTextColor }]}>{item.Label}</Text>
                                     <Text style={[
                                         styles.rowValue,
-                                        { color: colors.text },
-                                        !isEditable && { color: colors.lightTextColor }
+                                        { color: isDark ? '#F8FAFC' : colors.text },
+                                        !isEditable && { color: isDark ? '#94A3B8' : colors.lightTextColor }
                                     ]}>
                                         {item.Label === 'Date of Birth' ? formatDatePretty(item.data) : item.data}
                                     </Text>
                                 </View>
 
-                                {isEditable && (
-                                    <MaterialCommunityIcons name="chevron-right" size={mS(20)} color={colors.border} />
-                                )}
+                                <MaterialCommunityIcons name="chevron-right" size={mS(20)} color={isDark ? '#64748B' : colors.border} />
                             </TouchableOpacity>
                         );
                     })}
@@ -488,60 +608,68 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
 
                 {/* --- Section: Account Details --- */}
                 <View style={styles.sectionHeader}>
-                    <Text style={[styles.sectionTitle, { color: colors.lightTextColor }]}>Account Details</Text>
+                    <Text style={[styles.sectionTitle, { color: isDark ? '#94A3B8' : colors.lightTextColor, textTransform: 'uppercase', letterSpacing: 1, fontWeight: '800', fontSize: mS(14) }]}>Account Details</Text>
                 </View>
 
-                <View style={[styles.cardContainer, { backgroundColor: colors.card }, isDark && { shadowColor: colors.text }]}>
+                <View style={[
+                    styles.cardContainer, 
+                    { backgroundColor: isDark ? colors.card : '#FFFFFF' }, 
+                    isDark && { shadowColor: 'transparent', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }
+                ]}>
                     {/* Account Since (Static) */}
                     <View style={[
                         styles.actionRow,
                         styles.firstRow,
                         styles.lastRow,
-                        { backgroundColor: isDark ? colors.background : '#F8FAFC' },
                         { borderBottomWidth: 0 }
                     ]}>
-                        <View style={[styles.rowIconBox, { backgroundColor: colors.iconBox }]}>
-                            <MaterialCommunityIcons name="history" size={mS(20)} color={colors.lightTextColor} />
+                        <View style={[styles.rowIconBox, { backgroundColor: isDark ? '#1E293B' : colors.iconBox }]}>
+                            <MaterialCommunityIcons name="history" size={mS(20)} color={isDark ? '#38BDF8' : colors.button} />
                         </View>
                         <View style={styles.rowContent}>
-                            <Text style={[styles.rowLabel, { color: colors.lightTextColor }]}>Account Since</Text>
-                            <Text style={[styles.rowValue, { color: colors.lightTextColor }]}>{formatDate(user.created_at)}</Text>
+                            <Text style={[styles.rowLabel, { color: isDark ? '#94A3B8' : colors.lightTextColor }]}>Account Since</Text>
+                            <Text style={[styles.rowValue, { color: isDark ? '#F8FAFC' : colors.text }]}>{formatDate(user.created_at)}</Text>
                         </View>
+                        <MaterialCommunityIcons name="chevron-right" size={mS(20)} color={isDark ? '#64748B' : colors.border} />
                     </View>
                 </View>
 
                 {/* --- Section: Emergency Contacts --- */}
                 <View style={styles.sectionHeader}>
-                    <Text style={[styles.sectionTitle, { color: colors.lightTextColor }]}>Emergency Contacts</Text>
-                    <Text style={[styles.sectionSubtitle, { color: colors.secondaryText }]}>Up to 5 trusted contacts</Text>
+                    <Text style={[styles.sectionTitle, { color: isDark ? '#94A3B8' : colors.lightTextColor, textTransform: 'uppercase', letterSpacing: 1, fontWeight: '800', fontSize: mS(14) }]}>Emergency Contacts</Text>
+                    <Text style={[styles.sectionSubtitle, { color: isDark ? '#64748B' : colors.secondaryText }]}>Up to 5 trusted contacts</Text>
                 </View>
 
-                <View style={[styles.cardContainer, { backgroundColor: colors.card }, isDark && { shadowColor: colors.text }]}>
+                <View style={[
+                    styles.cardContainer, 
+                    { backgroundColor: isDark ? colors.card : '#FFFFFF' }, 
+                    isDark && { shadowColor: 'transparent', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }
+                ]}>
                     <View style={[styles.emergencyContainer, styles.firstRow, styles.lastRow]}>
                         <View style={styles.emergencyHeader}>
                             <View style={styles.emergencyIconTitle}>
-                                <MaterialCommunityIcons name="phone-plus-outline" size={mS(20)} color={isDark ? colors.primary : colors.button} />
-                                <Text style={[styles.rowLabel, { color: colors.lightTextColor }]}>Emergency Contacts</Text>
+                                <MaterialCommunityIcons name="phone-plus-outline" size={mS(20)} color={isDark ? '#38BDF8' : colors.button} />
+                                <Text style={[styles.rowLabel, { color: isDark ? '#F8FAFC' : colors.lightTextColor }]}>Emergency Contacts</Text>
                             </View>
 
                             <TouchableOpacity
                                 disabled={emergencyContacts.length >= 5}
                                 style={[
                                     styles.addBadge,
-                                    { backgroundColor: isDark ? 'rgba(96, 165, 250, 0.1)' : '#EFF6FF' },
-                                    emergencyContacts.length >= 5 && { backgroundColor: colors.iconBox }
+                                    { backgroundColor: isDark ? 'rgba(37, 99, 235, 0.2)' : '#EFF6FF' },
+                                    emergencyContacts.length >= 5 && { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : colors.iconBox }
                                 ]}
                                 onPress={handleAddEmergencyContact}
                             >
                                 <MaterialCommunityIcons
                                     name="plus"
                                     size={mS(16)}
-                                    color={emergencyContacts.length >= 5 ? colors.border : (isDark ? colors.primary : colors.button)}
+                                    color={emergencyContacts.length >= 5 ? (isDark ? '#475569' : colors.border) : (isDark ? '#38BDF8' : colors.button)}
                                 />
                                 <Text style={[
                                     styles.addBadgeText,
-                                    { color: isDark ? colors.primary : colors.button },
-                                    emergencyContacts.length >= 5 && { color: colors.lightTextColor }
+                                    { color: isDark ? '#38BDF8' : colors.button },
+                                    emergencyContacts.length >= 5 && { color: isDark ? '#475569' : colors.lightTextColor }
                                 ]}>Add</Text>
                             </TouchableOpacity>
                         </View>
@@ -549,34 +677,34 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
                         {emergencyContacts.length > 0 ? (
                             <View style={styles.contactsList}>
                                 {emergencyContacts.map((contact, idx) => (
-                                    <View 
-                                        key={idx} 
-                                        style={[styles.contactItem, { backgroundColor: isDark ? colors.iconBox : '#F8FAFC' }]}
+                                    <View
+                                        key={idx}
+                                        style={[styles.contactItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FAFC', borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'transparent' }]}
                                     >
-                                        <View style={[styles.contactAvatar, { backgroundColor: isDark ? colors.primary : colors.button }]}>
+                                        <View style={[styles.contactAvatar, { backgroundColor: isDark ? '#3B82F6' : colors.button }]}>
                                             <Text style={styles.contactInitial}>{contact.name.charAt(0)}</Text>
                                         </View>
                                         <View style={styles.contactInfo}>
-                                            <Text style={[styles.contactName, { color: colors.text }]}>{contact.name}</Text>
-                                            <Text style={[styles.contactPhone, { color: colors.lightTextColor }]}>{contact.phone}</Text>
-                                            <Text style={[styles.contactRelationshipText, { color: colors.lightTextColor }]}>
+                                            <Text style={[styles.contactName, { color: isDark ? '#F8FAFC' : colors.text }]}>{contact.name}</Text>
+                                            <Text style={[styles.contactPhone, { color: isDark ? '#94A3B8' : colors.lightTextColor }]}>{contact.phone}</Text>
+                                            <Text style={[styles.contactRelationshipText, { color: isDark ? '#94A3B8' : colors.lightTextColor }]}>
                                                 <MaterialCommunityIcons name="family-tree" size={mS(12)} /> {contact.relationship}
                                             </Text>
                                         </View>
-                                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                            <TouchableOpacity 
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: hS(8) }}>
+                                            <TouchableOpacity
                                                 activeOpacity={0.6}
                                                 onPress={() => handleEditContactRelationship(idx)}
-                                                style={{ padding: mS(8) }}
+                                                style={{ padding: mS(6), backgroundColor: isDark ? 'rgba(37, 99, 235, 0.1)' : '#EFF6FF', borderRadius: mS(8) }}
                                             >
-                                                <MaterialCommunityIcons name="pencil-outline" size={mS(20)} color={colors.lightTextColor} />
+                                                <MaterialCommunityIcons name="pencil-outline" size={mS(18)} color={isDark ? '#38BDF8' : colors.button} />
                                             </TouchableOpacity>
-                                            <TouchableOpacity 
+                                            <TouchableOpacity
                                                 activeOpacity={0.6}
                                                 onPress={() => handleRemoveContact(idx)}
-                                                style={{ padding: mS(8) }}
+                                                style={{ padding: mS(6), backgroundColor: isDark ? 'rgba(239, 68, 68, 0.1)' : '#FEF2F2', borderRadius: mS(8) }}
                                             >
-                                                <MaterialCommunityIcons name="trash-can-outline" size={mS(20)} color="#EF4444" />
+                                                <MaterialCommunityIcons name="trash-can-outline" size={mS(18)} color="#EF4444" />
                                             </TouchableOpacity>
                                         </View>
                                     </View>
@@ -584,7 +712,7 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
                             </View>
                         ) : (
                             <View style={styles.noContactsBox}>
-                                <Text style={[styles.noContactsText, { color: colors.lightTextColor }]}>No emergency contacts added yet.</Text>
+                                <Text style={[styles.noContactsText, { color: isDark ? '#64748B' : colors.lightTextColor }]}>No emergency contacts added yet.</Text>
                             </View>
                         )}
                     </View>
@@ -725,7 +853,7 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
 
             {/* --- UPDATING OVERLAY --- */}
             {isUpdating && (
-                <Modal transparent={true} animationType="fade" visible={isUpdating} statusBarTranslucent navigationBarTranslucent onRequestClose={() => {}}>
+                <Modal transparent={true} animationType="fade" visible={isUpdating} statusBarTranslucent navigationBarTranslucent onRequestClose={() => { }}>
                     <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
                         <View style={{ backgroundColor: colors.card, padding: hS(24), borderRadius: mS(16), alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 10, elevation: 5 }}>
                             <ActivityIndicator size="large" color={colors.primary} />
@@ -747,9 +875,9 @@ const ProfileUpdatescreen: React.FC<ScreenProps> = ({ navigation }) => {
 
 const styles = StyleSheet.create({
     sectionHeader: {
-        marginTop: vS(24),
+        marginTop: vS(16),
         marginHorizontal: hS(20),
-        marginBottom: vS(8),
+        marginBottom: vS(4),
         flexDirection: 'row',
         alignItems: 'baseline',
         justifyContent: 'space-between',
@@ -769,53 +897,53 @@ const styles = StyleSheet.create({
     cardContainer: {
         marginHorizontal: hS(16),
         backgroundColor: '#FFFFFF',
-        borderRadius: mS(20),
+        borderRadius: mS(16),
         shadowColor: '#64748B',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 12,
-        elevation: 3,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.03,
+        shadowRadius: 8,
+        elevation: 1,
     },
     actionRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: vS(16),
-        paddingHorizontal: hS(16),
+        paddingVertical: vS(12),
+        paddingHorizontal: hS(14),
         borderBottomWidth: 1,
         borderBottomColor: '#F1F5F9',
     },
     firstRow: {
-        borderTopLeftRadius: mS(20),
-        borderTopRightRadius: mS(20),
+        borderTopLeftRadius: mS(16),
+        borderTopRightRadius: mS(16),
     },
     lastRow: {
         borderBottomWidth: 0,
-        borderBottomLeftRadius: mS(20),
-        borderBottomRightRadius: mS(20),
+        borderBottomLeftRadius: mS(16),
+        borderBottomRightRadius: mS(16),
     },
     disabledRow: {
         backgroundColor: '#F8FAFC',
     },
     rowIconBox: {
-        width: mS(40),
-        height: mS(40),
-        borderRadius: mS(12),
+        width: mS(36),
+        height: mS(36),
+        borderRadius: mS(10),
         backgroundColor: '#F8FAFC',
         justifyContent: 'center',
         alignItems: 'center',
     },
     rowContent: {
         flex: 1,
-        marginLeft: hS(16),
+        marginLeft: hS(12),
     },
     rowLabel: {
-        fontSize: mS(13),
+        fontSize: mS(12),
         color: '#94A3B8',
         fontWeight: '600',
-        marginBottom: vS(2),
+        marginBottom: 0,
     },
     rowValue: {
-        fontSize: mS(15),
+        fontSize: mS(14),
         color: '#334155',
         fontWeight: '700',
     },
@@ -823,33 +951,33 @@ const styles = StyleSheet.create({
         color: '#94A3B8',
     },
     emergencyContainer: {
-        padding: hS(16),
+        padding: hS(12),
     },
     emergencyHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: vS(16),
+        marginBottom: vS(12),
     },
     emergencyIconTitle: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: hS(12),
+        gap: hS(10),
     },
     addBadge: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#EFF6FF',
-        paddingHorizontal: hS(12),
-        paddingVertical: vS(6),
-        borderRadius: mS(20),
+        paddingHorizontal: hS(10),
+        paddingVertical: vS(4),
+        borderRadius: mS(16),
         gap: hS(4),
     },
     addBadgeDisabled: {
         backgroundColor: '#F1F5F9',
     },
     addBadgeText: {
-        fontSize: mS(13),
+        fontSize: mS(12),
         fontWeight: '700',
         color: colorsConstant.button,
     },
@@ -857,19 +985,19 @@ const styles = StyleSheet.create({
         color: '#94A3B8',
     },
     contactsList: {
-        gap: vS(12),
+        gap: vS(8),
     },
     contactItem: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#F8FAFC',
-        padding: mS(12),
-        borderRadius: mS(12),
+        padding: mS(10),
+        borderRadius: mS(10),
     },
     contactAvatar: {
-        width: mS(36),
-        height: mS(36),
-        borderRadius: mS(18),
+        width: mS(34),
+        height: mS(34),
+        borderRadius: mS(17),
         backgroundColor: colorsConstant.button,
         justifyContent: 'center',
         alignItems: 'center',

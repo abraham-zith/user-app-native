@@ -6,10 +6,15 @@ import {
   ToastAndroid,
   StyleSheet,
   TextInput,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Image,
+  Dimensions,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Car, GoogleIcon, MailIcon } from '../../assets/svg';
+import { Car, Logo } from '../../assets/svg';
 import { Styles } from '../../lib/styles';
 import colors from '../../constant/colors';
 import fonts from '../../constant/fonts';
@@ -61,23 +66,65 @@ const LoginScreen: React.FC<any> = ({ navigation }) => {
   ), [appColors]);
 
   return (
-    <View style={[
-      localStyles.mainContainer,
-      { paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: appColors.background }
-    ]}>
-      <View style={Styles.flex}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={[
+        localStyles.mainContainer,
+        { paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: isDark ? '#020813' : appColors.background }
+      ]}
+    >
+      <ScrollView contentContainerStyle={localStyles.scrollContainer} showsVerticalScrollIndicator={false}>
         {/* PREMIUM HEADER SECTION */}
         <View style={localStyles.headerSection}>
-          <Text style={[localStyles.welcomeText, { color: appColors.primary }]}>Welcome Back</Text>
-          <Text style={[localStyles.titleText, { color: appColors.text }]}>Ready for a Ride?</Text>
-          <Text style={[localStyles.descriptionText, { color: appColors.lightTextColor }]}>
-            Log in to book your cab, rent a car, or hire a driver instantly.
+          <View style={localStyles.logoContainer}>
+            {/* <Logo width={hS(90)} height={vS(24)} /> */}
+            {isDark ? (
+              <Image
+                source={require('../../assets/png/T2DriveLogo.png')}
+                style={{ width: hS(100), height: vS(24), resizeMode: 'contain' }}
+              />
+            ) : (
+              <Image
+                source={require('../../assets/png/T2DriveDarkLogo.png')}
+                style={{ width: hS(100), height: vS(24), resizeMode: 'contain' }}
+              />
+            )}
+          </View>
+          <Text style={[localStyles.titleText, { color: isDark ? '#FFFFFF' : appColors.text }]}>Welcome to T2Drive</Text>
+          <Text style={[localStyles.descriptionText, { color: isDark ? '#9CA3AF' : appColors.lightTextColor }]}>
+            Log in or sign up to book rides, rent cars or hire trusted drivers.
           </Text>
         </View>
 
+        {/* Decorative Car Illustration */}
+        <View style={[localStyles.illustrationContainer, { width: Dimensions.get('window').width }]}>
+          {isDark ? (
+            <View style={{ width: Dimensions.get('window').width, height: vS(260), justifyContent: 'center', alignItems: 'center' }}>
+              <Image
+                source={require('../../assets/png/LoginScreenImageBackground.png')}
+                style={{ width: Dimensions.get('window').width, height: '100%', resizeMode: 'stretch', position: 'absolute' }}
+              />
+              <Image
+                source={require('../../assets/png/LoginScreenMobile.png')}
+                style={{ width: hS(180), height: vS(180), resizeMode: 'contain', position: 'absolute', right: hS(20), bottom: vS(0) }}
+              />
+              <Image
+                source={require('../../assets/png/LoginScreenCar.png')}
+                style={{ width: hS(200), height: vS(140), resizeMode: 'contain', position: 'absolute', bottom: vS(2), left: hS(40) }}
+              />
+            </View>
+          ) : (
+            <Image
+              source={require('../../assets/png/LoginScreenImage.png')}
+              style={{ width: hS(320), height: vS(260), resizeMode: 'contain' }}
+            />
+          )}
+        </View>
+
         <View style={localStyles.fieldContainer}>
-          <Text style={[localStyles.fieldLabel, { color: appColors.text }]}>Mobile Number</Text>
-          <View style={[localStyles.mobileInputWrapper, { backgroundColor: appColors.card, borderColor: appColors.border, shadowColor: isDark ? '#000' : '#64748B' }]}>
+          <Text style={[localStyles.fieldLabel, { color: isDark ? '#FFFFFF' : appColors.text }]}>Mobile Number</Text>
+          {/* DropDown UI for Mobile Number */}
+          {/* <View style={[localStyles.mobileInputWrapper, { backgroundColor: isDark ? '#0A1931' : appColors.card, borderColor: isDark ? '#152B4D' : appColors.border }]}>
             <DropDown
               data={countryList}
               renderItem={renderItem}
@@ -108,136 +155,168 @@ const LoginScreen: React.FC<any> = ({ navigation }) => {
               style={[localStyles.phoneInput, { color: appColors.text }]}
               maxLength={10}
             />
+          </View> */}
+          <View style={[localStyles.mobileInputWrapper, { backgroundColor: isDark ? '#0A1931' : appColors.card, borderColor: isDark ? '#152B4D' : appColors.border }]}>
+            <TouchableOpacity
+              style={localStyles.countryPickerTrigger}
+              onPress={() => ToastAndroid.show('T2Drive is currently available in India only', ToastAndroid.SHORT)}
+            >
+              <FastImage
+                source={{
+                  uri: `https://flagcdn.com/w40/in.png`,
+                  priority: FastImage.priority.normal
+                }}
+                style={localStyles.flagIcon}
+              />
+              <Text style={[localStyles.countryText, { color: isDark ? '#FFFFFF' : appColors.text }]}>+91</Text>
+              <MaterialCommunityIcons name="chevron-down" size={mS(20)} color={isDark ? '#9CA3AF' : appColors.lightTextColor} />
+            </TouchableOpacity>
+            <View style={[localStyles.verticalDivider, { backgroundColor: isDark ? '#152B4D' : appColors.divider }]} />
+
+            <TextInput
+              placeholder="Enter mobile number"
+              placeholderTextColor={isDark ? '#9CA3AF' : appColors.lightTextColor}
+              keyboardType="phone-pad"
+              value={mobileNumber}
+              onChangeText={setMobileNumber}
+              style={[localStyles.phoneInput, { color: isDark ? '#FFFFFF' : appColors.text }]}
+              maxLength={10}
+            />
           </View>
         </View>
 
         {/* Send OTP Button */}
         <Button
-          onPress={handleSendOtp} // ✅ use local validated handler
-          disabled={loading || mobileNumber.trim().length < 10} // ✅ disable if invalid
+          onPress={handleSendOtp}
+          disabled={loading || mobileNumber.trim().length < 10}
           style={[
             localStyles.primaryButton,
-            { backgroundColor: appColors.button, shadowColor: appColors.button },
-            (loading || mobileNumber.trim().length < 10) && [localStyles.disabledButton, { backgroundColor: isDark ? '#334155' : '#94A3B8' }], // ✅ visual feedback
+            { backgroundColor: isDark ? '#007BFF' : '#0B3370' }, // Darker blue matching the reference
+            (loading || mobileNumber.trim().length < 10) && localStyles.disabledButton,
           ]}
         >
-          <Text style={localStyles.primaryButtonText}>
-            {loading ? 'Sending...' : 'Send OTP'}
-          </Text>
+          <View style={localStyles.buttonContentRow}>
+            <Text style={localStyles.primaryButtonText}>
+              {loading ? 'Sending...' : 'Send OTP'}
+            </Text>
+            {!loading && <MaterialCommunityIcons name="arrow-right" size={mS(20)} color="#fff" style={localStyles.buttonIcon} />}
+          </View>
         </Button>
 
         {/* Divider */}
         <View style={localStyles.dividerContainer}>
-          <View style={[localStyles.line, { backgroundColor: appColors.divider }]} />
-          <Text style={[localStyles.orText, { color: appColors.lightTextColor }]}>or</Text>
-          <View style={[localStyles.line, { backgroundColor: appColors.divider }]} />
+          <View style={[localStyles.line, { backgroundColor: isDark ? '#152B4D' : appColors.divider }]} />
+          <Text style={[localStyles.orText, { color: isDark ? '#9CA3AF' : appColors.lightTextColor }]}>or</Text>
+          <View style={[localStyles.line, { backgroundColor: isDark ? '#152B4D' : appColors.divider }]} />
         </View>
 
-        {/* SOCIAL LOGIN SECTION */}
-        {/* <View style={localStyles.socialSection}>
-          <TouchableOpacity
-            style={[localStyles.socialCard, { backgroundColor: appColors.card, borderColor: appColors.border }]}
-            onPress={() => { }}
-            activeOpacity={0.8}
-          >
-            <View style={[localStyles.socialIconCircle, { backgroundColor: appColors.background }]}>
-              <GoogleIcon width={mS(22)} height={mS(22)} />
-            </View>
-            <Text style={[localStyles.socialCardText, { color: appColors.text }]}>Continue with Google</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[localStyles.socialCard, { backgroundColor: appColors.card, borderColor: appColors.border }]}
-            onPress={() => { }}
-            activeOpacity={0.8}
-          >
-            <View style={[localStyles.socialIconCircle, { backgroundColor: isDark ? appColors.background : '#F1F5F9' }]}>
-              <MailIcon width={mS(22)} height={mS(22)} />
-            </View>
-            <Text style={[localStyles.socialCardText, { color: appColors.text }]}>Continue with Email</Text>
-          </TouchableOpacity>
-        </View> */}
-
-        {/* FOOTER LINK */}
-        <View style={localStyles.footer}>
-          <Text style={[localStyles.footerText, { color: appColors.lightTextColor }]}>
-            New to T2Drive?{' '}
-            <Text
-              style={[localStyles.signUpLink, { color: appColors.primary }]}
-              onPress={() => navigation.navigate(SignUpScreen_Nav)}
-            >
-              Create Account
-            </Text>
+        {/* CREATE ACCOUNT BUTTON */}
+        <Button
+          onPress={() => navigation.navigate(SignUpScreen_Nav)}
+          style={[
+            localStyles.secondaryButton,
+            { backgroundColor: isDark ? '#0A1931' : '#FFFFFF', borderColor: isDark ? '#152B4D' : appColors.border }
+          ]}
+        >
+          <Text style={[localStyles.secondaryButtonText, { color: isDark ? '#FFFFFF' : appColors.text }]}>
+            Create Account
           </Text>
-        </View>
-      </View>
+        </Button>
 
-      {/* Decorative Car */}
-      <Car
-        width={hS(200)}
-        height={vS(100)}
-        style={localStyles.carDecoration}
-      />
-    </View>
+        {/* FOOTER SECTION */}
+        <View style={localStyles.footer}>
+          <View style={localStyles.footerIconItem}>
+            <View style={isDark ? { backgroundColor: 'transparent', padding: mS(4), borderRadius: mS(20), marginBottom: vS(4), shadowColor: '#007BFF', shadowOpacity: 0.8, shadowRadius: 10, elevation: 10 } : {}}>
+              <MaterialCommunityIcons name="shield-check" size={mS(30)} color={isDark ? '#007BFF' : appColors.lightTextColor} />
+            </View>
+            <Text style={[localStyles.footerIconText, { color: isDark ? '#FFFFFF' : appColors.lightTextColor, fontWeight: isDark ? '700' : '500' }]}>Safe Rides</Text>
+            {isDark && <Text style={{ color: '#9CA3AF', fontSize: mS(10), marginTop: vS(2) }}>Your safety</Text>}
+            {isDark && <Text style={{ color: '#9CA3AF', fontSize: mS(10) }}>comes first</Text>}
+          </View>
+          <View style={localStyles.footerIconItem}>
+            <View style={isDark ? { backgroundColor: 'transparent', padding: mS(4), borderRadius: mS(20), marginBottom: vS(4), shadowColor: '#00BFFF', shadowOpacity: 0.8, shadowRadius: 10, elevation: 10 } : {}}>
+              <MaterialCommunityIcons name="account-check" size={mS(30)} color={isDark ? '#00BFFF' : appColors.lightTextColor} />
+            </View>
+            <Text style={[localStyles.footerIconText, { color: isDark ? '#FFFFFF' : appColors.lightTextColor, fontWeight: isDark ? '700' : '500' }]}>Verified Drivers</Text>
+            {isDark && <Text style={{ color: '#9CA3AF', fontSize: mS(10), marginTop: vS(2) }}>Trusted &</Text>}
+            {isDark && <Text style={{ color: '#9CA3AF', fontSize: mS(10) }}>background checked</Text>}
+          </View>
+          <View style={localStyles.footerIconItem}>
+            <View style={isDark ? { backgroundColor: 'transparent', padding: mS(4), borderRadius: mS(20), marginBottom: vS(4), shadowColor: '#007BFF', shadowOpacity: 0.8, shadowRadius: 10, elevation: 10 } : {}}>
+              <MaterialCommunityIcons name="headphones" size={mS(30)} color={isDark ? '#007BFF' : appColors.lightTextColor} />
+            </View>
+            <Text style={[localStyles.footerIconText, { color: isDark ? '#FFFFFF' : appColors.lightTextColor, fontWeight: isDark ? '700' : '500' }]}>24/7 Support</Text>
+            {isDark && <Text style={{ color: '#9CA3AF', fontSize: mS(10), marginTop: vS(2) }}>Always here</Text>}
+            {isDark && <Text style={{ color: '#9CA3AF', fontSize: mS(10) }}>for you</Text>}
+          </View>
+        </View>
+
+        {isDark && (
+          <View style={{ alignItems: 'center', marginTop: vS(24) }}>
+            <Text style={{ color: '#9CA3AF', fontSize: mS(12), fontWeight: '600' }}>Ride Smart. Ride Safe. 💙</Text>
+          </View>
+        )}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
 const localStyles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    paddingBottom: vS(30),
   },
   headerSection: {
-    marginTop: vS(30),
-    marginBottom: vS(24),
+    marginTop: vS(10),
+    marginBottom: vS(4),
     paddingHorizontal: hS(24),
   },
-  welcomeText: {
-    fontSize: mS(14),
-    fontWeight: '700',
-    color: colors.button,
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-    marginBottom: vS(10),
+  logoContainer: {
+    marginBottom: vS(16),
+    alignItems: 'flex-start',
+    marginLeft: -hS(4), // Slightly offset left to account for image internal padding or contain centering
   },
   titleText: {
-    fontSize: mS(32),
+    fontSize: mS(24),
     fontWeight: '800',
-    color: '#1E293B',
-    lineHeight: mS(40),
-    marginBottom: vS(12),
+    color: '#0F172A',
+    marginBottom: vS(8),
   },
   descriptionText: {
-    fontSize: mS(15),
-    color: '#64748B',
-    lineHeight: vS(22),
-    fontWeight: '500',
+    fontSize: mS(13),
+    color: '#475569',
+    lineHeight: vS(20),
+    fontWeight: '400',
+  },
+  illustrationContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: vS(10),
   },
   fieldContainer: {
     paddingHorizontal: hS(24),
-    marginBottom: vS(24),
+    marginBottom: vS(16),
   },
   fieldLabel: {
-    fontSize: mS(14),
+    fontSize: mS(13),
     fontWeight: '700',
-    color: '#334155',
-    marginBottom: vS(10),
-    marginLeft: hS(4),
+    color: '#0F172A',
+    marginBottom: vS(6),
+    marginLeft: hS(2),
   },
   mobileInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: '#E2E8F0',
-    borderRadius: mS(16),
-    height: vS(60),
-    paddingHorizontal: hS(16),
-    shadowColor: '#64748B',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    borderRadius: mS(8),
+    height: vS(48),
+    paddingHorizontal: hS(12),
   },
   countryPickerTrigger: {
     flexDirection: 'row',
@@ -245,115 +324,102 @@ const localStyles = StyleSheet.create({
     height: '100%',
   },
   flagIcon: {
-    width: hS(28),
-    height: vS(18),
-    borderRadius: 4,
-    marginRight: hS(10),
+    width: hS(22),
+    height: vS(14),
+    borderRadius: 2,
+    marginRight: hS(6),
   },
   countryText: {
-    fontSize: mS(16),
-    fontWeight: '700',
-    color: '#1E293B',
-    marginRight: hS(6),
+    fontSize: mS(14),
+    fontWeight: '600',
+    color: '#0F172A',
+    marginRight: hS(4),
   },
   verticalDivider: {
     width: 1,
-    height: vS(24),
+    height: vS(20),
     backgroundColor: '#E2E8F0',
-    marginHorizontal: hS(16),
+    marginHorizontal: hS(8),
   },
   phoneInput: {
     flex: 1,
-    fontSize: mS(16),
-    fontWeight: '700',
-    color: '#1E293B',
+    fontSize: mS(14),
+    fontWeight: '500',
+    color: '#0F172A',
     paddingVertical: 0,
   },
   primaryButton: {
     marginHorizontal: hS(24),
-    height: vS(56),
-    borderRadius: mS(18),
-    backgroundColor: colors.button,
+    height: vS(48),
+    borderRadius: mS(8),
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: colors.button,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 15,
-    elevation: 8,
-    marginBottom: vS(24),
+    marginBottom: vS(16),
   },
   disabledButton: {
-    opacity: 0.6,
-    backgroundColor: '#94A3B8',
-    shadowOpacity: 0,
-    elevation: 0,
+    opacity: 0.8,
+  },
+  buttonContentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   primaryButtonText: {
-    fontSize: mS(18),
-    fontWeight: '800',
+    fontSize: mS(15),
+    fontWeight: '700',
     color: '#FFFFFF',
-    letterSpacing: 0.5,
+  },
+  buttonIcon: {
+    marginLeft: hS(6),
   },
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: hS(24),
-    marginBottom: vS(24),
+    marginBottom: vS(16),
   },
   line: {
     flex: 1,
-    height: 1.5,
-    backgroundColor: '#E2E8F0',
+    height: 1,
+    backgroundColor: '#F1F5F9',
   },
   orText: {
     paddingHorizontal: hS(16),
-    fontSize: mS(14),
+    fontSize: mS(12),
     fontWeight: '600',
     color: '#94A3B8',
-    textTransform: 'uppercase',
   },
-  socialSection: {
-    paddingHorizontal: hS(24),
-    gap: vS(12),
-  },
-  socialCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+  secondaryButton: {
+    marginHorizontal: hS(24),
+    height: vS(48),
+    borderRadius: mS(8),
     backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: '#E2E8F0',
-    borderRadius: mS(18),
-    height: vS(58),
-    paddingHorizontal: hS(16),
-  },
-  socialIconCircle: {
-    width: mS(36),
-    height: mS(36),
-    borderRadius: mS(12),
-    backgroundColor: '#F8FAFC',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: hS(16),
+    marginBottom: vS(24),
   },
-  socialCardText: {
-    fontSize: mS(15),
+  secondaryButtonText: {
+    fontSize: mS(14),
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#0F172A',
   },
   footer: {
-    marginTop: vS(30),
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingHorizontal: hS(30),
+    marginTop: 'auto',
+  },
+  footerIconItem: {
     alignItems: 'center',
   },
-  footerText: {
-    fontSize: mS(15),
+  footerIconText: {
+    marginTop: vS(4),
+    fontSize: mS(10),
     color: '#64748B',
     fontWeight: '500',
-  },
-  signUpLink: {
-    color: colors.button,
-    fontWeight: '800',
   },
   dropdownItem: {
     flexDirection: 'row',
@@ -364,12 +430,6 @@ const localStyles = StyleSheet.create({
   countryName: {
     fontSize: mS(12),
     color: '#94A3B8',
-  },
-  carDecoration: {
-    position: 'absolute',
-    bottom: vS(-30),
-    right: hS(-60),
-    opacity: 0.8,
   },
 });
 

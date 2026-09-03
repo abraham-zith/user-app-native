@@ -1,4 +1,4 @@
-import { ImageBackground, Text, TouchableOpacity, View } from "react-native";
+import { Image, ImageBackground, Text, TouchableOpacity, View } from "react-native";
 import { Styles } from "../../../lib/styles";
 import { Logo } from "../../../assets/svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -20,13 +20,22 @@ const ServiceScreen: React.FC<ScreenProps> = ({ navigation }) => {
         <View style={[Styles.flex, {
             paddingTop: insets.top,
             paddingBottom: insets.bottom,
-            backgroundColor: appColors.background,
+            backgroundColor: isDark ? "#020813" : appColors.background,
             gap: 5
         }]}>
             <View style={[Styles.flexRow, Styles.justifyContentSpaceBetween, {
                 marginHorizontal: 20
             }]}>
-                <Logo width={100} height={100} />
+                {/* <Logo width={100} height={100} /> */}
+                {
+                    isDark ?
+                        <Image source={require('../../../assets/png/T2DriveLogo.png')} style={[Styles.logoImage, {
+                            shadowColor: isDark ? 'white' : appColors.button
+                        }]} resizeMode="contain" />
+                        : <Image source={require('../../../assets/png/T2DriveDarkLogo.png')} style={[Styles.logoImage, {
+                            shadowColor: isDark ? 'white' : appColors.button
+                        }]} resizeMode="contain" />
+                }
                 <TouchableOpacity style={[Styles.flexRow, Styles.justifyContentCenter, Styles.alignItemsCenter, Styles.g1]} onPress={() => navigation.navigate(HelpContactScreen_Nav)}>
                     <MaterialIcons name="headphones" size={20} color={appColors.text} />
                     <Text style={[Styles.fs16, fonts.light, { color: appColors.text }]}>Help</Text>

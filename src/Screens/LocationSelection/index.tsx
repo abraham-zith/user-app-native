@@ -1,7 +1,7 @@
 
 import { useRoute } from '@react-navigation/native';
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated, Platform, Modal, Pressable, ScrollView, Alert, ToastAndroid, ActivityIndicator, Switch } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated, Platform, Modal, Pressable, ScrollView, Alert, ToastAndroid, ActivityIndicator, Switch, ImageBackground, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Dropdown } from 'react-native-element-dropdown';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -659,7 +659,7 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
     const destinationError = anyDataPresent && !destination;
     const vehicleError = (startLocation && destination) && !selectedVehicle;
     const advanceError = advancebooking && (startLocation && destination && selectedVehicle) && (!scheduledDate || !scheduledTime || !selectedRide);
-    
+
     // Additional validations
     const tripTypeError = anyDataPresent && (selectedRide === RideType.OUTSTATION_ONE_WAY || selectedRide === RideType.OUTSTATION_ROUND_TRIP) && !outstationTripType;
     const packageError = anyDataPresent && (selectedRide === RideType.ROUND_TRIP || selectedRide === RideType.OUTSTATION_ONE_WAY || selectedRide === RideType.OUTSTATION_ROUND_TRIP) && !packageHours;
@@ -677,19 +677,14 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
     const showCityError = selectedRide === RideType.ONE_WAY && isLongOneWay;
 
     return (
-        <View style={[styles.maincontainer, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+        <View style={[styles.maincontainer, { backgroundColor: colors.background }]}>
             {/* HEADER */}
             {!isadvancebooking && !next && (
-                <View style={{
-                    backgroundColor: colors.card,
-                    // Elevation for Android / Shadow for iOS
-                    ...Platform.select({
-                        ios: { shadowColor: '#000', shadowOffset: { width: 0, height: vS(2) }, shadowOpacity: 0.05, shadowRadius: 10 },
-                        android: { elevation: 3 },
-                    }),
-                    borderBottomWidth: 1,
-                    borderBottomColor: colors.border
-                }}>
+                <ImageBackground
+                    source={require('../../assets/images/header_bg.jpg')}
+                    style={{ width: '100%', height: vS(200), paddingTop: insets.top, zIndex: 0, elevation: 0 }}
+                    imageStyle={{ borderBottomLeftRadius: mS(40), borderBottomRightRadius: mS(40) }}
+                >
                     <View style={{
                         flexDirection: 'row',
                         justifyContent: 'space-between',
@@ -701,35 +696,44 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                         <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: hS(10) }}>
                             <TouchableOpacity
                                 onPress={() => navigation.goBack()}
-                                style={{ padding: mS(4), marginRight: hS(10) }}
+                                style={{
+                                    backgroundColor: '#FFFFFF',
+                                    borderRadius: mS(20),
+                                    padding: mS(8),
+                                    marginRight: hS(10),
+                                    ...Platform.select({
+                                        ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
+                                        android: { elevation: 2 },
+                                    })
+                                }}
                             >
-                                <MaterialCommunityIcons name="arrow-left" size={mS(26)} color={colors.text} />
+                                <MaterialCommunityIcons name="arrow-left" size={mS(20)} color="#1E293B" />
                             </TouchableOpacity>
                             <Dropdown
                                 style={{
-                                    width: mS(160),
-                                    height: vS(40),
-                                    backgroundColor: isDark ? colors.iconBox : '#F1F5F9',
-                                    paddingHorizontal: hS(10),
-                                    borderColor: colors.border,
-                                    borderWidth: 1,
-                                    borderRadius: mS(10),
+                                    width: mS(140),
+                                    height: vS(36),
+                                    backgroundColor: '#FFFFFF',
+                                    paddingHorizontal: hS(12),
+                                    borderRadius: mS(18),
+                                    ...Platform.select({
+                                        ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
+                                        android: { elevation: 2 },
+                                    })
                                 }}
-                                placeholderStyle={{ color: colors.secondaryText, fontSize: mS(18), fontWeight: '700' }}
-                                selectedTextStyle={{ fontSize: mS(18), fontWeight: '700', color: colors.text }}
-                                itemTextStyle={{ color: colors.text, fontSize: mS(16) }}
+                                placeholderStyle={{ color: '#1E293B', fontSize: mS(14), fontWeight: '700' }}
+                                selectedTextStyle={{ fontSize: mS(14), fontWeight: '700', color: '#1E293B' }}
+                                itemTextStyle={{ color: colors.text, fontSize: mS(14) }}
                                 itemContainerStyle={{ backgroundColor: colors.card }}
                                 activeColor={isDark ? 'rgba(255, 255, 255, 0.08)' : '#F1F5F9'}
                                 containerStyle={{
                                     backgroundColor: colors.card,
-                                    borderColor: colors.border,
-                                    borderWidth: isDark ? 1 : 0,
                                     borderRadius: mS(12),
                                     marginTop: vS(5),
                                     overflow: 'hidden',
                                     width: 200,
                                 }}
-                                iconColor={colors.text}
+                                iconColor="#1E293B"
                                 data={rideDetails}
                                 labelField="label"
                                 valueField="value"
@@ -751,19 +755,18 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                             style={{
                                 flexDirection: 'row',
                                 alignItems: 'center',
-                                backgroundColor: colors.iconBox,
-                                paddingHorizontal: hS(12),
-                                paddingVertical: vS(8),
+                                backgroundColor: 'rgba(0, 0, 0, 0.2)', // translucent dark
+                                paddingHorizontal: hS(8),
+                                paddingVertical: vS(6),
                                 borderRadius: mS(25),
-                                borderWidth: 1,
-                                borderColor: colors.border
                             }}
                         >
-                            <MaterialCommunityIcons name="account-circle-outline" size={16} color={colors.secondaryText} />
-                            <Text style={{ fontSize: mS(13), fontWeight: '600', color: colors.text, marginHorizontal: hS(4) }}>
+                            <View style={{ backgroundColor: '#FFD700', borderRadius: mS(12), padding: mS(2) }}>
+                                <MaterialCommunityIcons name="account-circle" size={18} color="#1E293B" />
+                            </View>
+                            <Text style={{ fontSize: mS(12), fontWeight: '600', color: '#FFFFFF', marginHorizontal: hS(6) }}>
                                 {selected}
                             </Text>
-                            <MaterialCommunityIcons name="chevron-down" size={mS(16)} color={colors.secondaryText} />
                         </TouchableOpacity>
                     </View>
 
@@ -851,335 +854,356 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                             </View>
                         </Pressable>
                     </Modal>
-                </View>
+                </ImageBackground>
             )}
 
             {!next ? (
-                <ScrollView
-                    style={{ flex: 1 }}
-                    contentContainerStyle={{ paddingBottom: vS(40) }}
-                    keyboardShouldPersistTaps="handled"
-                    showsVerticalScrollIndicator={false}
-                >
-
-                    {/* LOCATION INPUTS */}
-                    <Animated.View
-                        style={[styles.container, {
-                            backgroundColor: colors.card,
-                            opacity: fadeAnim,
-                            transform: [{ translateY: slideAnim }],
-                            borderWidth: (pickupError || destinationError) ? 1.5 : 0,
-                            borderColor: '#EF4444'
-                        }]}
+                <View style={{ flex: 1, zIndex: 100, elevation: 100, marginTop: vS(-120) }}>
+                    <ScrollView
+                        style={{ flex: 1 }}
+                        contentContainerStyle={{ paddingBottom: vS(40), paddingTop: vS(10) }}
+                        keyboardShouldPersistTaps="handled"
+                        showsVerticalScrollIndicator={false}
                     >
-                        {/* Swap Button */}
-                        <TouchableOpacity
-                            onPress={() => {
-                                setStartLocation(destination);
-                                setDestination(startLocation);
 
-                                setTripPayload(prev => {
-                                    const newPayload = {
-                                        ...prev,
-                                        pickup_address: prev.drop_address,
-                                        pickup_lat: prev.drop_lat,
-                                        pickup_lng: prev.drop_lng,
-                                        drop_address: prev.pickup_address,
-                                        drop_lat: prev.pickup_lat,
-                                        drop_lng: prev.pickup_lng,
-                                    };
-
-                                    onDataChange?.(newPayload);
-                                    return newPayload;
-                                });
-                            }}
-                            style={{
-                                position: 'absolute',
-                                right: hS(16),
-                                top: '50%',
-                                marginTop: vS(-18),
-                                zIndex: 10,
-                                padding: mS(6),
-                                backgroundColor: isDark ? colors.background : '#F8FAFC',
-                                borderRadius: mS(20),
-                                borderWidth: 1,
-                                borderColor: colors.border,
-                                ...Platform.select({
-                                    ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
-                                    android: { elevation: 2 },
-                                })
-                            }}
+                        {/* LOCATION INPUTS */}
+                        <Animated.View
+                            style={[styles.container, {
+                                backgroundColor: colors.card,
+                                opacity: fadeAnim,
+                                transform: [{ translateY: slideAnim }],
+                                borderWidth: (pickupError || destinationError) ? 1.5 : 0,
+                                borderColor: '#EF4444'
+                            }]}
                         >
-                            <MaterialCommunityIcons name="swap-vertical" size={mS(22)} color={colors.text} />
-                        </TouchableOpacity>
+                            {/* Swap Button */}
+                            <TouchableOpacity
+                                onPress={() => {
+                                    setStartLocation(destination);
+                                    setDestination(startLocation);
 
-                        {/* Pickup Section */}
-                        <TouchableOpacity
-                            onPress={() => setModalType("start")}
-                            activeOpacity={0.7}
-                            style={styles.itemContainer}
-                        >
-                            <View style={[styles.iconCircle, { backgroundColor: pickupError ? 'rgba(239, 68, 68, 0.1)' : (isDark ? 'rgba(16, 185, 129, 0.2)' : '#10B981') }]}>
-                                <MaterialCommunityIcons name='map' size={mS(18)} color={pickupError ? '#EF4444' : (isDark ? '#34D399' : "#FFFFFF")} />
-                            </View>
-                            <View style={styles.textContainer}>
-                                <Text style={[styles.label, { color: colors.secondaryText }]}>PICKUP</Text>
-                                <Text
-                                    numberOfLines={1}
-                                    style={[styles.value, { color: startLocation ? colors.text : colors.secondaryText }, !startLocation && styles.placeholder]}
-                                >
-                                    {startLocation || "Enter pickup location"}
-                                </Text>
-                            </View>
-                            <MaterialCommunityIcons name='chevron-right' size={mS(20)} color={colors.secondaryText} />
-                        </TouchableOpacity>
-
-                        {/* Separator Section */}
-                        <View style={styles.separatorWrapper}>
-                            <View style={styles.dotColumn}>
-                                {[1, 2, 3].map(i => (
-                                    <View key={i} style={[styles.dot, { backgroundColor: isDark ? colors.border : '#E2E8F0' }]} />
-                                ))}
-                            </View>
-                            <View style={[styles.line, { backgroundColor: colors.border }]} />
-                        </View>
-
-                        {/* Drop-off Section */}
-                        <TouchableOpacity
-                            onPress={() => setModalType("destination")}
-                            activeOpacity={0.7}
-                            style={styles.itemContainer}
-                        >
-                            <View style={[styles.iconCircle, { backgroundColor: destinationError ? 'rgba(239, 68, 68, 0.1)' : (isDark ? 'rgba(239, 68, 68, 0.2)' : '#EF4444') }]}>
-                                <MaterialCommunityIcons name='map-marker' size={mS(18)} color={destinationError ? '#EF4444' : (isDark ? '#F87171' : "#FFFFFF")} />
-                            </View>
-                            <View style={styles.textContainer}>
-                                <Text style={[styles.label, { color: colors.secondaryText }]}>DESTINATION</Text>
-                                <Text
-                                    numberOfLines={1}
-                                    style={[styles.value, { color: destination ? colors.text : colors.secondaryText }, !destination && styles.placeholder]}
-                                >
-                                    {destination || "Where to?"}
-                                </Text>
-                            </View>
-                            <MaterialCommunityIcons name='chevron-right' size={mS(20)} color={colors.secondaryText} />
-                        </TouchableOpacity>
-                    </Animated.View>
-
-                    {showCityError && (
-                        <Text style={{ color: '#EF4444', fontSize: mS(12), marginTop: vS(8), marginLeft: hS(16) }}>
-                            OneWay rides are limited to 4 hours. Please select Outstation.
-                        </Text>
-                    )}
-
-                    {selectedRide === RideType.ROUND_TRIP && (
-                        <View style={{
-                            marginHorizontal: hS(16),
-                            marginTop: vS(16),
-                            marginBottom: vS(12),
-                        }}>
-                            <Text style={{ color: colors.secondaryText, fontSize: mS(14), fontWeight: '700', marginBottom: vS(8), marginLeft: hS(4) }}>Select Package</Text>
-                            <Dropdown
-                                style={{
-                                    height: vS(50),
-                                    backgroundColor: colors.card,
-                                    borderRadius: mS(12),
-                                    paddingHorizontal: hS(16),
-                                    borderWidth: 1,
-                                    ...Platform.select({
-                                    ios: { shadowColor: '#000', shadowOffset: { width: 0, height: vS(2) }, shadowOpacity: 0.05, shadowRadius: 8 },
-                                    android: { elevation: 2 },
-                                }),
-                                borderColor: packageError ? '#EF4444' : colors.border,
-                            }}
-                                placeholderStyle={{ color: colors.secondaryText, fontSize: mS(14) }}
-                                selectedTextStyle={{ color: colors.text, fontSize: mS(14), fontWeight: '600' }}
-                                itemTextStyle={{ color: colors.text }}
-                                itemContainerStyle={{ backgroundColor: colors.card }}
-                                activeColor={isDark ? 'rgba(255, 255, 255, 0.08)' : '#F1F5F9'}
-                                containerStyle={{
-                                    backgroundColor: colors.card,
-                                    borderColor: colors.border,
-                                    borderWidth: isDark ? 1 : 0,
-                                    borderRadius: mS(12),
-                                    marginTop: vS(5),
-                                    overflow: 'hidden'
-                                }}
-                                data={packageHourOptions}
-                                labelField="label"
-                                valueField="value"
-                                placeholder="Package Hours"
-                                value={packageHours}
-                                onChange={(item) => {
-                                    handlePackageSelect(item.value);
-                                }}
-                            />
-                        </View>
-                    )}
-
-                    {(selectedRide === RideType.OUTSTATION_ONE_WAY || selectedRide === RideType.OUTSTATION_ROUND_TRIP) && (
-                        <View style={{
-                            marginHorizontal: hS(16),
-                            marginTop: vS(16),
-                            marginBottom: vS(12),
-                        }}>
-                            <Text style={{ color: colors.secondaryText, fontSize: mS(14), fontWeight: '700', marginBottom: vS(8), marginLeft: hS(4) }}>Select Trip Type and Estimated Usage</Text>
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                                <Dropdown
-                                    style={{
-                                        flex: 1,
-                                        height: vS(50),
-                                        backgroundColor: colors.card,
-                                        borderRadius: mS(12),
-                                        paddingHorizontal: hS(16),
-                                        borderWidth: 1,
-                                        marginRight: hS(4),
-                                        ...Platform.select({
-                                        ios: { shadowColor: '#000', shadowOffset: { width: 0, height: vS(2) }, shadowOpacity: 0.05, shadowRadius: 8 },
-                                        android: { elevation: 2 },
-                                    }),
-                                    borderColor: tripTypeError ? '#EF4444' : colors.border,
-                                }}
-                                    placeholderStyle={{ color: colors.secondaryText, fontSize: mS(14) }}
-                                    selectedTextStyle={{ color: colors.text, fontSize: mS(14), fontWeight: '600' }}
-                                    itemTextStyle={{ color: colors.text }}
-                                    itemContainerStyle={{ backgroundColor: colors.card }}
-                                    activeColor={isDark ? 'rgba(255, 255, 255, 0.08)' : '#F1F5F9'}
-                                    containerStyle={{
-                                        backgroundColor: colors.card,
-                                        borderColor: colors.border,
-                                        borderWidth: isDark ? 1 : 0,
-                                        borderRadius: mS(12),
-                                        marginTop: vS(5),
-                                        overflow: 'hidden'
-                                    }}
-                                    data={outstationTripTypeOptions}
-                                    labelField="label"
-                                    valueField="value"
-                                    placeholder="Trip Type"
-                                    value={outstationTripType}
-                                    onChange={(item) => {
-                                        setOutstationTripType(item.value);
-                                        const newRideType = item.value as RideType;
-                                        setSelectedRide(newRideType);
-                                        setTripPayload(prev => ({
+                                    setTripPayload(prev => {
+                                        return {
                                             ...prev,
-                                            ride_type: newRideType
-                                        }));
-                                    }}
-                                />
-                                <Dropdown
-                                    style={{
-                                        flex: 1,
-                                        height: vS(50),
-                                        backgroundColor: colors.card,
-                                        borderRadius: mS(12),
-                                        paddingHorizontal: hS(16),
-                                        borderWidth: 1,
-                                        marginLeft: hS(4),
-                                        ...Platform.select({
-                                        ios: { shadowColor: '#000', shadowOffset: { width: 0, height: vS(2) }, shadowOpacity: 0.05, shadowRadius: 8 },
+                                            pickup_address: prev.drop_address,
+                                            pickup_lat: prev.drop_lat,
+                                            pickup_lng: prev.drop_lng,
+                                            drop_address: prev.pickup_address,
+                                            drop_lat: prev.pickup_lat,
+                                            drop_lng: prev.pickup_lng,
+                                        };
+                                    });
+                                    
+                                    onDataChange?.({
+                                        pickup_address: tripPayload.drop_address,
+                                        pickup_lat: tripPayload.drop_lat,
+                                        pickup_lng: tripPayload.drop_lng,
+                                        drop_address: tripPayload.pickup_address,
+                                        drop_lat: tripPayload.pickup_lat,
+                                        drop_lng: tripPayload.pickup_lng,
+                                    });
+                                }}
+                                style={{
+                                    position: 'absolute',
+                                    right: hS(16),
+                                    top: '50%',
+                                    marginTop: vS(-18),
+                                    zIndex: 10,
+                                    padding: mS(8),
+                                    backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
+                                    borderRadius: mS(20),
+                                    borderWidth: isDark ? 1 : 0,
+                                    borderColor: isDark ? colors.border : 'transparent',
+                                    ...Platform.select({
+                                        ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
+                                        android: { elevation: 3 },
+                                    })
+                                }}
+                            >
+                                <MaterialCommunityIcons name="swap-vertical" size={mS(22)} color={colors.text} />
+                            </TouchableOpacity>
+
+                            {/* Pickup Section */}
+                            <TouchableOpacity
+                                onPress={() => setModalType("start")}
+                                activeOpacity={0.7}
+                                style={styles.itemContainer}
+                            >
+                                <View style={[styles.iconCircle, { backgroundColor: pickupError ? 'rgba(239, 68, 68, 0.1)' : (isDark ? 'rgba(16, 185, 129, 0.2)' : '#10B981') }]}>
+                                    <MaterialCommunityIcons name='map' size={mS(18)} color={pickupError ? '#EF4444' : (isDark ? '#34D399' : "#FFFFFF")} />
+                                </View>
+                                <View style={styles.textContainer}>
+                                    <Text style={[styles.label, { color: colors.secondaryText }]}>PICKUP</Text>
+                                    <Text
+                                        numberOfLines={1}
+                                        style={[styles.value, { color: startLocation ? colors.text : colors.secondaryText }, !startLocation && styles.placeholder]}
+                                    >
+                                        {startLocation || "Enter pickup location"}
+                                    </Text>
+                                </View>
+                                <MaterialCommunityIcons name='chevron-right' size={mS(20)} color={colors.secondaryText} />
+                            </TouchableOpacity>
+
+                            {/* Separator Section */}
+                            <View style={styles.separatorWrapper}>
+                                <View style={styles.dotColumn}>
+                                    {[1, 2, 3].map(i => (
+                                        <View key={i} style={[styles.dot, { backgroundColor: isDark ? colors.border : '#E2E8F0' }]} />
+                                    ))}
+                                </View>
+                                <View style={[styles.line, { backgroundColor: colors.border }]} />
+                            </View>
+
+                            {/* Drop-off Section */}
+                            <TouchableOpacity
+                                onPress={() => setModalType("destination")}
+                                activeOpacity={0.7}
+                                style={styles.itemContainer}
+                            >
+                                <View style={[styles.iconCircle, { backgroundColor: destinationError ? 'rgba(239, 68, 68, 0.1)' : (isDark ? 'rgba(239, 68, 68, 0.2)' : '#EF4444') }]}>
+                                    <MaterialCommunityIcons name='map-marker' size={mS(18)} color={destinationError ? '#EF4444' : (isDark ? '#F87171' : "#FFFFFF")} />
+                                </View>
+                                <View style={styles.textContainer}>
+                                    <Text style={[styles.label, { color: colors.secondaryText }]}>DESTINATION</Text>
+                                    <Text
+                                        numberOfLines={1}
+                                        style={[styles.value, { color: destination ? colors.text : colors.secondaryText }, !destination && styles.placeholder]}
+                                    >
+                                        {destination || "Where to?"}
+                                    </Text>
+                                </View>
+                                <MaterialCommunityIcons name='chevron-right' size={mS(20)} color={colors.secondaryText} />
+                            </TouchableOpacity>
+                        </Animated.View>
+
+                        {showCityError && (
+                            <Text style={{ color: '#EF4444', fontSize: mS(12), marginTop: vS(8), marginLeft: hS(16) }}>
+                                OneWay rides are limited to 4 hours. Please select Outstation.
+                            </Text>
+                        )}
+
+                        {selectedRide === RideType.ROUND_TRIP && (
+                            <View style={{
+                                marginHorizontal: hS(16),
+                                marginTop: vS(10),
+                                marginBottom: vS(6),
+                            }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: vS(12), marginLeft: hS(4) }}>
+                                    <MaterialCommunityIcons name="car-side" size={mS(20)} color={isDark ? '#FFFFFF' : '#1E293B'} />
+                                    <Text style={{ color: isDark ? '#FFFFFF' : '#1E293B', fontSize: mS(16), fontWeight: '800', marginLeft: hS(8) }}>Trip Preferences</Text>
+                                </View>
+                                <View style={{
+                                    backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
+                                    borderRadius: mS(12),
+                                    paddingHorizontal: hS(12),
+                                    paddingVertical: vS(6),
+                                    borderWidth: 1,
+                                    borderColor: packageError ? '#EF4444' : (isDark ? colors.border : 'transparent'),
+                                    ...Platform.select({
+                                        ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
                                         android: { elevation: 2 },
                                     }),
-                                    borderColor: packageError ? '#EF4444' : colors.border,
-                                }}
-                                    placeholderStyle={{ color: colors.secondaryText, fontSize: mS(14) }}
-                                    selectedTextStyle={{ color: colors.text, fontSize: mS(14), fontWeight: '600' }}
-                                    itemTextStyle={{ color: colors.text }}
-                                    itemContainerStyle={{ backgroundColor: colors.card }}
-                                    activeColor={isDark ? 'rgba(255, 255, 255, 0.08)' : '#F1F5F9'}
-                                    containerStyle={{
-                                        backgroundColor: colors.card,
-                                        borderColor: colors.border,
-                                        borderWidth: isDark ? 1 : 0,
-                                        borderRadius: mS(12),
-                                        marginTop: vS(5),
-                                        overflow: 'hidden'
-                                    }}
-                                    data={outstationTripType === RideType.OUTSTATION_ONE_WAY ? outstationOneWayPackageHourOptions : outstationRoundTripPackageHourOptions}
-                                    labelField="label"
-                                    valueField="value"
-                                    placeholder="Package Hours"
-                                    value={packageHours}
-                                    onChange={(item) => {
-                                        handlePackageSelect(item.value);
-                                    }}
-                                />
-                            </View>
-                        </View>
-                    )}
-
-                    <View style={{ marginBottom: vS(2) }}>
-                        <SearchableCarPicker
-                            onSelect={handleCarSelect}
-                            placeholder="Search for your car (e.g., Hyundai Creta)"
-                            value={selectedVehicle}
-                            initialTransmission={transmission}
-                            hasError={vehicleError}
-                        />
-                        {(pickupError || destinationError || vehicleError || advanceError || tripTypeError || packageError) && (
-                            <View style={{ marginTop: vS(8), alignItems: 'center' }}>
-                                <Text style={{ color: '#EF4444', fontSize: mS(13), fontWeight: '700', textAlign: 'center', paddingHorizontal: hS(20) }}>
-                                    {pickupError ? "Please select pickup location" :
-                                        destinationError ? "Please select destination" :
-                                            vehicleError ? "Please select your vehicle" :
-                                                tripTypeError ? "Please select trip type" :
-                                                    packageError ? "Please select package hours" :
-                                                        "Please complete all booking details"}
-                                </Text>
+                                }}>
+                                    <Text style={{ color: isDark ? '#9CA3AF' : '#64748B', fontSize: mS(10), fontWeight: '700', marginBottom: vS(2) }}>Package Hours</Text>
+                                    <Dropdown
+                                        style={{ height: vS(30) }}
+                                        placeholderStyle={{ color: colors.secondaryText, fontSize: mS(14) }}
+                                        selectedTextStyle={{ color: isDark ? '#FFFFFF' : '#1E293B', fontSize: mS(14), fontWeight: '700' }}
+                                        itemTextStyle={{ color: colors.text }}
+                                        itemContainerStyle={{ backgroundColor: colors.card }}
+                                        activeColor={isDark ? 'rgba(255, 255, 255, 0.08)' : '#F1F5F9'}
+                                        containerStyle={{
+                                            backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
+                                            borderRadius: mS(12),
+                                            marginTop: vS(5),
+                                            overflow: 'hidden'
+                                        }}
+                                        renderLeftIcon={() => (
+                                            <MaterialCommunityIcons name="clock-outline" size={mS(18)} color="#3B82F6" style={{ marginRight: hS(6) }} />
+                                        )}
+                                        data={packageHourOptions}
+                                        labelField="label"
+                                        valueField="value"
+                                        placeholder="Package Hours"
+                                        value={packageHours}
+                                        onChange={(item) => {
+                                            handlePackageSelect(item.value);
+                                        }}
+                                    />
+                                </View>
                             </View>
                         )}
-                    </View>
 
-                    <LocationSearchModal
-                        isOpen={modalType !== null}
-                        onClose={() => setModalType(null)}
-                        onSelect={handleLocationSelect}
-                        type={modalType || "start"}
-                        advancebooking={advancebooking}
-                        onSetNext={setNext}
-                    />
-
-                    {/* content */}
-                    <View>
-                        {/* MAIN BOOKING CARD */}
-                        {advancebooking && (
+                        {(selectedRide === RideType.OUTSTATION_ONE_WAY || selectedRide === RideType.OUTSTATION_ROUND_TRIP) && (
                             <View style={{
-                                backgroundColor: colors.card,
-                                borderRadius: mS(20),
                                 marginHorizontal: hS(16),
-                                marginTop: vS(2),
-                                padding: mS(16),
-                                borderWidth: 1,
-                                borderColor: colors.border,
-                                ...Platform.select({
-                                    ios: { shadowColor: '#000', shadowOffset: { width: 0, height: vS(4) }, shadowOpacity: 0.1, shadowRadius: mS(12) },
-                                    android: { elevation: 5 },
-                                }),
+                                marginTop: vS(10),
+                                marginBottom: vS(6),
                             }}>
-                                <View>
-                                    {/* DATE & TIME ROW */}
-                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: vS(12), marginLeft: hS(4) }}>
+                                    <MaterialCommunityIcons name="car-side" size={mS(20)} color={isDark ? '#FFFFFF' : '#1E293B'} />
+                                    <Text style={{ color: isDark ? '#FFFFFF' : '#1E293B', fontSize: mS(16), fontWeight: '800', marginLeft: hS(8) }}>Trip Preferences</Text>
+                                </View>
+                                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                                    <View style={{ flex: 1, marginRight: hS(6) }}>
+                                        <View style={{
+                                            backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
+                                            borderRadius: mS(12),
+                                            paddingHorizontal: hS(12),
+                                            paddingVertical: vS(6),
+                                            borderWidth: 1,
+                                            borderColor: tripTypeError ? '#EF4444' : (isDark ? colors.border : 'transparent'),
+                                            ...Platform.select({
+                                                ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
+                                                android: { elevation: 2 },
+                                            }),
+                                        }}>
+                                            <Text style={{ color: isDark ? '#9CA3AF' : '#64748B', fontSize: mS(10), fontWeight: '700', marginBottom: vS(2) }}>Trip Type</Text>
+                                            <Dropdown
+                                                style={{ height: vS(30) }}
+                                                placeholderStyle={{ color: colors.secondaryText, fontSize: mS(14) }}
+                                                selectedTextStyle={{ color: isDark ? '#FFFFFF' : '#1E293B', fontSize: mS(14), fontWeight: '700' }}
+                                                itemTextStyle={{ color: colors.text }}
+                                                itemContainerStyle={{ backgroundColor: colors.card }}
+                                                activeColor={isDark ? 'rgba(255, 255, 255, 0.08)' : '#F1F5F9'}
+                                                containerStyle={{
+                                                    backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
+                                                    borderRadius: mS(12),
+                                                    marginTop: vS(5),
+                                                    overflow: 'hidden'
+                                                }}
+                                                renderLeftIcon={() => (
+                                                    <MaterialCommunityIcons name="navigation-variant" size={mS(18)} color="#3B82F6" style={{ marginRight: hS(6) }} />
+                                                )}
+                                                data={outstationTripTypeOptions}
+                                                labelField="label"
+                                                valueField="value"
+                                                placeholder="Trip Type"
+                                                value={outstationTripType}
+                                                onChange={(item) => {
+                                                    setOutstationTripType(item.value);
+                                                    const newRideType = item.value as RideType;
+                                                    setSelectedRide(newRideType);
+                                                    setTripPayload(prev => ({
+                                                        ...prev,
+                                                        ride_type: newRideType
+                                                    }));
+                                                }}
+                                            />
+                                        </View>
+                                    </View>
+                                    <View style={{ flex: 1, marginLeft: hS(6) }}>
+                                        <View style={{
+                                            backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
+                                            borderRadius: mS(12),
+                                            paddingHorizontal: hS(12),
+                                            paddingVertical: vS(6),
+                                            borderWidth: 1,
+                                            borderColor: packageError ? '#EF4444' : (isDark ? colors.border : 'transparent'),
+                                            ...Platform.select({
+                                                ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
+                                                android: { elevation: 2 },
+                                            }),
+                                        }}>
+                                            <Text style={{ color: isDark ? '#9CA3AF' : '#64748B', fontSize: mS(10), fontWeight: '700', marginBottom: vS(2) }}>Package Hours</Text>
+                                            <Dropdown
+                                                style={{ height: vS(30) }}
+                                                placeholderStyle={{ color: colors.secondaryText, fontSize: mS(14) }}
+                                                selectedTextStyle={{ color: isDark ? '#FFFFFF' : '#1E293B', fontSize: mS(14), fontWeight: '700' }}
+                                                itemTextStyle={{ color: colors.text }}
+                                                itemContainerStyle={{ backgroundColor: colors.card }}
+                                                activeColor={isDark ? 'rgba(255, 255, 255, 0.08)' : '#F1F5F9'}
+                                                containerStyle={{
+                                                    backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
+                                                    borderRadius: mS(12),
+                                                    marginTop: vS(5),
+                                                    overflow: 'hidden'
+                                                }}
+                                                renderLeftIcon={() => (
+                                                    <MaterialCommunityIcons name="clock-outline" size={mS(18)} color="#3B82F6" style={{ marginRight: hS(6) }} />
+                                                )}
+                                                data={outstationTripType === RideType.OUTSTATION_ONE_WAY ? outstationOneWayPackageHourOptions : outstationRoundTripPackageHourOptions}
+                                                labelField="label"
+                                                valueField="value"
+                                                placeholder="Package Hours"
+                                                value={packageHours}
+                                                onChange={(item) => {
+                                                    handlePackageSelect(item.value);
+                                                }}
+                                            />
+                                        </View>
+                                    </View>
+                                </View>
+                            </View>
+                        )}
+
+                        <View style={{ marginBottom: vS(2) }}>
+                            <SearchableCarPicker
+                                onSelect={handleCarSelect}
+                                placeholder="Search for your car (e.g., Hyundai Creta)"
+                                value={selectedVehicle}
+                                initialTransmission={transmission}
+                                hasError={vehicleError}
+                            />
+                            {(pickupError || destinationError || vehicleError || advanceError || tripTypeError || packageError) && (
+                                <View style={{ marginTop: vS(8), alignItems: 'center' }}>
+                                    <Text style={{ color: '#EF4444', fontSize: mS(13), fontWeight: '700', textAlign: 'center', paddingHorizontal: hS(20) }}>
+                                        {pickupError ? "Please select pickup location" :
+                                            destinationError ? "Please select destination" :
+                                                vehicleError ? "Please select your vehicle" :
+                                                    tripTypeError ? "Please select trip type" :
+                                                        packageError ? "Please select package hours" :
+                                                            "Please complete all booking details"}
+                                    </Text>
+                                </View>
+                            )}
+                        </View>
+
+                        <LocationSearchModal
+                            isOpen={modalType !== null}
+                            onClose={() => setModalType(null)}
+                            onSelect={handleLocationSelect}
+                            type={modalType || "start"}
+                            advancebooking={advancebooking}
+                            onSetNext={setNext}
+                        />
+
+                        {/* content */}
+                        <View>
+                            {/* MAIN BOOKING CARD */}
+                            {advancebooking && (
+                                <View style={{ marginHorizontal: hS(16), marginTop: vS(2), marginBottom: vS(2) }}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: vS(12), marginLeft: hS(4) }}>
+                                        <MaterialCommunityIcons name="calendar-month" size={mS(20)} color="#3B82F6" />
+                                        <Text style={{ color: isDark ? '#FFFFFF' : '#1E293B', fontSize: mS(16), fontWeight: '800', marginLeft: hS(8) }}>Schedule Ride</Text>
+                                    </View>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                                         {/* Date Picker Item */}
                                         <TouchableOpacity
                                             onPress={() => { setShowDatePicker(true); openPicker('date'); }}
                                             style={{
                                                 flexDirection: 'row',
                                                 alignItems: 'center',
-                                                justifyContent: 'space-between',
                                                 width: '48%',
-                                                backgroundColor: colors.background,
+                                                backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
                                                 paddingHorizontal: hS(12),
-                                                height: vS(50),
+                                                paddingVertical: vS(10),
                                                 borderRadius: mS(12),
                                                 borderWidth: 1,
-                                                borderColor: (advanceError && !scheduledDate) ? '#EF4444' : colors.border
+                                                borderColor: (advanceError && !scheduledDate) ? '#EF4444' : (isDark ? colors.border : 'transparent'),
+                                                ...Platform.select({
+                                                    ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
+                                                    android: { elevation: 2 },
+                                                }),
                                             }}
                                         >
-                                            <Text style={{ color: formattedDate ? colors.text : colors.secondaryText, fontSize: mS(14), fontWeight: '600' }}>
-                                                {formattedDate || "Select Date"}
-                                            </Text>
-                                            <MaterialCommunityIcons name="calendar-month-outline" size={mS(20)} color={colors.secondaryText} />
+                                            <MaterialCommunityIcons name="calendar-month-outline" size={mS(24)} color="#3B82F6" />
+                                            <View style={{ marginLeft: hS(8) }}>
+                                                <Text style={{ color: isDark ? '#9CA3AF' : '#64748B', fontSize: mS(10), fontWeight: '700', marginBottom: vS(2) }}>Date</Text>
+                                                <Text style={{ color: isDark ? '#FFFFFF' : '#1E293B', fontSize: mS(13), fontWeight: '700' }}>
+                                                    {formattedDate || "Select Date"}
+                                                </Text>
+                                            </View>
                                         </TouchableOpacity>
 
                                         {/* Time Picker Item */}
@@ -1191,276 +1215,254 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                                             style={{
                                                 flexDirection: 'row',
                                                 alignItems: 'center',
-                                                justifyContent: 'space-between',
                                                 width: '48%',
-                                                backgroundColor: colors.background,
+                                                backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
                                                 paddingHorizontal: hS(12),
-                                                height: vS(50),
+                                                paddingVertical: vS(10),
                                                 borderRadius: mS(12),
                                                 borderWidth: 1,
-                                                borderColor: (advanceError && !scheduledTime) ? '#EF4444' : colors.border
+                                                borderColor: (advanceError && !scheduledTime) ? '#EF4444' : (isDark ? colors.border : 'transparent'),
+                                                ...Platform.select({
+                                                    ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
+                                                    android: { elevation: 2 },
+                                                }),
                                             }}
                                         >
-                                            <Text style={{ color: formattedTime ? colors.text : colors.secondaryText, fontSize: mS(14), fontWeight: '600' }}>
-                                                {formattedTime || "Select Time"}
-                                            </Text>
-                                            <MaterialCommunityIcons name="clock-outline" size={mS(20)} color={colors.secondaryText} />
+                                            <MaterialCommunityIcons name="clock-outline" size={mS(24)} color="#3B82F6" />
+                                            <View style={{ marginLeft: hS(8) }}>
+                                                <Text style={{ color: isDark ? '#9CA3AF' : '#64748B', fontSize: mS(10), fontWeight: '700', marginBottom: vS(2) }}>Time</Text>
+                                                <Text style={{ color: isDark ? '#FFFFFF' : '#1E293B', fontSize: mS(13), fontWeight: '700' }}>
+                                                    {formattedTime || "Select Time"}
+                                                </Text>
+                                            </View>
                                         </TouchableOpacity>
                                     </View>
-
-                                    {/* RIDE SELECTOR ROW */}
-                                    {/* <View style={{ flexDirection: 'row', alignItems: 'center', gap: mS(10) }}>
-                                        <Dropdown
-                                            style={{
-                                                flex: 1,
-                                                height: vS(50),
-                                                backgroundColor: colors.background,
-                                                borderRadius: mS(12),
-                                                paddingHorizontal: hS(12),
-                                                borderWidth: 1,
-                                                borderColor: (advanceError && !selectedRide) ? '#EF4444' : colors.border
-                                            }}
-                                            placeholderStyle={{ color: colors.secondaryText, fontSize: mS(14) }}
-                                            selectedTextStyle={{ color: colors.text, fontSize: mS(14), fontWeight: '600' }}
-                                            itemTextStyle={{ color: colors.text }}
-                                            itemContainerStyle={{ backgroundColor: colors.card }}
-                                            activeColor={isDark ? 'rgba(255, 255, 255, 0.08)' : '#F1F5F9'}
-                                            containerStyle={{
-                                                backgroundColor: colors.card,
-                                                borderColor: colors.border,
-                                                borderWidth: isDark ? 1 : 0,
-                                                borderRadius: mS(12),
-                                                marginTop: vS(-1),
-                                                overflow: 'hidden'
-                                            }}
-                                            data={rideDetails}
-                                            labelField="label"
-                                            valueField="value"
-                                            placeholder="Select Ride Type"
-                                            value={selectedRide}
-                                            onChange={(item) => {
-                                                setSelectedRide(item.value)
-                                                onDataChange?.({
-                                                    ride_type: item.value as any
-                                                });
-                                            }}
-                                            renderLeftIcon={() => (
-                                                <MaterialCommunityIcons name="car-hatchback" size={mS(22)} color={isDark ? colors.primary : colors.button} style={{ marginRight: hS(8) }} />
-                                            )}
-                                        />
-                                    </View> */}
                                 </View>
-                            </View>
-                        )}
+                            )}
 
-                        <View style={{ paddingHorizontal: hS(16), paddingVertical: vS(10) }}>
-                            {/* SET ON MAP BUTTON */}
-                            {!isadvancebooking && (
+                            <View style={{ paddingHorizontal: hS(16), paddingVertical: vS(10) }}>
+                                {/* SET ON MAP BUTTON */}
+                                {!isadvancebooking && (
 
-                                <>
-                                    <View style={{
-                                        flexDirection: 'row',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                        backgroundColor: colors.card,
-                                        padding: mS(14),
-                                        borderRadius: mS(15),
-                                        marginBottom: vS(12),
-                                        borderWidth: 1,
-                                        borderColor: colors.border
-                                    }}>
-                                        <Text style={{ color: colors.text, fontWeight: '700', fontSize: mS(15) }}>Advance Booking</Text>
-                                        {(selectedRide === RideType.OUTSTATION_ONE_WAY || selectedRide === RideType.OUTSTATION_ROUND_TRIP) ? (
-                                            <Pressable onPress={handleToggleAdvanceBooking}>
-                                                <View pointerEvents="none">
-                                                    <Switch
-                                                        value={advancebooking}
-                                                        onValueChange={handleToggleAdvanceBooking}
-                                                        trackColor={{ false: '#767577', true: colors.primary }}
-                                                        thumbColor={Platform.OS === 'ios' ? '#FFFFFF' : advancebooking ? '#FFFFFF' : '#f4f3f4'}
-                                                        disabled={true}
-                                                    />
-                                                </View>
-                                            </Pressable>
-                                        ) : (
-                                            <Switch
-                                                value={advancebooking}
-                                                onValueChange={handleToggleAdvanceBooking}
-                                                trackColor={{ false: '#767577', true: colors.primary }}
-                                                thumbColor={Platform.OS === 'ios' ? '#FFFFFF' : advancebooking ? '#FFFFFF' : '#f4f3f4'}
-                                                disabled={false}
-                                            />
-                                        )}
-                                    </View>
-
-                                    <TouchableOpacity
-                                        disabled={advancebooking ? (!startLocation || !destination || !selectedVehicle || !scheduledDate || !scheduledTime || !selectedRide || tripTypeError || packageError) : (!startLocation || !destination || !selectedVehicle || tripTypeError || packageError)}
-                                        onPress={() => {
-                                            if (advancebooking) {
-                                                if (scheduledDate && scheduledTime && selectedRide && !tripTypeError && !packageError) {
-                                                    handleSave(scheduledDate, scheduledTime, selectedRide);
-                                                }
-                                            } else {
-                                                if (startLocation && destination && selectedVehicle && transmission && !tripTypeError && !packageError) {
-                                                    setNext(true);
-                                                }
-                                            }
-                                        }}
-                                        style={{
-                                            backgroundColor: colors.button,
-                                            padding: mS(14),
-                                            borderRadius: mS(15),
-                                            marginBottom: vS(12),
-                                            justifyContent: 'center',
-                                            alignItems: 'center',
-                                            opacity: (advancebooking ? (!startLocation || !destination || !selectedVehicle || !scheduledDate || !scheduledTime || !selectedRide || tripTypeError || packageError) : (!startLocation || !destination || !selectedVehicle || tripTypeError || packageError)) ? 0.6 : 1,
-                                        }}
-                                    >
-                                        <Text style={{ color: '#FFF', fontWeight: '800', fontSize: mS(15) }}>Confirm</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                        disabled={loading}
-                                        onPress={handleUseCurrentLocation}
-                                        style={{
-                                            flexDirection: 'row',
-                                            alignItems: 'center',
-                                            backgroundColor: isDark ? 'rgba(96, 165, 250, 0.1)' : '#EFF6FF',
-                                            padding: mS(14),
-                                            borderRadius: mS(15),
-                                            marginBottom: vS(12),
-                                            borderWidth: 1,
-                                            borderColor: colors.border,
-                                            opacity: loading ? 0.7 : 1
-                                        }}
-                                    >
-                                        <View style={{ backgroundColor: colors.primary, padding: mS(6), borderRadius: mS(8), marginRight: hS(12) }}>
-                                            {loading ? (
-                                                <ActivityIndicator size={mS(20)} color="#FFF" />
-                                            ) : (
-                                                <MaterialCommunityIcons name="map-marker-radius" size={mS(20)} color="#FFF" />
-                                            )}
-                                        </View>
-                                        <Text style={{ color: colors.primary, fontWeight: '700', fontSize: mS(15) }}>
-                                            {loading ? "Locating..." : "Set location on map"}
-                                        </Text>
-                                    </TouchableOpacity>
-
-                                    {/* <ScrollView> */}
-                                    {favoriteLocations?.length > 0 && (
+                                    <>
                                         <View style={{
                                             flexDirection: 'row',
-                                            justifyContent: 'space-between',
                                             alignItems: 'center',
-                                            // marginTop: 10,
-                                            marginBottom: vS(10)
+                                            backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
+                                            paddingHorizontal: hS(16),
+                                            paddingVertical: vS(14),
+                                            borderRadius: mS(16),
+                                            marginBottom: vS(10),
+                                            borderWidth: 1,
+                                            borderColor: isDark ? colors.border : 'transparent',
+                                            ...Platform.select({
+                                                ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
+                                                android: { elevation: 2 },
+                                            }),
                                         }}>
-                                            <Text style={{ fontSize: mS(12), fontWeight: '800', color: colors.secondaryText, letterSpacing: 1 }}>
-                                                FAVOURITES
-                                            </Text>
-                                            {/* <TouchableOpacity onPress={clearRecents}>
+                                            <View style={{ backgroundColor: isDark ? 'rgba(59, 130, 246, 0.2)' : '#EFF6FF', borderRadius: mS(20), padding: mS(8), marginRight: hS(12) }}>
+                                                <MaterialCommunityIcons name="clock-outline" size={mS(24)} color="#3B82F6" />
+                                            </View>
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={{ color: isDark ? '#FFFFFF' : '#1E293B', fontWeight: '800', fontSize: mS(15), marginBottom: vS(2) }}>Advance Booking</Text>
+                                                <Text style={{ color: isDark ? '#9CA3AF' : '#64748B', fontWeight: '600', fontSize: mS(12) }}>Schedule your ride in advance</Text>
+                                            </View>
+                                            {(selectedRide === RideType.OUTSTATION_ONE_WAY || selectedRide === RideType.OUTSTATION_ROUND_TRIP) ? (
+                                                <Pressable onPress={handleToggleAdvanceBooking}>
+                                                    <View pointerEvents="none">
+                                                        <Switch
+                                                            value={advancebooking}
+                                                            onValueChange={handleToggleAdvanceBooking}
+
+                                                            trackColor={{ false: '#767577', true: colors.primary }}
+                                                            thumbColor={Platform.OS === 'ios' ? '#FFFFFF' : advancebooking ? '#FFFFFF' : '#f4f3f4'}
+                                                            disabled={true}
+                                                        />
+                                                    </View>
+                                                </Pressable>
+                                            ) : (
+                                                <Switch
+                                                    value={advancebooking}
+                                                    onValueChange={handleToggleAdvanceBooking}
+                                                    trackColor={{ false: '#767577', true: colors.primary }}
+                                                    thumbColor={Platform.OS === 'ios' ? '#FFFFFF' : advancebooking ? '#FFFFFF' : '#f4f3f4'}
+                                                    disabled={false}
+                                                />
+                                            )}
+                                        </View>
+
+                                        <TouchableOpacity
+                                            disabled={advancebooking ? (!startLocation || !destination || !selectedVehicle || !scheduledDate || !scheduledTime || !selectedRide || tripTypeError || packageError) : (!startLocation || !destination || !selectedVehicle || tripTypeError || packageError)}
+                                            onPress={() => {
+                                                if (advancebooking) {
+                                                    if (scheduledDate && scheduledTime && selectedRide && !tripTypeError && !packageError) {
+                                                        handleSave(scheduledDate, scheduledTime, selectedRide);
+                                                    }
+                                                } else {
+                                                    if (startLocation && destination && selectedVehicle && transmission && !tripTypeError && !packageError) {
+                                                        setNext(true);
+                                                    }
+                                                }
+                                            }}
+                                            style={{
+                                                backgroundColor: '#0052FF',
+                                                padding: mS(16),
+                                                borderRadius: mS(12),
+                                                marginBottom: vS(16),
+                                                flexDirection: 'row',
+                                                justifyContent: 'center',
+                                                alignItems: 'center',
+                                                opacity: (advancebooking ? (!startLocation || !destination || !selectedVehicle || !scheduledDate || !scheduledTime || !selectedRide || tripTypeError || packageError) : (!startLocation || !destination || !selectedVehicle || tripTypeError || packageError)) ? 0.6 : 1,
+                                                ...Platform.select({
+                                                    ios: { shadowColor: '#0052FF', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
+                                                    android: { elevation: 4 },
+                                                })
+                                            }}
+                                        >
+                                            <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: mS(16), marginRight: hS(8) }}>Continue</Text>
+                                            <MaterialCommunityIcons name="arrow-right" size={mS(20)} color="#FFFFFF" />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            disabled={loading}
+                                            onPress={handleUseCurrentLocation}
+                                            style={{
+                                                flexDirection: 'row',
+                                                alignItems: 'center',
+                                                backgroundColor: isDark ? '#1E293B' : '#EFF6FF',
+                                                padding: mS(16),
+                                                borderRadius: mS(12),
+                                                marginBottom: vS(12),
+                                                borderWidth: 1,
+                                                borderColor: isDark ? colors.border : 'transparent',
+                                                opacity: loading ? 0.7 : 1,
+                                                justifyContent: 'space-between'
+                                            }}
+                                        >
+                                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                <MaterialCommunityIcons name="map-marker-radius" size={mS(24)} color="#3B82F6" style={{ marginRight: hS(12) }} />
+                                                <Text style={{ color: '#3B82F6', fontWeight: '700', fontSize: mS(15) }}>
+                                                    {loading ? "Locating..." : "Set location on map"}
+                                                </Text>
+                                            </View>
+                                            <MaterialCommunityIcons name="chevron-right" size={mS(24)} color="#3B82F6" />
+                                        </TouchableOpacity>
+
+                                        {/* <ScrollView> */}
+                                        {favoriteLocations?.length > 0 && (
+                                            <View style={{
+                                                flexDirection: 'row',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
+                                                // marginTop: 10,
+                                                marginBottom: vS(10)
+                                            }}>
+                                                <Text style={{ fontSize: mS(12), fontWeight: '800', color: colors.secondaryText, letterSpacing: 1 }}>
+                                                    FAVOURITES
+                                                </Text>
+                                                {/* <TouchableOpacity onPress={clearRecents}>
                                                                             <Text style={{ fontSize: 12, fontWeight: '700', color: '#2563EB' }}>
                                                                                 Clear All
                                                                             </Text>
                                                                         </TouchableOpacity> */}
-                                        </View>
-                                    )}
-                                    {favoriteLocations?.length === 0 ? (
-                                        <View style={{
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            padding: mS(40),
-                                        }}>
-                                            <Text style={{ color: colors.secondaryText }}>No favorite places yet. Start searching to add some!</Text>
-                                        </View>
-                                    ) : (
-                                        <View style={{
-                                            flexDirection: 'row', // Align items horizontally
-                                            flexWrap: 'wrap',     // Wrap to next line when full
-                                            gap: mS(10),              // Space between cards (React Native 0.71+)
-                                            padding: mS(10),
-                                        }}>
-                                            {favoriteLocations.map((item: SavedLocation, index: number) => (
-                                                <TouchableOpacity style={{
-                                                    backgroundColor: colors.iconBox,
-                                                    borderRadius: mS(12),
-                                                    paddingHorizontal: hS(12),
-                                                    paddingVertical: vS(8),
-                                                    flexDirection: 'row',
-                                                    alignItems: 'center',
-                                                    borderWidth: 1,
-                                                    borderColor: colors.border,
-                                                }} key={item.id || index}
-                                                    onPress={() => handleSelectFavourites(item)}
-                                                >
-                                                    <Text style={{
-                                                        fontSize: mS(14),
-                                                        fontWeight: '600',
-                                                        color: colors.text,
-                                                        marginRight: hS(6),
-                                                    }} numberOfLines={2}>
-                                                        {item.showname ? item.showname : item.name}
-                                                    </Text>
-                                                    <TouchableOpacity
-                                                        onPress={() => onToggleFavorite(item)}
+                                            </View>
+                                        )}
+                                        {favoriteLocations?.length === 0 ? (
+                                            <View style={{
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                padding: mS(40),
+                                            }}>
+                                                <Text style={{ color: colors.secondaryText }}>No favorite places yet. Start searching to add some!</Text>
+                                            </View>
+                                        ) : (
+                                            <View style={{
+                                                flexDirection: 'row', // Align items horizontally
+                                                flexWrap: 'wrap',     // Wrap to next line when full
+                                                gap: mS(10),              // Space between cards (React Native 0.71+)
+                                                padding: mS(10),
+                                            }}>
+                                                {favoriteLocations.map((item: SavedLocation, index: number) => (
+                                                    <TouchableOpacity style={{
+                                                        backgroundColor: colors.iconBox,
+                                                        borderRadius: mS(12),
+                                                        paddingHorizontal: hS(12),
+                                                        paddingVertical: vS(8),
+                                                        flexDirection: 'row',
+                                                        alignItems: 'center',
+                                                        borderWidth: 1,
+                                                        borderColor: colors.border,
+                                                    }} key={item.id || index}
+                                                        onPress={() => handleSelectFavourites(item)}
                                                     >
-                                                        <MaterialCommunityIcons
-                                                            name={"heart"}
-                                                            size={mS(20)}
-                                                            color={"#FF0000"}
-                                                        />
+                                                        <Text style={{
+                                                            fontSize: mS(14),
+                                                            fontWeight: '600',
+                                                            color: colors.text,
+                                                            marginRight: hS(6),
+                                                        }} numberOfLines={2}>
+                                                            {item.showname ? item.showname : item.name}
+                                                        </Text>
+                                                        <TouchableOpacity
+                                                            onPress={() => onToggleFavorite(item)}
+                                                        >
+                                                            <MaterialCommunityIcons
+                                                                name={"heart"}
+                                                                size={mS(20)}
+                                                                color={"#FF0000"}
+                                                            />
+                                                        </TouchableOpacity>
                                                     </TouchableOpacity>
-                                                </TouchableOpacity>
-                                            ))}
-                                            {localuser.favourite_places.length === 10 ? (
-                                                <View style={styles.limitReachedContainer}>
-                                                    <Text style={styles.limitReachedText}>
-                                                        Limit reached. Delete a favorite location to add a new one.
-                                                    </Text>
-                                                </View>
-                                            ) : null}
-                                        </View>
-                                    )}
-                                    {/* </ScrollView> */}
+                                                ))}
+                                                {localuser.favourite_places.length === 10 ? (
+                                                    <View style={styles.limitReachedContainer}>
+                                                        <Text style={styles.limitReachedText}>
+                                                            Limit reached. Delete a favorite location to add a new one.
+                                                        </Text>
+                                                    </View>
+                                                ) : null}
+                                            </View>
+                                        )}
+                                        {/* </ScrollView> */}
 
-                                    <CustomAlert
-                                        visible={isAlertVisible}
-                                        title={alertMode === 'remove' ? "Remove Favorite" : "Add Favorite"}
-                                        message={
-                                            alertMode === 'remove'
-                                                ? `Are you sure you want to remove "${selectedLocation?.name}" from your favorites?`
-                                                : `Do you want to save "${selectedLocation?.name}" to your favorite places?`
-                                        }
-                                        type={alertMode === 'remove' ? 'danger' : 'info'}
-                                        confirmText={alertMode === 'remove' ? 'Remove' : 'Save'}
-                                        onConfirm={confirmToggle} // Logic runs here
-                                        onCancel={() => {
-                                            setAlertVisible(false);
-                                            setSelectedLocation(null); // Clean up
-                                        }}
-                                    />
-
-                                    <CustomAlert
-                                        visible={isContactAlertVisible}
-                                        title="Remove Contact"
-                                        message="Are you sure you want to remove this rider from your list?"
-                                        confirmText="Delete"
-                                        type="danger"
-                                        onConfirm={() => {
-                                            if (contactToDelete) {
-                                                deleteContact(contactToDelete);
+                                        <CustomAlert
+                                            visible={isAlertVisible}
+                                            title={alertMode === 'remove' ? "Remove Favorite" : "Add Favorite"}
+                                            message={
+                                                alertMode === 'remove'
+                                                    ? `Are you sure you want to remove "${selectedLocation?.name}" from your favorites?`
+                                                    : `Do you want to save "${selectedLocation?.name}" to your favorite places?`
                                             }
-                                            setIsContactAlertVisible(false);
-                                            setContactToDelete(null);
-                                        }}
-                                        onCancel={() => {
-                                            setIsContactAlertVisible(false);
-                                            setContactToDelete(null);
-                                        }}
-                                    />
+                                            type={alertMode === 'remove' ? 'danger' : 'info'}
+                                            confirmText={alertMode === 'remove' ? 'Remove' : 'Save'}
+                                            onConfirm={confirmToggle} // Logic runs here
+                                            onCancel={() => {
+                                                setAlertVisible(false);
+                                                setSelectedLocation(null); // Clean up
+                                            }}
+                                        />
 
-                                    {/* RECENT LOCATIONS LIST */}
+                                        <CustomAlert
+                                            visible={isContactAlertVisible}
+                                            title="Remove Contact"
+                                            message="Are you sure you want to remove this rider from your list?"
+                                            confirmText="Delete"
+                                            type="danger"
+                                            onConfirm={() => {
+                                                if (contactToDelete) {
+                                                    deleteContact(contactToDelete);
+                                                }
+                                                setIsContactAlertVisible(false);
+                                                setContactToDelete(null);
+                                            }}
+                                            onCancel={() => {
+                                                setIsContactAlertVisible(false);
+                                                setContactToDelete(null);
+                                            }}
+                                        />
 
-                                    {/* {!modalType && savedRecents.length > 0 && (
+                                        {/* RECENT LOCATIONS LIST */}
+
+                                        {/* {!modalType && savedRecents.length > 0 && (
                                         <View style={{ flex: 1, paddingHorizontal: 20 }}>
 
                                             <View style={{
@@ -1481,8 +1483,8 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                                             </View>
                                             {/* <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}> */}
 
-                                    {/* RECENT LIST ITEMS */}
-                                    {/* {savedRecents.map((item) => (
+                                        {/* RECENT LIST ITEMS */}
+                                        {/* {savedRecents.map((item) => (
                                                 <TouchableOpacity
                                                     key={item.id}
                                                     onPress={() => {
@@ -1515,42 +1517,69 @@ const LocationSearch: React.FC<LocationInputProps> = ({ pickupLocation, dropLoca
                                                     <MaterialCommunityIcons name="chevron-right" size={mS(20)} color="#CBD5E1" />
                                                 </TouchableOpacity>
                                             ))} */}
-                                    {/* </ScrollView> */}
-                                    {/* </View>
+                                        {/* </ScrollView> */}
+                                        {/* </View>
                                     )}  */}
-                                </>
-                            )}
+                                    </>
+                                )}
+                            </View>
                         </View>
-                    </View>
-                </ScrollView>
+                    </ScrollView>
+                </View>
             ) : (
-                <View style={{ flex: 1 }}>
+                <View style={{
+                    flex: 1,
+                    // marginTop: insets.top 
+                }}>
                     <TouchableOpacity
                         activeOpacity={0.8}
                         onPress={() => setNext(false)}
-                        style={[styles.compactHeader, { backgroundColor: colors.card, borderBottomColor: colors.border }]}
+                        style={[styles.compactHeader, { backgroundColor: colors.card, borderBottomColor: colors.border, paddingHorizontal: 0, paddingVertical: 0, overflow: 'hidden' }]}
                     >
-                        <View style={styles.compactHeaderTop}>
-                            <View style={styles.compactHeaderLeft}>
-                                <MaterialCommunityIcons name="arrow-left" size={mS(24)} color={colors.text} />
-                                <Text style={[styles.compactLabel, { color: colors.secondaryText }]}>BOOK FOR {selected.toUpperCase()}</Text>
+                        <ImageBackground
+                            source={require('../../assets/images/header_bg.jpg')}
+                            style={{ paddingHorizontal: hS(16), paddingBottom: vS(16), paddingTop: insets.top + vS(10) }}
+                            imageStyle={{ opacity: 0.78 }}
+                        >
+                            <View style={styles.compactHeaderTop}>
+                                <View style={[styles.compactHeaderLeft, {
+                                    backgroundColor: isDark ? 'rgba(0,0,0,0.6)' : '#FFFFFF',
+                                    paddingHorizontal: hS(12),
+                                    paddingVertical: vS(8),
+                                    borderRadius: mS(20),
+                                    ...Platform.select({
+                                        ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
+                                        android: { elevation: 3 }
+                                    })
+                                }]}>
+                                    <MaterialCommunityIcons name="arrow-left" size={mS(20)} color={colors.text} />
+                                    <Text style={[styles.compactLabel, { color: colors.text, fontWeight: '700' }]}>BOOK FOR {selected.toUpperCase()}</Text>
+                                </View>
+                                <View style={[styles.editIconContainer, {
+                                    backgroundColor: isDark ? 'rgba(0,0,0,0.6)' : '#FFFFFF',
+                                    borderColor: colors.border,
+                                    borderWidth: isDark ? 1 : 0,
+                                    ...Platform.select({
+                                        ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
+                                        android: { elevation: 3 }
+                                    })
+                                }]}>
+                                    <MaterialCommunityIcons name="pencil" size={mS(16)} color={colors.text} />
+                                </View>
                             </View>
-                            <View style={[styles.editIconContainer, { backgroundColor: isDark ? colors.iconBox : '#EFF6FF', borderColor: colors.border, borderWidth: isDark ? 1 : 0 }]}>
-                                <MaterialCommunityIcons name="pencil-outline" size={mS(16)} color={colors.primary} />
-                            </View>
-                        </View>
 
-                        <View style={styles.compactRow}>
-                            <View style={[styles.locationContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                                <Text style={[styles.compactLabel, { color: colors.secondaryText }]}>FROM</Text>
-                                <Text numberOfLines={1} style={[styles.compactValue, { color: colors.text }]}>{startLocation}</Text>
+                            <View style={styles.compactRow}>
+                                <View style={[styles.locationContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                                    <Text style={[styles.compactLabel, { color: colors.secondaryText }]}>FROM</Text>
+                                    <Text numberOfLines={1} style={[styles.compactValue, { color: colors.text }]}>{startLocation}</Text>
+                                </View>
+                                <MaterialCommunityIcons name="arrow-right" size={mS(20)} color={colors.secondaryText} />
+                                <View style={[styles.locationContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                                    <Text style={[styles.compactLabel, { color: colors.secondaryText }]}>TO</Text>
+                                    <Text numberOfLines={1} style={[styles.compactValue, { color: colors.text }]}>{destination}</Text>
+                                </View>
                             </View>
-                            <MaterialCommunityIcons name="arrow-right" size={mS(20)} color={colors.secondaryText} />
-                            <View style={[styles.locationContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                                <Text style={[styles.compactLabel, { color: colors.secondaryText }]}>TO</Text>
-                                <Text numberOfLines={1} style={[styles.compactValue, { color: colors.text }]}>{destination}</Text>
-                            </View>
-                        </View>
+                        </ImageBackground>
                     </TouchableOpacity>
 
                     <LocationSearchModal
@@ -1768,13 +1797,13 @@ const styles = StyleSheet.create({
     },
     container: {
         borderRadius: mS(20),
-        shadowOffset: { width: 0, height: vS(4) },
-        shadowOpacity: 0.1,
-        shadowRadius: mS(12),
-        elevation: 5,
-        overflow: 'hidden',
+        shadowOffset: { width: 0, height: vS(2) },
+        shadowOpacity: 0.05,
+        shadowRadius: mS(4),
+        elevation: 2,
+        overflow: 'visible', // Change overflow to visible to show shadows properly
         marginHorizontal: hS(16),
-        marginTop: vS(14),
+        backgroundColor: '#FFFFFF',
     },
     itemContainer: {
         flexDirection: 'row',

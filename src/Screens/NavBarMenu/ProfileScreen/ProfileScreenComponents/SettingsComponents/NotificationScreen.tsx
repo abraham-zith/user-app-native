@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
     StyleSheet,
     View,
@@ -9,6 +9,7 @@ import {
     Platform,
     LayoutAnimation,
     UIManager,
+    ScrollView,
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import colors from '../../../../../constant/colors';
@@ -37,20 +38,39 @@ const NotificationScreen = () => {
     const dispatch = useDispatch();
     const notifications = useSelector((state: RootState) => state.notifications.notifications);
     const { colors: appColors, isDark } = useAppTheme();
+    const [activeTab, setActiveTab] = useState('All');
+
+    const tabs = [
+        { id: 'All', icon: null },
+        { id: 'Rides', icon: 'car-outline' },
+        { id: 'Account', icon: 'account-outline' },
+        { id: 'Offers', icon: 'tag-outline' },
+    ];
+
+    const unreadCount = notifications.filter(n => !n.read).length;
+    const totalCount = notifications.length;
 
     const getIcon = (type: string, isDarkTheme: boolean) => {
         switch (type) {
+            case 'otp':
+            case 'security':
+            case 'shield': return { name: 'shield-check', color: '#1877F2', bg: isDarkTheme ? 'rgba(24, 119, 242, 0.15)' : '#EBF5FF' };
             case 'RIDE_STARTED':
             case 'TRIP_UPDATE':
-            case 'ride': return { name: 'bike', color: '#34C759', bg: isDarkTheme ? 'rgba(52, 199, 89, 0.15)' : '#E8F5E9' };
             case 'BOOKING_CONFIRMED':
-            case 'DRIVER_ASSIGNED': return { name: 'check-circle-outline', color: '#007AFF', bg: isDarkTheme ? 'rgba(0, 122, 255, 0.15)' : '#EBF5FF' };
-            case 'PROMO_CODE':
-            case 'promo': return { name: 'ticket-percent', color: '#F9CA24', bg: isDarkTheme ? 'rgba(249, 202, 36, 0.15)' : '#FFF9E6' };
+            case 'ride':
+            case 'car': return { name: 'car', color: '#34C759', bg: isDarkTheme ? 'rgba(52, 199, 89, 0.15)' : '#E8F5E9' };
             case 'PAYMENT_SUCCESS':
-            case 'wallet': return { name: 'wallet', color: '#34C759', bg: isDarkTheme ? 'rgba(52, 199, 89, 0.15)' : '#E8F5E9' };
-            case 'BOOKING_CANCELLED': return { name: 'close-circle-outline', color: '#FF3B30', bg: isDarkTheme ? 'rgba(255, 59, 48, 0.15)' : '#FFF1F0' };
-            default: return { name: 'bell-outline', color: '#8E8E93', bg: isDarkTheme ? 'rgba(142, 142, 147, 0.15)' : '#F2F2F7' };
+            case 'wallet': return { name: 'wallet', color: '#FF9500', bg: isDarkTheme ? 'rgba(255, 149, 0, 0.15)' : '#FFF5E6' };
+            case 'PROMO_CODE':
+            case 'promo':
+            case 'offer': return { name: 'tag', color: '#FF2D55', bg: isDarkTheme ? 'rgba(255, 45, 85, 0.15)' : '#FFE5EC' };
+            case 'DRIVER_ASSIGNED':
+            case 'star': return { name: 'star', color: '#AF52DE', bg: isDarkTheme ? 'rgba(175, 82, 222, 0.15)' : '#F2E6FF' };
+            case 'Safety Alert':
+            case 'alert':
+            case 'bell': return { name: 'bell', color: '#1877F2', bg: isDarkTheme ? 'rgba(24, 119, 242, 0.15)' : '#EBF5FF' };
+            default: return { name: 'bell', color: '#1877F2', bg: isDarkTheme ? 'rgba(24, 119, 242, 0.15)' : '#EBF5FF' };
         }
     };
 
@@ -73,15 +93,29 @@ const NotificationScreen = () => {
         dispatch(removeNotification(id));
     };
 
+    const filteredNotifications = notifications.filter(n => {
+        if (activeTab === 'All') return true;
+        if (activeTab === 'Rides') return ['RIDE_STARTED', 'TRIP_UPDATE', 'BOOKING_CONFIRMED', 'DRIVER_ASSIGNED', 'ride', 'car'].includes(n.type);
+        if (activeTab === 'Offers') return ['PROMO_CODE', 'promo', 'offer'].includes(n.type);
+        if (activeTab === 'Account') return ['PAYMENT_SUCCESS', 'wallet', 'otp', 'security', 'shield', 'Safety Alert', 'alert', 'bell'].includes(n.type);
+        return true;
+    });
+
     const renderItem = ({ item }: { item: Notification }) => {
         const iconDetails = getIcon(item.type, isDark);
-        const timeAgo = moment(item.time).fromNow();
+        // Clean up moment output for brevity like "1 hour ago", "3 hours ago"
+        const timeAgo = moment(item.time).fromNow(); 
 
         return (
             <TouchableOpacity
-                style={[styles.notificationCard, { backgroundColor: appColors.card }, !item.read && [styles.unreadCard, { backgroundColor: appColors.card, borderLeftColor: colors.button }]]}
+                style={[
+                    styles.notificationCard, 
+                    { backgroundColor: appColors.card }, 
+                    !item.read && [styles.unreadCard, { backgroundColor: appColors.card, borderLeftColor: '#0B309B' }]
+                ]}
                 activeOpacity={0.8}
                 onPress={() => handleNotificationPress(item)}
+                onLongPress={() => handleRemove(item.id)}
             >
                 <View style={[styles.iconBox, { backgroundColor: iconDetails.bg }]}>
                     <MaterialCommunityIcons name={iconDetails.name} size={mS(24)} color={iconDetails.color} />
@@ -92,19 +126,15 @@ const NotificationScreen = () => {
                         <Text style={[styles.title, !item.read && styles.unreadText, { color: appColors.text }]} numberOfLines={1}>
                             {item.title}
                         </Text>
-                        <Text style={[styles.time, { color: appColors.secondaryText }]}>{timeAgo}</Text>
+                        <View style={styles.timeRow}>
+                            <Text style={[styles.time, { color: '#94A3B8' }]}>{timeAgo}</Text>
+                            {!item.read && <View style={styles.unreadDot} />}
+                        </View>
                     </View>
-                    <Text style={[styles.message, { color: appColors.secondaryText }]} numberOfLines={2}>{item.message}</Text>
+                    <Text style={[styles.message, { color: '#64748B' }]} numberOfLines={2}>{item.message}</Text>
                 </View>
 
-                <TouchableOpacity
-                    style={styles.deleteBtn}
-                    onPress={() => handleRemove(item.id)}
-                >
-                    <MaterialCommunityIcons name="close" size={mS(16)} color={appColors.secondaryText} />
-                </TouchableOpacity>
-
-                {!item.read && <View style={styles.unreadDot} />}
+                <MaterialCommunityIcons name="chevron-right" size={mS(20)} color="#CBD5E1" style={styles.chevron} />
             </TouchableOpacity>
         );
     };
@@ -113,32 +143,61 @@ const NotificationScreen = () => {
         <View style={[styles.container, { backgroundColor: appColors.background }]}>
             <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor="transparent" translucent />
 
-            <View style={[styles.header, { paddingTop: insets.top, backgroundColor: appColors.background, borderBottomColor: appColors.border }]}>
-                <View style={styles.headerContent}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                        <MaterialCommunityIcons name="chevron-left" size={mS(30)} color={appColors.text} />
-                    </TouchableOpacity>
-                    <View>
-                        <Text style={[styles.headerTitle, { color: appColors.text }]}>Notifications</Text>
-                        {notifications.length > 0 && (
-                            <Text style={[styles.headerSubtitle, { color: appColors.secondaryText }]}>{notifications.length} notifications</Text>
-                        )}
-                    </View>
-                    {notifications.length > 0 ? (
-                        <TouchableOpacity onPress={handleClearAll} style={[styles.clearBtn, {
-                            backgroundColor: isDark ? 'rgba(56, 189, 248, 0.1)' : '#EFF6FF',
-                            borderColor: isDark ? 'rgba(56, 189, 248, 0.3)' : '#DBEAFE',
-                        }]}>
-                            <Text style={[styles.markReadText, {
-                                color: isDark ? '#38BDF8' : colors.button,
-                            }]}>Clear All</Text>
-                        </TouchableOpacity>
-                    ) : <View style={{ width: hS(60) }} />}
+            {/* HEADER */}
+            <View style={[styles.header, { paddingTop: insets.top + vS(10), backgroundColor: appColors.background }]}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                    <MaterialCommunityIcons name="arrow-left" size={mS(24)} color="#1E293B" />
+                </TouchableOpacity>
+                <View style={styles.headerTitleContainer}>
+                    <Text style={[styles.headerTitle, { color: appColors.text }]}>Notifications</Text>
+                    <Text style={[styles.headerSubtitle, { color: '#64748B' }]}>{unreadCount} unread • {totalCount} total</Text>
                 </View>
+                {notifications.length > 0 ? (
+                    <TouchableOpacity onPress={handleClearAll} style={styles.clearBtn}>
+                        <Text style={styles.markReadText}>Clear All</Text>
+                    </TouchableOpacity>
+                ) : <View style={{ width: hS(70) }} />}
             </View>
 
+            {/* FILTER TAPS */}
+            <View style={styles.tabsContainer}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsScrollContent}>
+                    {tabs.map((tab) => {
+                        const isActive = activeTab === tab.id;
+                        return (
+                            <TouchableOpacity
+                                key={tab.id}
+                                style={[
+                                    styles.tabBtn,
+                                    isActive ? styles.activeTabBtn : styles.inactiveTabBtn,
+                                    { backgroundColor: isActive ? '#0B309B' : '#FFFFFF' }
+                                ]}
+                                onPress={() => setActiveTab(tab.id)}
+                            >
+                                {tab.icon && (
+                                    <MaterialCommunityIcons 
+                                        name={tab.icon} 
+                                        size={mS(16)} 
+                                        color={isActive ? '#FFFFFF' : '#64748B'} 
+                                        style={styles.tabIcon} 
+                                    />
+                                )}
+                                <Text style={[
+                                    styles.tabText, 
+                                    { color: isActive ? '#FFFFFF' : '#64748B' },
+                                    isActive && { fontWeight: '700' }
+                                ]}>
+                                    {tab.id}
+                                </Text>
+                            </TouchableOpacity>
+                        );
+                    })}
+                </ScrollView>
+            </View>
+
+            {/* NOTIFICATIONS LIST */}
             <FlatList
-                data={notifications}
+                data={filteredNotifications}
                 renderItem={renderItem}
                 keyExtractor={(item, index) => item.id ? `${item.id}-${index}` : index.toString()}
                 removeClippedSubviews={true}
@@ -163,57 +222,86 @@ const NotificationScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FBFBFB',
+        backgroundColor: '#F8FAFC',
     },
     header: {
-        backgroundColor: '#FFF',
-        borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
-        paddingBottom: vS(10),
-    },
-    headerContent: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: hS(10),
-        height: vS(60),
+        paddingHorizontal: hS(20),
+        paddingBottom: vS(15),
     },
     backBtn: {
-        width: hS(40),
-        height: hS(40),
+        width: mS(40),
+        height: mS(40),
+        borderRadius: mS(20),
+        backgroundColor: '#F1F5F9',
         justifyContent: 'center',
         alignItems: 'center',
     },
+    headerTitleContainer: {
+        alignItems: 'center',
+    },
     headerTitle: {
-        fontSize: mS(20),
-        fontWeight: '700',
-        color: '#1A1A1A',
-        textAlign: 'center',
+        fontSize: mS(18),
+        fontWeight: '800',
+        color: '#1E293B',
     },
     headerSubtitle: {
         fontSize: mS(12),
-        color: '#8E8E93',
-        textAlign: 'center',
+        color: '#64748B',
         fontWeight: '500',
+        marginTop: vS(2),
     },
     clearBtn: {
         paddingHorizontal: hS(12),
         paddingVertical: vS(6),
+        backgroundColor: '#EFF6FF',
+        borderRadius: mS(16),
         borderWidth: 1,
-        borderRadius: mS(20),
+        borderColor: '#DBEAFE',
     },
     markReadText: {
+        fontSize: mS(12),
+        fontWeight: '700',
+        color: '#1877F2',
+    },
+    tabsContainer: {
+        marginBottom: vS(10),
+    },
+    tabsScrollContent: {
+        paddingHorizontal: hS(20),
+        gap: hS(10),
+        paddingVertical: vS(5),
+    },
+    tabBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: hS(16),
+        paddingVertical: vS(8),
+        borderRadius: mS(20),
+        borderWidth: 1,
+    },
+    activeTabBtn: {
+        borderColor: '#0B309B',
+    },
+    inactiveTabBtn: {
+        borderColor: '#E2E8F0',
+    },
+    tabIcon: {
+        marginRight: hS(6),
+    },
+    tabText: {
         fontSize: mS(13),
-        fontWeight: '600',
-
+        fontWeight: '500',
     },
     listPadding: {
-        paddingHorizontal: hS(16),
-        paddingVertical: vS(20),
+        paddingHorizontal: hS(20),
+        paddingVertical: vS(10),
     },
     notificationCard: {
         flexDirection: 'row',
-        backgroundColor: '#FFF',
+        backgroundColor: '#FFFFFF',
         padding: mS(16),
         marginBottom: vS(12),
         borderRadius: mS(20),
@@ -224,61 +312,64 @@ const styles = StyleSheet.create({
         shadowRadius: 10,
         elevation: 3,
         position: 'relative',
-        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: '#F1F5F9',
     },
     unreadCard: {
-        backgroundColor: '#FFFFFF',
         borderLeftWidth: 4,
-        borderLeftColor: colors.button,
+        borderLeftColor: '#0B309B',
     },
     iconBox: {
-        width: hS(54),
-        height: hS(54),
-        borderRadius: mS(18),
+        width: mS(48),
+        height: mS(48),
+        borderRadius: mS(24),
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: hS(16),
+        marginRight: hS(12),
     },
     content: {
         flex: 1,
-        marginRight: hS(10),
+        marginRight: hS(8),
     },
     row: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'baseline',
+        alignItems: 'center',
         marginBottom: vS(4),
     },
     title: {
-        fontSize: mS(16),
-        fontWeight: '600',
-        color: '#1A1A1A',
+        fontSize: mS(15),
+        fontWeight: '700',
+        color: '#1E293B',
         flex: 1,
     },
     unreadText: {
-        fontWeight: '700',
+        fontWeight: '800',
     },
     message: {
-        fontSize: mS(14),
-        color: '#666',
-        lineHeight: vS(20),
+        fontSize: mS(13),
+        color: '#64748B',
+        lineHeight: vS(18),
+        fontWeight: '400',
+    },
+    timeRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     time: {
         fontSize: mS(11),
-        color: '#999',
+        color: '#94A3B8',
         fontWeight: '500',
     },
     unreadDot: {
-        position: 'absolute',
-        top: vS(16),
-        right: hS(16),
-        width: mS(8),
-        height: mS(8),
-        borderRadius: mS(4),
-        backgroundColor: colors.button,
+        width: mS(6),
+        height: mS(6),
+        borderRadius: mS(3),
+        backgroundColor: '#1877F2',
+        marginLeft: hS(6),
     },
-    deleteBtn: {
-        padding: mS(4),
+    chevron: {
+        marginLeft: hS(5),
     },
     emptyState: {
         flex: 1,

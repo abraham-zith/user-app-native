@@ -20,6 +20,7 @@ import {
 } from 'react-native-permissions';
 import { hS, mS, vS } from '../../../../../lib/responsive';
 import { useAppTheme } from "../../../../../hooks/useAppTheme";
+
 type PreferenceKey = 'invoice_email' | 'promo_email' | 'whatsapp_updates' | 'push_notifications' | 'sms_alerts';
 
 type SettingsPreference = {
@@ -29,6 +30,7 @@ type SettingsPreference = {
     push_notifications: boolean,
     sms_alerts: boolean,
 }
+
 const initialSettingsPreference = {
     invoice_email: false,
     promo_email: false,
@@ -36,6 +38,7 @@ const initialSettingsPreference = {
     push_notifications: false,
     sms_alerts: false,
 }
+
 const Preferences = () => {
     const { data: userData, isLoading } = useGetUserQuery()
     const insets = useSafeAreaInsets();
@@ -62,23 +65,17 @@ const Preferences = () => {
             return true;
         }
 
-        // On iOS/Android, if it's already been denied once, 
-        // it might return BLOCKED instead of DENIED.
         if (status === RESULTS.DENIED) {
-
             const { status: newStatus } = await requestNotifications(['alert', 'sound', 'badge']);
 
             if (newStatus === RESULTS.GRANTED) {
                 return true;
             }
-            // If they just denied it NOW, we usually don't show the Alert immediately 
-            // to avoid annoying them. But if it didn't even show the popup, it's blocked.
             else if (newStatus === RESULTS.BLOCKED || newStatus === RESULTS.DENIED) {
                 showSettingsAlert();
                 return false;
             }
         }
-
         else if (status === RESULTS.BLOCKED) {
             showSettingsAlert();
             return false;
@@ -87,7 +84,6 @@ const Preferences = () => {
         return false;
     };
 
-    // Helper to keep code clean
     const showSettingsAlert = () => {
         Alert.alert(
             "Notifications are Off",
@@ -103,10 +99,8 @@ const Preferences = () => {
         const newValue = !settings[key];
 
         if (key === 'push_notifications' && newValue === true) {
-
             const hasPermission = await handleNotificationPermission();
             if (!hasPermission) {
-                // Important: Don't update the toggle if permission was denied/blocked
                 return;
             }
         }
@@ -119,7 +113,6 @@ const Preferences = () => {
         setUpdatingKey(key);
 
         try {
-
             const payload = {
                 id: localuser.id,
                 settings_preferences: updatedPreferences
@@ -132,20 +125,16 @@ const Preferences = () => {
                 setSettings(updatedPreferences);
             }
         } catch (error: any) {
-            // console.error(error, "error")
             Alert.alert('Something Went Wrong!!!', 'Try Again Later');
-            const errorMsg = error?.data?.message || "Failed to save preference";
-            // Alert.alert("Update Error", errorMsg);
-
         } finally {
             setUpdatingKey(null);
         }
     };
 
-    const PreferenceToggle = ({ title, description, icon, prefKey }: { title: string, description: string, icon: string, prefKey: PreferenceKey }) => (
-        <View style={[styles.toggleRow, { borderBottomColor: appColors.border }]}>
-            <View style={[styles.iconContainer, { backgroundColor: appColors.iconBox }]}>
-                <MaterialCommunityIcons name={icon} size={mS(20)} color={isDark ? '#38BDF8' : colors.button} />
+    const PreferenceToggle = ({ title, description, icon, prefKey, iconColor, iconBgColor }: { title: string, description: string, icon: string, prefKey: PreferenceKey, iconColor: string, iconBgColor: string }) => (
+        <View style={[styles.toggleRow, { borderBottomColor: isDark ? appColors.border : '#F1F5F9' }]}>
+            <View style={[styles.iconContainer, { backgroundColor: isDark ? appColors.iconBox : iconBgColor }]}>
+                <MaterialCommunityIcons name={icon} size={mS(20)} color={isDark ? '#38BDF8' : iconColor} />
             </View>
             <View style={styles.textContainer}>
                 <Text style={[styles.toggleTitle, { color: appColors.text }]}>{title}</Text>
@@ -153,10 +142,10 @@ const Preferences = () => {
             </View>
             <View style={styles.controlContainer}>
                 {updatingKey === prefKey ? (
-                    <ActivityIndicator size="small" color="#34C759" />
+                    <ActivityIndicator size="small" color="#2563EB" />
                 ) : (
                     <Switch
-                        trackColor={{ false: appColors.border, true: '#10B981' }}
+                        trackColor={{ false: appColors.border, true: '#2563EB' }}
                         thumbColor={'#FFF'}
                         ios_backgroundColor={appColors.border}
                         onValueChange={() => handleToggle(prefKey)}
@@ -202,15 +191,15 @@ const Preferences = () => {
     );
 
     return (
-        <View style={[styles.container, { backgroundColor: appColors.background }]}>
-            <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={appColors.background} />
+        <View style={[styles.container, { backgroundColor: isDark ? appColors.background : '#FFFFFF' }]}>
+            <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={isDark ? appColors.background : '#FFFFFF'} />
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + vS(40) }]}
             >
-                <View style={[styles.infoBox, { backgroundColor: isDark ? 'rgba(56, 189, 248, 0.1)' : '#EFF6FF', borderColor: isDark ? 'rgba(56, 189, 248, 0.3)' : '#DBEAFE' }]}>
+                <View style={[styles.infoBox, { backgroundColor: isDark ? 'rgba(56, 189, 248, 0.1)' : '#F4F8FD', borderColor: isDark ? 'rgba(56, 189, 248, 0.3)' : '#EBF1FA' }]}>
                     <View style={styles.infoIconBox}>
-                        <MaterialCommunityIcons name="information-outline" size={mS(20)} color={isDark ? '#38BDF8' : colors.button} />
+                        <MaterialCommunityIcons name="information-outline" size={mS(20)} color={isDark ? '#38BDF8' : '#1E40AF'} />
                     </View>
                     <Text style={[styles.infoText, isDark && { color: '#38BDF8' }]}>Customize how you'd like to stay informed about your rides and exclusive offers.</Text>
                 </View>
@@ -220,18 +209,22 @@ const Preferences = () => {
                     <Text style={[styles.sectionTitle, { color: appColors.secondaryText }]}>Email Settings</Text>
                 </View>
 
-                <View style={[styles.cardContainer, { backgroundColor: appColors.card }]}>
+                <View style={[styles.cardContainer, { backgroundColor: appColors.card, borderColor: isDark ? appColors.border : '#F1F5F9' }]}>
                     <PreferenceToggle
                         icon="file-document-outline"
                         title="Ride Invoices"
                         description="Direct copies of your bills after every trip."
                         prefKey="invoice_email"
+                        iconColor="#1D4ED8"
+                        iconBgColor="#EFF6FF"
                     />
                     <PreferenceToggle
-                        icon="sale"
+                        icon="brightness-percent"
                         title="Promotions"
                         description="Updates on discounts and new features."
                         prefKey="promo_email"
+                        iconColor="#1E3A8A"
+                        iconBgColor="#EFF6FF"
                     />
                 </View>
 
@@ -240,18 +233,22 @@ const Preferences = () => {
                     <Text style={[styles.sectionTitle, { color: appColors.secondaryText }]}>Direct Messaging</Text>
                 </View>
 
-                <View style={[styles.cardContainer, { backgroundColor: appColors.card }]}>
+                <View style={[styles.cardContainer, { backgroundColor: appColors.card, borderColor: isDark ? appColors.border : '#F1F5F9' }]}>
                     <PreferenceToggle
                         icon="whatsapp"
                         title="WhatsApp Updates"
                         description="Ride status and booking info on WhatsApp."
                         prefKey="whatsapp_updates"
+                        iconColor="#15803D"
+                        iconBgColor="#DCFCE7"
                     />
                     <PreferenceToggle
                         icon="message-text-outline"
                         title="SMS Alerts"
                         description="Crucial account updates via Text Message."
                         prefKey="sms_alerts"
+                        iconColor="#1D4ED8"
+                        iconBgColor="#EFF6FF"
                     />
                 </View>
 
@@ -260,20 +257,22 @@ const Preferences = () => {
                     <Text style={[styles.sectionTitle, { color: appColors.secondaryText }]}>Mobile App</Text>
                 </View>
 
-                <View style={[styles.cardContainer, { backgroundColor: appColors.card }]}>
+                <View style={[styles.cardContainer, { backgroundColor: appColors.card, borderColor: isDark ? appColors.border : '#F1F5F9' }]}>
                     <PreferenceToggle
                         icon="bell-ring-outline"
                         title="Push Notifications"
                         description="Real-time alerts for ride arrival and safety."
                         prefKey="push_notifications"
+                        iconColor="#6D28D9"
+                        iconBgColor="#F3E8FF"
                     />
                 </View>
 
-                <View style={[styles.footerContainer, {
-                    // backgroundColor: isDark ? appColors.iconBox : appColors.card,
-                }]}>
-                    <MaterialCommunityIcons name="shield-check-outline" size={mS(16)} color={appColors.secondaryText} />
-                    <Text style={[styles.footerNote, { color: appColors.secondaryText }]}>
+                <View style={[styles.infoBox, { backgroundColor: isDark ? 'rgba(56, 189, 248, 0.1)' : '#F4F8FD', borderColor: isDark ? 'rgba(56, 189, 248, 0.3)' : '#EBF1FA', marginBottom: vS(20), marginTop: vS(8) }]}>
+                    <View style={styles.infoIconBox}>
+                        <MaterialCommunityIcons name="shield-check-outline" size={mS(20)} color={isDark ? '#38BDF8' : '#1D4ED8'} />
+                    </View>
+                    <Text style={[styles.infoText, isDark && { color: '#38BDF8' }]}>
                         Essential service updates regarding your account or active rides cannot be disabled.
                     </Text>
                 </View>
@@ -285,7 +284,6 @@ const Preferences = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F8FAFC'
     },
     center: {
         flex: 1,
@@ -294,103 +292,80 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         paddingTop: vS(16),
+        paddingHorizontal: hS(16),
     },
     infoBox: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: mS(16),
-        backgroundColor: '#EFF6FF',
-        marginHorizontal: hS(16),
-        borderRadius: mS(16),
-        marginBottom: vS(24),
+        padding: mS(12),
+        borderRadius: mS(8),
+        marginBottom: vS(20),
         borderWidth: 1,
-        borderColor: '#DBEAFE',
     },
     infoIconBox: {
         marginRight: hS(12),
+        alignSelf: 'flex-start',
+        marginTop: vS(2)
     },
     infoText: {
         flex: 1,
-        fontSize: mS(13),
-        color: '#1E40AF',
+        fontSize: mS(12),
+        color: '#1E3A8A',
         lineHeight: mS(18),
         fontWeight: '500',
     },
     sectionHeader: {
-        marginTop: vS(10),
-        marginHorizontal: hS(20),
+        marginTop: vS(4),
         marginBottom: vS(8),
+        marginLeft: hS(4),
     },
     sectionTitle: {
-        fontSize: mS(13),
-        fontWeight: '800',
+        fontSize: mS(11),
+        fontWeight: '600',
         color: '#64748B',
         textTransform: 'uppercase',
-        letterSpacing: 1.2,
+        letterSpacing: 0.5,
     },
     cardContainer: {
-        marginHorizontal: hS(16),
-        backgroundColor: '#FFFFFF',
-        borderRadius: mS(20),
-        shadowColor: '#64748B',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 12,
-        elevation: 3,
-        overflow: 'hidden',
+        borderRadius: mS(12),
+        borderWidth: 1,
         marginBottom: vS(20),
     },
     toggleRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: vS(16),
-        paddingHorizontal: hS(16),
+        paddingVertical: vS(12),
+        paddingHorizontal: hS(12),
         borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
     },
     iconContainer: {
-        width: mS(40),
-        height: vS(40),
-        backgroundColor: '#F8FAFC',
-        borderRadius: mS(12),
+        width: mS(36),
+        height: mS(36),
+        borderRadius: mS(18),
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: hS(16),
+        marginRight: hS(12),
     },
     textContainer: {
         flex: 1,
         marginRight: hS(10),
     },
     toggleTitle: {
-        fontSize: mS(15),
-        fontWeight: '700',
-        color: '#1E293B',
+        fontSize: mS(14),
+        fontWeight: '600',
+        color: '#0F172A',
+        marginBottom: vS(2),
     },
     toggleDesc: {
-        fontSize: mS(12),
+        fontSize: mS(11.5),
         color: '#64748B',
-        marginTop: vS(2),
-        fontWeight: '500',
+        fontWeight: '400',
+        lineHeight: mS(16),
     },
     controlContainer: {
         width: hS(50),
         alignItems: 'flex-end',
         justifyContent: 'center',
-    },
-    footerContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: hS(30),
-        marginTop: vS(10),
-        gap: hS(8),
-    },
-    footerNote: {
-        fontSize: mS(12),
-        color: '#94A3B8',
-        textAlign: 'center',
-        lineHeight: mS(18),
-        fontWeight: '500',
     },
 });
 

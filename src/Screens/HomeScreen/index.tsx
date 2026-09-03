@@ -34,6 +34,7 @@ import { OneWayComponent } from './HomeScreenComponents/OneWayComponent';
 import { RoundedTrip } from "./HomeScreenComponents/RoundedTripComponent";
 import { OutstationComponent } from './HomeScreenComponents/OutStationcomponent';
 import { DailyComponent } from './HomeScreenComponents/DailyComponent';
+import { useLocation } from "../../hooks/useLocation";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import GlobalRideCard from "../TripScreen/TripComponents/GlobalRideCard";
 import { ActiveTripBadge } from "../TripScreen/TripComponents/LiveRideBadge/ActiveTripBadge";
@@ -41,6 +42,7 @@ import { ScheduledTripBadge } from "../TripScreen/TripComponents/ScheduledRideBa
 import { BookedTripScreen_Nav } from "../../Navigations/navigations";
 import { useLazyGetByTripIdQuery } from "../../service/tripApi";
 import Skeleton from "../../Components/Skeleton";
+import LowBalanceBanner from '../../Components/Wallet/LowBalanceBanner';
 
 let initialLoadChecked = false;
 
@@ -48,46 +50,92 @@ const HomeScreenSkeleton = ({ insets, appColors, isDark }: any) => {
     return (
         <View style={{ flex: 1, backgroundColor: appColors.background, paddingTop: insets.top, paddingHorizontal: insets.left }}>
             {/* Header Skeleton */}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: hS(20), paddingTop: vS(10), paddingBottom: vS(10) }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: hS(20), paddingTop: vS(10), paddingBottom: vS(10) }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: hS(10) }}>
                     <Skeleton width={mS(45)} height={mS(45)} borderRadius={mS(22.5)} />
                     <View style={{ gap: vS(4) }}>
-                        <Skeleton width={120} height={16} />
-                        <Skeleton width={80} height={14} />
+                        <Skeleton width={120} height={16} borderRadius={4} />
+                        <Skeleton width={80} height={14} borderRadius={4} />
                     </View>
                 </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: hS(10) }}>
-                    <Skeleton width={mS(40)} height={mS(40)} borderRadius={mS(20)} />
-                    <Skeleton width={mS(40)} height={mS(40)} borderRadius={mS(10)} />
-                </View>
+                {/* Right side active badge placeholder */}
+                <Skeleton width={mS(40)} height={mS(40)} borderRadius={mS(12)} />
             </View>
 
             {/* Map Skeleton */}
-            <View style={{ height: SCREEN_HEIGHT * 0.45, width: '100%', paddingHorizontal: hS(10) }}>
-                <Skeleton width="100%" height="100%" borderRadius={24} />
+            <View style={{ height: SCREEN_HEIGHT * 0.35, width: '100%' }}>
+                <Skeleton width="100%" height="100%" borderRadius={0} />
             </View>
 
-            {/* Tabs Skeleton */}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginVertical: vS(20) }}>
+            {/* Location Card Skeleton */}
+            <View style={{
+                marginHorizontal: hS(20),
+                marginTop: vS(-45),
+                paddingHorizontal: hS(16),
+                paddingVertical: vS(16),
+                borderRadius: mS(12),
+                backgroundColor: isDark ? appColors.card : '#FFFFFF',
+                borderWidth: 1,
+                borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#F1F5F9',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.1,
+                shadowRadius: 12,
+                elevation: 4,
+            }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Skeleton width={mS(18)} height={mS(18)} borderRadius={mS(9)} />
+                    <View style={{ flex: 1, marginLeft: hS(12), gap: vS(6) }}>
+                        <Skeleton width="40%" height={10} borderRadius={2} />
+                        <Skeleton width="80%" height={14} borderRadius={4} />
+                    </View>
+                    <Skeleton width={mS(32)} height={mS(32)} borderRadius={mS(16)} />
+                </View>
+
+                {/* Divider space */}
+                <View style={{ height: vS(24), marginLeft: hS(8), width: 2, alignItems: 'center', justifyContent: 'center' }}>
+                    <Skeleton width={1} height="100%" borderRadius={0} />
+                </View>
+
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Skeleton width={mS(18)} height={mS(18)} borderRadius={mS(9)} />
+                    <View style={{ flex: 1, marginLeft: hS(12) }}>
+                        <Skeleton width="60%" height={14} borderRadius={4} />
+                    </View>
+                    <Skeleton width={mS(24)} height={mS(24)} borderRadius={mS(12)} />
+                </View>
+            </View>
+
+            {/* Compact Buttons Skeleton */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: hS(20), marginTop: vS(20) }}>
                 {[1, 2, 3, 4].map((i) => (
-                    <View key={i} style={{ alignItems: 'center', gap: vS(8) }}>
-                        <Skeleton width={hS(65)} height={hS(65)} borderRadius={hS(16)} />
-                        <Skeleton width={50} height={12} />
+                    <View key={i} style={{ width: '23%', height: vS(70), borderRadius: mS(12), backgroundColor: isDark ? appColors.card : '#FFFFFF', padding: mS(8), alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC' }}>
+                        <Skeleton width={mS(24)} height={mS(24)} borderRadius={mS(12)} />
+                        <View style={{ marginTop: vS(8) }}>
+                            <Skeleton width={mS(40)} height={mS(8)} borderRadius={mS(4)} />
+                        </View>
                     </View>
                 ))}
             </View>
 
-            {/* Dynamic Content Area Skeleton */}
-            <View style={{ paddingHorizontal: hS(20), gap: vS(16) }}>
-                <Skeleton width="100%" height={hS(50)} borderRadius={25} />
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: hS(10) }}>
-                    {[1, 2, 3].map((i) => (
-                        <View key={i} style={{ flex: 1, gap: vS(8) }}>
-                            <Skeleton width="100%" height={hS(100)} borderRadius={16} />
-                        </View>
-                    ))}
-                </View>
+            {/* Popular Routes Title Skeleton */}
+            <View style={{ paddingHorizontal: hS(20), marginTop: vS(24), flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Skeleton width={140} height={20} borderRadius={4} />
+                <Skeleton width={60} height={14} borderRadius={4} />
             </View>
+
+            {/* Popular Routes Cards Skeleton */}
+            <View style={{ flexDirection: 'row', paddingHorizontal: hS(20), marginTop: vS(16), gap: hS(12) }}>
+                {[1, 2, 3, 4].map((i) => (
+                    <View key={i} style={{ width: hS(72), height: vS(90), borderRadius: mS(16), backgroundColor: isDark ? appColors.card : '#FFFFFF', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.05)' : '#F1F5F9' }}>
+                        <Skeleton width={mS(32)} height={mS(32)} borderRadius={mS(12)} />
+                        <View style={{ marginTop: vS(8) }}>
+                            <Skeleton width={mS(40)} height={mS(10)} borderRadius={mS(2)} />
+                        </View>
+                    </View>
+                ))}
+            </View>
+
         </View>
     );
 };
@@ -134,8 +182,29 @@ const HomeScreen: React.FC<any> = ({ navigation }) => {
     const [screenName, setscreenName] = useState('OneWay');
     const [active, setActive] = useState<number>(0);
     const [isScreenLoading, setIsScreenLoading] = useState(true);
+    const [currentAddress, setCurrentAddress] = useState<string>("Fetching location...");
 
     const [triggerGetTrip] = useLazyGetByTripIdQuery();
+    const { getCurrentLocation, getAddressFromCoords } = useLocation();
+
+    useEffect(() => {
+        const fetchLocation = async () => {
+            try {
+                const pos = await getCurrentLocation();
+                const addressData = await getAddressFromCoords(pos.coords.latitude, pos.coords.longitude);
+                if (addressData?.formatted) {
+                    setCurrentAddress(addressData.formatted);
+                } else if (addressData?.area) {
+                    setCurrentAddress(addressData.area);
+                } else {
+                    setCurrentAddress("Location not found");
+                }
+            } catch (err) {
+                setCurrentAddress("Location permission denied");
+            }
+        };
+        fetchLocation();
+    }, []);
 
     const localUser = useSelector((state: RootState) => state?.userSlice?.user);
     // console.log("localUser", localUser);
@@ -266,7 +335,7 @@ const HomeScreen: React.FC<any> = ({ navigation }) => {
                 {/* --- HEADER SECTION --- */}
                 <View style={[style.headerContainer, { paddingHorizontal: hS(20), paddingTop: vS(10), paddingBottom: vS(10), zIndex: 9999 }]}>
                     <View style={style.headerLeft}>
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             style={[style.profileImageContainer, { backgroundColor: isDark ? appColors.card : '#E2E8F0', justifyContent: 'center', alignItems: 'center' }]}
                             onPress={() => navigation.navigate('Profile')}
                         >
@@ -306,36 +375,55 @@ const HomeScreen: React.FC<any> = ({ navigation }) => {
                 <ScrollView
                     bounces={false}
                     showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ flexGrow: 1 }}
+                    contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + vS(20), backgroundColor: isDark ? '#020813' : '#F8FAFC' }}
                 >
+                    <LowBalanceBanner />
+
                     {/* --- SECTION 1: MAP SECTION --- */}
-                    <Animated.View style={{ height: SCREEN_HEIGHT * 0.45, width: '100%', opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+                    <Animated.View style={{ height: SCREEN_HEIGHT * 0.35, width: '100%', opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
                         <MapViewComponent />
+                    </Animated.View>
 
-                        {/* Floating Branding Icon */}
-                        <GoogleNameIcon style={style.floatingBrandIcon} />
+                    {/* Location Selection Card */}
+                    <Animated.View style={[style.locationCard, { backgroundColor: isDark ? '#0A1931' : appColors.card, borderColor: isDark ? '#1E3A8A' : '#F1F5F9', opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+                        <View style={style.locationRow}>
+                            <MaterialCommunityIcons name="record-circle-outline" size={mS(18)} color="#10B981" />
+                            <View style={style.locationTextContainer}>
+                                <Text style={[style.locationLabel, { color: appColors.secondaryText }]}>Pickup location</Text>
+                                <Text style={[style.locationValue, { color: appColors.text }]} numberOfLines={1}>{currentAddress}</Text>
+                            </View>
+                            <TouchableOpacity style={[style.targetIconBtn, { backgroundColor: appColors.background, borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#F1F5F9' }]}>
+                                <MaterialCommunityIcons name="crosshairs-gps" size={mS(16)} color={appColors.icon} />
+                            </TouchableOpacity>
+                        </View>
 
-                        {/* Green Info Banner */}
-                        <View style={[style.infoBanner, isDark && { backgroundColor: 'rgba(34, 146, 104, 0.15)', borderColor: 'transparent' }]}>
-                            <IIcon width={hS(18)} height={hS(18)} />
-                            <Text style={[fonts.regular, style.infoText]}>
-                                {isHomepage
-                                    ? "In one way, pickup & drop are at ‘different’ location in city"
-                                    : "In round trip, Pickup & drop are at same location in city"}
-                            </Text>
+                        <View style={style.locationDividerContainer}>
+                            <View style={[style.dashedLine, { borderColor: isDark ? 'rgba(255,255,255,0.2)' : '#CBD5E1' }]} />
+                            <View style={[style.solidLine, { backgroundColor: appColors.border }]} />
+                        </View>
+
+                        <View style={style.locationRow}>
+                            <MaterialCommunityIcons name="record-circle-outline" size={mS(18)} color="#F59E0B" />
+                            <TouchableOpacity style={style.locationTextContainer} onPress={() => navigation.navigate(LocationSearch_Nav, { screenName })}>
+                                <Text style={[style.whereToText, { color: appColors.secondaryText }]}>Where to?</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={style.plusIconBtn} onPress={() => navigation.navigate(LocationSearch_Nav, { screenName })}>
+                                <MaterialCommunityIcons name="plus" size={mS(18)} color="#FFFFFF" />
+                            </TouchableOpacity>
                         </View>
                     </Animated.View>
 
-                    {/* --- SECTION 2: INTERACTIVE SHEET --- */}
-                    <View style={[style.contentSheet, { backgroundColor: appColors.card }]}>
+                    {/* Mode Selection Buttons */}
+                    <View style={style.compactButtonContainer}>
+                        {buttons.map((btn, index) => {
+                            const btnColors = ['#00C2FF', '#3B82F6', '#8B5CF6', '#F59E0B'];
+                            const btnColor = btnColors[index % btnColors.length];
 
-                        {/* Mode Selection Buttons */}
-                        <View style={style.buttonContainer}>
-                            {buttons.map((btn, index) => (
+                            return (
                                 <Animated.View
                                     key={index}
                                     style={[
-                                        style.buttonWrapper,
+                                        style.compactButtonWrapper,
                                         {
                                             opacity: buttonsAnim[index],
                                             transform: [
@@ -345,107 +433,87 @@ const HomeScreen: React.FC<any> = ({ navigation }) => {
                                         }
                                     ]}
                                 >
-                                    <Button
+                                    <TouchableOpacity
+                                        activeOpacity={0.8}
                                         onPress={() => handleTabChange(index, btn)}
                                         style={[
-                                            style.btnstyle,
+                                            style.compactBtnStyle,
                                             {
-                                                backgroundColor: active === index ? colors.button : appColors.iconBox,
-                                                borderColor: active === index ? colors.button : appColors.border,
-                                                borderWidth: isDark && active !== index ? 1 : 0,
-                                                elevation: active === index ? 4 : 0,
-                                                shadowColor: active === index ? colors.button : 'transparent',
-                                                shadowOffset: { width: 0, height: 4 },
-                                                shadowOpacity: active === index ? 0.3 : 0,
-                                                shadowRadius: 8,
+                                                backgroundColor: active === index ? (isDark ? 'rgba(0,194,255,0.1)' : appColors.card) : (isDark ? '#0A1931' : appColors.card),
+                                                borderColor: active === index ? (isDark ? '#00C2FF' : btnColor) : (isDark ? 'transparent' : '#F8FAFC'),
+                                                borderWidth: active === index ? 1 : (isDark ? 0 : 1),
+                                                elevation: active === index ? (isDark ? 0 : 2) : 1,
+                                                shadowColor: active === index ? (isDark ? 'transparent' : btnColor) : '#000',
+                                                shadowOffset: { width: 0, height: 2 },
+                                                shadowOpacity: active === index ? (isDark ? 0 : 0.2) : 0.05,
+                                                shadowRadius: active === index ? (isDark ? 0 : 4) : 4,
                                             }
                                         ]}
                                     >
-                                        <AntDesign
-                                            name={btn.iconName}
-                                            size={mS(22)}
-                                            color={active === index ? '#FFFFFF' : (isDark ? appColors.text : colors.button)}
+                                        <MaterialCommunityIcons
+                                            name={btn.name === 'OneWay' ? 'car' : btn.name === 'RoundedTrip' ? 'autorenew' : btn.name === 'Outstation' ? 'map-marker-outline' : 'calendar-month-outline'}
+                                            size={mS(24)}
+                                            color={btnColor}
+                                            style={
+                                                active === index && isDark
+                                                    ? {
+                                                        textShadowColor: '#00C2FF',
+                                                        textShadowOffset: { width: 0, height: 0 },
+                                                        textShadowRadius: 8,
+                                                    }
+                                                    : {}
+                                            }
                                         />
-                                    </Button>
-                                    <Text
-                                        numberOfLines={1}
-                                        style={[
-                                            style.btnTxtstyle,
-                                            {
-                                                color: active === index ? appColors.text : appColors.secondaryText,
-                                                fontWeight: active === index ? '700' : '500'
-                                            }
-                                        ]}
-                                    >
-                                        {btn.name}
-                                    </Text>
+                                        <Text
+                                            numberOfLines={1}
+                                            style={[
+                                                style.compactBtnTxtstyle,
+                                                {
+                                                    color: active === index ? (isDark ? '#00C2FF' : appColors.text) : (isDark ? '#94A3B8' : appColors.secondaryText),
+                                                    fontWeight: active === index ? '700' : '500'
+                                                }
+                                            ]}
+                                        >
+                                            {btn.name === 'RoundedTrip' ? 'Round Trip' : btn.name === 'OneWay' ? 'One Way' : btn.name}
+                                        </Text>
+                                    </TouchableOpacity>
                                 </Animated.View>
-                            ))}
-                        </View>
+                            )
+                        })}
+                    </View>
 
-                        {/* Divider Line */}
-                        <View style={[style.divider, { backgroundColor: appColors.border }]} />
+                    {/* Dynamic Tab Content Area */}
+                    <View style={style.tabContentArea}>
+                        {renderContent()}
+                    </View>
 
-                        {/* Search Input Bar */}
-                        <Animated.View style={[
-                            style.searchBarWrapper,
-                            {
-                                backgroundColor: isDark ? appColors.background : appColors.card,
-                                borderColor: isDark ? 'transparent' : '#F1F5F9',
-                                opacity: fadeAnim,
-                                transform: [{ translateY: slideAnim }]
-                            }
-                        ]}>
-                            <AntDesign name="search1" size={mS(20)} color={appColors.icon} style={style.searchIcon} />
-                            <TextInput
-                                style={[style.searchInput, { color: appColors.text }]}
-                                placeholder="Where to?"
-                                placeholderTextColor={appColors.secondaryText}
-                                onFocus={() => navigation.navigate(LocationSearch_Nav, { screenName })}
-                            />
-                            <TouchableOpacity style={style.nowButton} onPress={() => navigation.navigate(LocationSearch_Nav, { screenName })}>
-                                <AntDesign name='clockcircleo' size={mS(12)} color={'#FFFFFF'} />
-                                <Text style={style.nowText}>Now</Text>
-                            </TouchableOpacity>
-                        </Animated.View>
-
-                        {/* Dynamic Tab Content Area */}
-                        <View style={style.tabContentArea}>
-                            {renderContent()}
-                        </View>
-
-                        {/* Static Footer Section - Enhanced How to Book */}
-                        <View style={[style.howToBookSection, { borderTopColor: appColors.border }]}>
-                            <Text style={[style.howToBookTitle, { color: appColors.text }]}>How to Book a Driver</Text>
-                            <Text style={[style.howToBookSub, { color: appColors.secondaryText }]}>Follow these simple steps for a safe and comfortable trip.</Text>
-
-                            <View style={style.stepsContainer}>
-                                {bookingSteps.map((step, index) => (
-                                    <Animated.View
-                                        key={index}
-                                        style={[
-                                            style.stepRow,
-                                            {
-                                                opacity: stepsAnim[index],
-                                                transform: [{ translateX: stepsAnim[index].interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }]
-                                            }
-                                        ]}
-                                    >
-                                        <View style={[style.stepIconContainer, { backgroundColor: isDark ? `${step.color}20` : step.bgColor }]}>
-                                            <MaterialCommunityIcons name={step.icon} size={mS(24)} color={step.color} />
-                                        </View>
-                                        <View style={style.stepTextContainer}>
-                                            <Text style={[style.stepTitle, { color: appColors.text }]}>{step.title}</Text>
-                                            <Text style={[style.stepDesc, { color: appColors.secondaryText }]}>{step.desc}</Text>
-                                        </View>
-                                    </Animated.View>
-                                ))}
+                    {/* Horizontal How to Book */}
+                    <View style={[style.horizontalHowToBook, { backgroundColor: isDark ? 'rgba(2, 132, 199, 0.1)' : '#F0F9FF', borderColor: isDark ? 'rgba(2, 132, 199, 0.2)' : '#BAE6FD' }]}>
+                        <View style={style.horizontalHowToBookHeader}>
+                            <Text style={[style.horizontalHowToBookTitle, { color: appColors.text }]}>How to Book a Driver</Text>
+                            <View style={style.horizontalHowToBookRight}>
+                                <Text style={[style.horizontalHowToBookSeeWorks, { color: isDark ? '#38BDF8' : '#0284C7' }]}>See how it works</Text>
+                                <MaterialCommunityIcons name="play-circle-outline" size={mS(16)} color={isDark ? '#38BDF8' : '#0284C7'} />
                             </View>
                         </View>
-
-                        {/* Space for bottom safe area */}
-                        <View style={{ height: insets.bottom + vS(20) }} />
+                        <View style={style.horizontalStepsRow}>
+                            {bookingSteps.map((step, index) => (
+                                <React.Fragment key={index}>
+                                    <View style={style.horizontalStepContainer}>
+                                        <View style={[style.horizontalStepIcon, { backgroundColor: isDark ? `${step.color}20` : step.bgColor }]}>
+                                            <MaterialCommunityIcons name={step.title === 'Choose Service' ? 'car' : step.title === 'Enter Locations' ? 'map-marker-path' : step.title === 'Select Driver' ? 'account-tie' : 'check-decagram'} size={mS(20)} color={step.color} />
+                                        </View>
+                                        <Text style={[style.horizontalStepTitle, { color: appColors.text }]} numberOfLines={1}>{step.title}</Text>
+                                        <Text style={[style.horizontalStepDesc, { color: appColors.secondaryText }]} numberOfLines={2}>{step.title === 'Choose Service' ? 'Select your ride' : step.title === 'Enter Locations' ? 'Add pickup & drop' : step.title === 'Select Driver' ? 'Pick your driver' : 'Track & enjoy ride'}</Text>
+                                    </View>
+                                    {index < bookingSteps.length - 1 && (
+                                        <View style={[style.horizontalStepDashedLine, { borderColor: isDark ? 'rgba(255,255,255,0.2)' : '#CBD5E1' }]} />
+                                    )}
+                                </React.Fragment>
+                            ))}
+                        </View>
                     </View>
+
                 </ScrollView>
             </View>
         </View>
@@ -453,182 +521,164 @@ const HomeScreen: React.FC<any> = ({ navigation }) => {
 };
 
 const style = StyleSheet.create({
-    // Map Styles
-    floatingBrandIcon: {
-        position: 'absolute',
-        bottom: vS(80),
-        left: hS(20),
-        zIndex: 2,
-    },
-    infoBanner: {
-        flexDirection: 'row',
-        width: '90%',
-        alignSelf: 'center',
-        borderWidth: 0.5,
-        borderRadius: mS(20),
-        borderColor: '#229268',
-        backgroundColor: '#EBF9F4',
-        position: 'absolute',
-        bottom: vS(40),
-        paddingVertical: vS(8),
-        paddingHorizontal: hS(10),
-        alignItems: 'center',
-        zIndex: 2,
-    },
-    infoText: {
-        color: '#229268',
-        fontSize: mS(10),
-        marginLeft: hS(5),
-        flex: 1,
-    },
-
-    // Sheet Styles
-    contentSheet: {
-        flex: 1,
-        backgroundColor: colors.card,
-        borderTopLeftRadius: mS(30),
-        borderTopRightRadius: mS(30),
-        marginTop: vS(-30), // Pulls the sheet over the map
-        paddingTop: vS(20),
-    },
-    buttonContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-evenly',
-        alignItems: 'center',
-        width: '100%',
-        paddingHorizontal: hS(10),
-    },
-    buttonWrapper: {
-        alignItems: 'center',
-        width: '22%',
-    },
-    btnstyle: {
-        width: hS(60),
-        height: hS(60),
-        borderRadius: hS(20),
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: vS(5),
-    },
-    btnTxtstyle: {
-        fontSize: mS(9),
-        textAlign: 'center',
-    },
-    divider: {
-        width: '90%',
-        height: 1,
-        backgroundColor: colors.divider,
-        alignSelf: 'center',
-        marginVertical: vS(12),
-    },
-
-    // Search Styles
-    searchBarWrapper: {
-        width: '90%',
-        alignSelf: 'center',
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderRadius: mS(25),
-        height: vS(50),
-        marginTop: vS(5),
-        backgroundColor: '#FFFFFF',
+    locationCard: {
+        marginHorizontal: hS(20),
+        marginTop: vS(-45),
+        paddingHorizontal: hS(16),
+        paddingVertical: vS(16),
+        borderRadius: mS(12),
         borderWidth: 1,
-        borderColor: '#F1F5F9',
-        ...Platform.select({
-            ios: {
-                shadowColor: '#64748B',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.05,
-                shadowRadius: 12
-            },
-            android: { elevation: 3 },
-        }),
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        elevation: 4,
     },
-    searchInput: {
+    locationRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    locationTextContainer: {
         flex: 1,
-        height: '100%',
-        backgroundColor: 'transparent',
-        paddingLeft: hS(45),
-        paddingRight: hS(75),
-        color: '#1E293B',
+        marginLeft: hS(12),
+        marginRight: hS(12),
+    },
+    locationLabel: {
+        fontSize: mS(10),
+        fontWeight: '500',
+        marginBottom: vS(2),
+    },
+    locationValue: {
+        fontSize: mS(13),
+        fontWeight: '700',
+    },
+    whereToText: {
         fontSize: mS(14),
         fontWeight: '500',
     },
-    searchIcon: {
-        position: 'absolute',
-        left: hS(16),
-        zIndex: 2,
-    },
-    nowButton: {
-        position: 'absolute',
-        right: hS(8),
-        flexDirection: 'row',
-        paddingHorizontal: hS(14),
-        borderRadius: mS(20),
+    targetIconBtn: {
+        width: mS(32),
+        height: mS(32),
+        borderRadius: mS(16),
+        borderWidth: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        height: vS(38),
-        backgroundColor: colors.button,
     },
-    nowText: {
-        color: '#FFFFFF',
-        fontSize: mS(12),
-        fontWeight: '600',
-        marginLeft: hS(6),
+    plusIconBtn: {
+        width: mS(24),
+        height: mS(24),
+        borderRadius: mS(12),
+        backgroundColor: '#0F172A',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    locationDividerContainer: {
+        height: vS(24),
+        marginLeft: hS(8),
+        width: 2,
+        flexDirection: 'row',
+    },
+    dashedLine: {
+        height: '100%',
+        width: 1,
+        borderLeftWidth: 1,
+        borderStyle: 'dashed',
+    },
+    solidLine: {
+        height: 1,
+        // width: '100%',
+        position: 'absolute',
+        top: '50%',
+        left: hS(26),
+        width: hS(260), // Approximated width for line from dot to end of location input
     },
 
-    // Bottom Content
-    tabContentArea: {
-        minHeight: vS(170),
-        // paddingHorizontal: hS(20),
-        marginTop: vS(12),
-    },
-    howToBookSection: {
-        paddingHorizontal: hS(20),
-        paddingVertical: vS(24),
-        borderTopWidth: 1,
-        borderTopColor: colors.divider,
-    },
-    howToBookTitle: {
-        fontSize: mS(18),
-        fontWeight: '800',
-        color: colors.text,
-    },
-    howToBookSub: {
-        marginTop: vS(4),
-        fontSize: mS(14),
-        color: colors.secondaryText,
-    },
-    stepsContainer: {
-        marginTop: vS(20),
-        marginBottom: vS(10),
-    },
-    stepRow: {
+    compactButtonContainer: {
         flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: vS(20),
+        justifyContent: 'space-between',
+        paddingHorizontal: hS(20),
+        marginTop: vS(20),
     },
-    stepIconContainer: {
-        width: hS(50),
-        height: hS(50),
-        borderRadius: hS(25),
+    compactButtonWrapper: {
+        width: '23%',
+    },
+    compactBtnStyle: {
+        width: '100%',
+        height: vS(70),
+        borderRadius: mS(12),
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: hS(15),
     },
-    stepTextContainer: {
-        flex: 1,
+    compactBtnTxtstyle: {
+        fontSize: mS(10),
+        marginTop: vS(8),
     },
-    stepTitle: {
-        fontSize: mS(15),
+    tabContentArea: {
+        marginTop: vS(20),
+    },
+
+    horizontalHowToBook: {
+        marginHorizontal: hS(20),
+        marginTop: vS(20),
+        paddingHorizontal: hS(16),
+        paddingVertical: vS(16),
+        borderRadius: mS(16),
+        borderWidth: 1,
+    },
+    horizontalHowToBookHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: vS(16),
+    },
+    horizontalHowToBookTitle: {
+        fontSize: mS(14),
+        fontWeight: '800',
+    },
+    horizontalHowToBookRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: hS(4),
+    },
+    horizontalHowToBookSeeWorks: {
+        fontSize: mS(11),
+        fontWeight: '600',
+    },
+    horizontalStepsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+    },
+    horizontalStepContainer: {
+        alignItems: 'center',
+        width: '24%',
+    },
+    horizontalStepIcon: {
+        width: mS(36),
+        height: mS(36),
+        borderRadius: mS(12),
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: vS(8),
+    },
+    horizontalStepTitle: {
+        fontSize: mS(9),
         fontWeight: '700',
-        color: colors.text,
-        marginBottom: vS(2),
+        textAlign: 'center',
     },
-    stepDesc: {
-        fontSize: mS(13),
-        lineHeight: mS(18),
-        color: colors.secondaryText,
+    horizontalStepDesc: {
+        fontSize: mS(8),
+        textAlign: 'center',
+        marginTop: vS(2),
+        lineHeight: mS(10),
+    },
+    horizontalStepDashedLine: {
+        position: 'absolute',
+        top: mS(18),
+        right: -'14%',
+        width: '28%',
+        borderTopWidth: 1,
+        borderStyle: 'dashed',
     },
     badgesRowContainer: {
         position: 'absolute',

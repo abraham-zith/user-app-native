@@ -536,7 +536,7 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
                         </TouchableOpacity>
                         <Text style={[styles.modalTitle, { color: appColors.text, marginLeft: hS(10) }]}>Fare Details</Text>
                     </View>
-                    
+
                     <View style={{ padding: hS(20), flex: 1 }}>
                         <View style={{ backgroundColor: appColors.card, padding: mS(15), borderRadius: mS(12), borderWidth: isDark ? 1 : 0, borderColor: appColors.border, marginBottom: vS(20) }}>
                             <View style={[styles.rowBetween, { marginBottom: vS(10) }]}>
@@ -568,14 +568,14 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
                                     If the trip extends beyond {TripPayload.package_hours || 0} Hrs/day, extra charges as ₹60 per extra hour applicable.
                                 </Text>
                             </View>
-                            
+
                             <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? 'rgba(59, 130, 246, 0.1)' : '#EFF6FF', padding: mS(12), borderRadius: mS(8) }}>
                                 <MaterialCommunityIcons name="clock-outline" size={mS(20)} color={colors.primary} style={{ marginRight: hS(10) }} />
                                 <Text style={{ flex: 1, color: appColors.text, fontSize: mS(13) }}>
                                     Fares will be adjusted based on additional time usage
                                 </Text>
                             </View>
-                            
+
                             {(TripPayload.ride_type === 'ROUND_TRIP' || TripPayload.ride_type === 'OUTSTATION_ROUND_TRIP') && (
                                 <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? 'rgba(59, 130, 246, 0.1)' : '#EFF6FF', padding: mS(12), borderRadius: mS(8) }}>
                                     <MaterialCommunityIcons name="food" size={mS(20)} color={colors.primary} style={{ marginRight: hS(10) }} />
@@ -588,7 +588,7 @@ export default function DriverSelectionPage({ screenName, service, TripPayload, 
 
                         <View style={{ flex: 1 }} />
 
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: vS(15), borderTopWidth: 1, borderTopColor: appColors.border, gap: hS(8) }}
                             onPress={() => setShowPolicyModal(true)}
                         >

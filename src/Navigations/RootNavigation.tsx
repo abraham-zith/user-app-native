@@ -36,6 +36,7 @@ import {
   WalletScreen_Nav,
   WalletSuccessScreen_Nav,
   WalletPinSetupScreen_Nav,
+  TransactionDetailsScreen_Nav,
 } from './navigations';
 import AuthNavigation from './AuthNavigation';
 import DashBoardScreen from '../Screens/Dashboard';
@@ -97,6 +98,7 @@ const OffersScreen = withSuspense(lazy(() => import('../Screens/Offers/OffersScr
 const WalletScreen = withSuspense(lazy(() => import('../Screens/Profile/WalletScreen')));
 const WalletSuccessScreen = withSuspense(lazy(() => import('../Screens/Profile/WalletSuccessScreen')));
 const WalletPinSetupScreen = withSuspense(lazy(() => import('../Screens/Profile/WalletPinSetupScreen')));
+const TransactionDetailsScreen = withSuspense(lazy(() => import('../Screens/Profile/TransactionDetailsScreen')));
 
 
 const RootNavigation = () => {
@@ -302,14 +304,14 @@ const RootNavigation = () => {
         name={FavouritelocationScreens_Nav}
         component={Favourites}
         options={{
-          headerTitle: 'Favourites',
+          headerShown: false,
         }}
       />
       < Stack.Screen
         name={AboutVdriveScreen_Nav}
         component={AboutVDrive}
         options={{
-          headerTitle: 'About',
+          headerShown: false,
         }}
       />
       < Stack.Screen
@@ -324,13 +326,13 @@ const RootNavigation = () => {
         component={NotificationScreen}
         options={{
           headerShown: false,
-          headerTitle: 'Notifications',
         }}
       />
       < Stack.Screen
         name={SafetyScreen_Nav}
         component={SafetyScreen}
         options={{
+          headerShown: false,
           headerTitle: 'Safety Toolkit',
         }}
       />
@@ -408,6 +410,11 @@ const RootNavigation = () => {
       <Stack.Screen
         name={WalletPinSetupScreen_Nav}
         component={WalletPinSetupScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name={TransactionDetailsScreen_Nav}
+        component={TransactionDetailsScreen}
         options={{ headerShown: false }}
       />
 

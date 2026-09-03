@@ -7,6 +7,7 @@ import {
     Linking,
     Animated,
     Dimensions,
+    Share,
 } from 'react-native';
 import { Text } from '../../../Components';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -36,18 +37,18 @@ const TrackingView: React.FC<TrackingViewProps> = ({
 }) => {
     const { colors: appColors, isDark } = useAppTheme();
     const [isImageLoading, setIsImageLoading] = React.useState(false);
+
     // ==================== ANIMATIONS ====================
     const pulseAnim = useRef(new Animated.Value(1)).current;
     const fadeAnim = useRef(new Animated.Value(0)).current;
+
     useEffect(() => {
-        // Fade in entire content
         Animated.timing(fadeAnim, {
             toValue: 1,
             duration: 800,
             useNativeDriver: true,
         }).start();
 
-        // Pulse animation for status badges
         if (status === 'ACCEPTED' || status === 'ARRIVING' || status === 'ARRIVED') {
             Animated.loop(
                 Animated.sequence([
@@ -85,7 +86,6 @@ const TrackingView: React.FC<TrackingViewProps> = ({
             }
         }).catch(err => {
             Alert.alert('Something Went Wrong!!!', 'Try Again Later');
-            // console.error('Call Error:', err)
         });
     }, [driver]);
 
@@ -94,18 +94,11 @@ const TrackingView: React.FC<TrackingViewProps> = ({
             rideId: trip.trip_id,
             driverId: driver.driverId,
             driverName: driver.driverName,
-            driverImage: driver.driverImage,
+            driverImage: driver.driverProfilePic || driver.driverImage,
             driverPhone: driver.driverPhone,
             userId: trip.user_id,
-        })
-        // const phoneNumber = driver?.driverPhone || driver?.phone_number || driver?.phone || '';
-        // if (!phoneNumber) {
-        //     Alert.alert('Error', 'Driver phone number not available');
-        //     return;
-        // }
-        // const cleanedNumber = phoneNumber.replace(/[^0-9+]/g, '');
-        // Linking.openURL(`sms:${cleanedNumber}`).catch(err => console.error('SMS Error:', err));
-    }, [driver]);
+        });
+    }, [driver, trip, navigation]);
 
     const handleShareLocation = useCallback(() => {
         if (!driver?.driverId || !trip?.trip_id) {
@@ -122,293 +115,263 @@ const TrackingView: React.FC<TrackingViewProps> = ({
         Alert.alert('Success', 'Location shared with driver');
     }, [driver, trip, socket]);
 
-    // ==================== RENDER ====================
+    const handleShareTrip = async () => {
+        try {
+            const driverName = driver?.driverName || 'your driver';
+            const vehicleInfo = [driver?.carModel, driver?.carPlate].filter(Boolean).join(' ') || 'vehicle';
+            const destinationName = trip?.drop_address || trip?.destination || 'my destination';
+            const pickupName = trip?.pickup_address || trip?.pickup || 'my pickup location';
+
+            const now = new Date();
+            const dateStr = now.toLocaleDateString();
+            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            const shareMessage = `I'm on a trip!
+Date: ${dateStr}
+Time: ${timeStr}
+
+Driver: ${driverName}
+Vehicle: ${vehicleInfo}
+
+Pickup: ${pickupName}
+Destination: ${destinationName}
+
+Track my live ride here: https://t2drive.in/trip/share/${trip?.trip_id}`;
+
+            await Share.share({
+                message: shareMessage,
+                title: 'Share Trip Status',
+            });
+        } catch (error: any) {
+            Alert.alert('Error', error.message);
+        }
+    };
+
+    // Extract OTP digits
+    const otpString = String(trip?.otp || driver?.driverOTP || '1234').padStart(4, '0');
+    const otpDigits = otpString.split('');
 
     return (
         <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
-            {/* 1. HEADER SECTION: Title & Status */}
-            <View style={styles.headerSection}>
-                <View>
+            {/* 1. Header Section */}
+            <View style={styles.headerRow}>
+                <View style={styles.headerLeft}>
                     <View style={styles.titleRow}>
                         <Text style={[styles.headerTitle, { color: appColors.text }]}>
-                            {status === 'ARRIVED' ? 'Driver is here!' : 'Driver on the way!'}
+                            {status === 'ARRIVED' ? 'Driver is here' : 'Driver on the way'}
                         </Text>
-                        <View style={styles.greenDot} />
+                        <View style={[styles.statusPill, { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.15)' : '#DCFCE7' }]}>
+                            <Text style={[styles.statusPillText, { color: '#16A34A' }]}>
+                                {status === 'ARRIVED' ? 'Arrived' : 'Arriving Soon'}
+                            </Text>
+                        </View>
                     </View>
-                    <Text style={[styles.etaText, { color: appColors.secondaryText }]}>
+                    <Text style={[styles.subtitleText, { color: appColors.secondaryText }]}>
                         {status === 'ACCEPTED' ? 'Driver Found!' :
                             status === 'ARRIVING' ? `Arriving in ${eta} mins...` :
                                 'Pick up point reached'}
                     </Text>
                 </View>
-                <View style={[styles.lottieContainer, {
-                    backgroundColor: isDark ? appColors.iconBox : '#F1F5F9',
-                    borderColor: isDark ? appColors.border : '#E2E8F0',
-                    borderWidth: 1,
-                    borderRadius: mS(10),
-                }]}>
-                    <MaterialCommunityIcons name="car-connected" size={mS(32)} color={appColors.primary} />
+            </View>
+
+            {/* 2. Driver Profile Card */}
+            <View style={[styles.driverCard, { backgroundColor: appColors.card, borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#F1F5F9' }]}>
+                <View style={styles.driverCardRow}>
+                    <View style={styles.avatarContainer}>
+                        {driver?.driverProfilePic ? (
+                            <>
+                                <FastImage
+                                    source={{ uri: driver.driverProfilePic, priority: FastImage.priority.normal }}
+                                    style={styles.avatarImage}
+                                    onLoadStart={() => setIsImageLoading(true)}
+                                    onLoadEnd={() => setIsImageLoading(false)}
+                                />
+                                {isImageLoading && (
+                                    <View style={StyleSheet.absoluteFillObject}>
+                                        <Skeleton width="100%" height="100%" borderRadius={24} />
+                                    </View>
+                                )}
+                            </>
+                        ) : (
+                            <View style={styles.placeholderAvatar}>
+                                <MaterialCommunityIcons name="account" size={mS(24)} color="#9CA3AF" />
+                            </View>
+                        )}
+                    </View>
+                    <View style={styles.driverInfo}>
+                        <View style={styles.nameRow}>
+                            <Text style={[styles.driverName, { color: appColors.text }]}>{driver?.driverName || 'Driver Assigned'}</Text>
+                            <MaterialCommunityIcons name="check-decagram" size={mS(14)} color="#2563EB" />
+                        </View>
+                        <View style={styles.ratingRow}>
+                            <MaterialCommunityIcons name="star" size={mS(12)} color="#F59E0B" />
+                            <Text style={[styles.ratingText, { color: appColors.secondaryText }]}>{driver?.driverRating || '5.0'}</Text>
+                            {driver?.totalRides ? (
+                                <Text style={[styles.ridesText, { color: '#9CA3AF' }]}> • {driver.totalRides} Rides</Text>
+                            ) : null}
+                        </View>
+                        {driver?.carModel ? (
+                            <Text style={[styles.carInfoText, { color: '#9CA3AF' }]} numberOfLines={1}>
+                                {driver.carModel}
+                            </Text>
+                        ) : null}
+                    </View>
+                    <View style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
+                        {driver?.carPlate ? (
+                            <View style={[styles.plateBox, { borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0', marginBottom: vS(8) }]}>
+                                <Text style={[styles.plateText, { color: appColors.text }]}>
+                                    {driver.carPlate.includes(' ') ? driver.carPlate.split(' ').slice(0, 2).join(' ') + '\n' + driver.carPlate.split(' ').slice(2).join(' ') : driver.carPlate}
+                                </Text>
+                            </View>
+                        ) : null}
+                        <TouchableOpacity style={[styles.headerCallBtn, { borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0', marginLeft: 0 }]} onPress={handleCallDriver}>
+                            <MaterialCommunityIcons name="phone" size={mS(20)} color="#2563EB" />
+                        </TouchableOpacity>
+                    </View>
                 </View>
             </View>
 
-            {/* 2. DRIVER VERIFICATION (OTP) SECTION */}
-            <View style={styles.otpSection}>
-                <View style={[styles.otpGlassCard, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F4F6F9', borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'transparent' }]}>
-                    <View style={styles.otpDigitsContainer}>
-                        {(String(trip?.otp || driver?.driverOTP || '1234').padStart(4, '0')).split('').map((digit, index) => (
-                            <View key={index} style={[styles.otpDigitCircle, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#FFFFFF' }]}>
-                                <Text style={[styles.otpCode, { color: isDark ? '#FFFFFF' : '#475569' }]}>{digit}</Text>
+            {/* 3. OTP & Actions Box */}
+            <View style={[styles.grayBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FAFC' }]}>
+                {/* OTP Section */}
+                <View style={styles.otpSection}>
+                    <Text style={[styles.otpTitle, { color: appColors.text }]}>Share OTP with Driver</Text>
+                    <View style={styles.otpBoxes}>
+                        {otpDigits.map((digit, idx) => (
+                            <View key={idx} style={[styles.otpBox, { backgroundColor: appColors.card, borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0' }]}>
+                                <Text style={[styles.otpDigit, { color: appColors.text }]}>{digit}</Text>
                             </View>
                         ))}
                     </View>
-                    <Text style={[styles.otpLabel, { color: appColors.secondaryText }]}>OTP FOR DRIVER</Text>
-                </View>
-            </View>
-
-            {/* 3. PREMIUM DRIVER INFO CARD */}
-            <View style={[styles.premiumDriverCard, { backgroundColor: appColors.card, borderColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F9FAFB' }]}>
-                <View style={styles.driverCoreRow}>
-                    <View style={styles.avatarGlowWrapper}>
-                        <View style={[styles.avatarGlow, { borderColor: appColors.primary }]} />
-                        <View style={[styles.premiumAvatar, styles.avatarContainer, { backgroundColor: isDark ? '#1E293B' : '#F3F4F6' }]}>
-                            {driver?.driverProfilePic ? (
-                                <>
-                                    <FastImage
-                                        source={{ uri: driver.driverProfilePic, priority: FastImage.priority.normal }}
-                                        style={styles.avatarImage}
-                                        onLoadStart={() => setIsImageLoading(true)}
-                                        onLoadEnd={() => setIsImageLoading(false)}
-                                    />
-                                    {isImageLoading && (
-                                        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: isDark ? '#1E293B' : '#F3F4F6' }]}>
-                                            <Skeleton width="100%" height="100%" borderRadius={28} />
-                                        </View>
-                                    )}
-                                </>
-                            ) : (
-                                <View style={[styles.placeholderAvatar, { backgroundColor: isDark ? '#1E293B' : '#F3F4F6' }]}>
-                                    <MaterialCommunityIcons name="account" size={mS(28)} color={appColors.border} />
-                                </View>
-                            )}
-                        </View>
-                    </View>
-
-                    <View style={styles.driverInfoBody}>
-                        <View style={styles.nameRow}>
-                            <Text style={[styles.driverNameBold, { color: appColors.text }]}>{driver?.driverName || 'Sabari Mohan'}</Text>
-                            <MaterialCommunityIcons name="check-decagram" size={mS(16)} color="#2196F3" style={styles.verifiedIcon} />
-                        </View>
-                        <View style={styles.ratingRow}>
-                            <MaterialCommunityIcons name="star" size={mS(14)} color="#F59E0B" />
-                            <Text style={[styles.ratingText, { color: appColors.secondaryText }]}>{driver?.driverRating || '4.9'}</Text>
-                            <Text style={styles.rideCount}> • {driver?.totalRides || '4.5k'} Rides</Text>
-                        </View>
-                    </View>
-
-                    {/* <View style={styles.carDetailsArea}>
-                        <View style={[styles.plateBadge, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#111827' }]}>
-                            <Text style={[styles.plateText, { color: isDark ? appColors.text : '#FFFFFF' }]}>{driver?.carPlate || 'TN 02 3456'}</Text>
-                        </View>
-                        <Text style={[styles.carModelText, { color: appColors.secondaryText }]} numberOfLines={1}>
-                            {driver?.carModel || 'White Sedan'}
-                        </Text>
-                    </View> */}
+                    <Text style={[styles.otpSubtitle, { color: '#9CA3AF' }]}>OTP is valid for this trip only</Text>
                 </View>
 
-                {/* 4. ACTION BUTTONS SECTION */}
-                <View style={[styles.actionSection, { borderTopColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F3F4F6' }]}>
-                    <TouchableOpacity style={styles.roundActionBtn} onPress={handleSMSDriver}>
-                        <View style={[styles.neumorphIcon, { backgroundColor: isDark ? appColors.iconBox : '#FFFFFF' }]}>
-                            <MaterialCommunityIcons name="message-text" size={mS(22)} color={appColors.primary} />
+                {/* Actions */}
+                <View style={[styles.actionsRow, { borderTopColor: isDark ? 'rgba(255,255,255,0.05)' : '#E2E8F0' }]}>
+                    <TouchableOpacity style={styles.actionBtn} onPress={handleSMSDriver}>
+                        <View style={[styles.actionIconWrapper, { backgroundColor: appColors.card, borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0' }]}>
+                            <MaterialCommunityIcons name="message-text" size={mS(20)} color="#2563EB" />
                         </View>
-                        <Text style={[styles.actionLabel, { color: appColors.secondaryText }]}>Message</Text>
+                        <Text style={[styles.actionBtnText, { color: appColors.text }]}>Message</Text>
                     </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.roundActionBtn} onPress={handleCallDriver}>
-                        <View style={[styles.neumorphIcon, { backgroundColor: isDark ? appColors.iconBox : '#FFFFFF' }]}>
-                            <MaterialCommunityIcons name="phone" size={mS(22)} color="#059669" />
+                    <TouchableOpacity style={styles.actionBtn} onPress={handleCallDriver}>
+                        <View style={[styles.actionIconWrapper, { backgroundColor: appColors.card, borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0' }]}>
+                            <MaterialCommunityIcons name="phone" size={mS(20)} color="#16A34A" />
                         </View>
-                        <Text style={[styles.actionLabel, { color: appColors.secondaryText }]}>Call</Text>
+                        <Text style={[styles.actionBtnText, { color: appColors.text }]}>Call</Text>
                     </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.roundActionBtn} onPress={handleShareLocation}>
-                        <View style={[styles.neumorphIcon, { backgroundColor: isDark ? appColors.iconBox : '#FFFFFF' }]}>
-                            <MaterialCommunityIcons name="share-variant" size={mS(22)} color="#2563EB" />
+                    <TouchableOpacity style={styles.actionBtn} onPress={handleShareLocation}>
+                        <View style={[styles.actionIconWrapper, { backgroundColor: appColors.card, borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0' }]}>
+                            <MaterialCommunityIcons name="map-marker" size={mS(20)} color="#16A34A" />
                         </View>
-                        <Text style={[styles.actionLabel, { color: appColors.secondaryText }]}>Share</Text>
+                        <Text style={[styles.actionBtnText, { color: appColors.text }]}>Location</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.actionBtn} onPress={handleShareTrip}>
+                        <View style={[styles.actionIconWrapper, { backgroundColor: appColors.card, borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0' }]}>
+                            <MaterialCommunityIcons name="share-variant" size={mS(20)} color="#2563EB" />
+                        </View>
+                        <Text style={[styles.actionBtnText, { color: appColors.text }]}>Share Trip</Text>
                     </TouchableOpacity>
                 </View>
             </View>
 
-            {/* 5. RIDE STATUS STRIP */}
-            <View style={styles.statusStrip}>
-                <View style={[styles.stripGradient, { backgroundColor: appColors.primary }]}>
-                    <Text style={styles.stripText}>
-                        {status === 'ARRIVED' ? 'Driver Waiting' : 'Heading to pickup...'}
+            {/* 4. Secure Payments Footer */}
+            <View style={[styles.footerBanner, { backgroundColor: isDark ? 'rgba(37, 99, 235, 0.1)' : '#EFF6FF' }]}>
+                <View style={[styles.shieldIconWrapper, { backgroundColor: '#2563EB' }]}>
+                    <MaterialCommunityIcons name="shield-check" size={mS(18)} color="#FFFFFF" />
+                </View>
+                <View style={styles.footerTextContainer}>
+                    <Text style={[styles.footerTitle, { color: '#1E3A8A' }]}>Secure Payments</Text>
+                    <Text style={[styles.footerDesc, { color: isDark ? '#94A3B8' : '#334155' }]}>
+                        Your ride is protected with safety & insurance
                     </Text>
                 </View>
-            </View>
-
-            {/* 6. BOTTOM FOOTER */}
-            <View style={styles.footerInfo}>
-                <View style={styles.footerItem}>
-                    <MaterialCommunityIcons name="credit-card-check-outline" size={mS(14)} color="#6B7280" />
-                    <Text style={styles.footerText}>Online Payment Enabled</Text>
-                </View>
-                <View style={styles.footerItem}>
-                    <MaterialCommunityIcons name="shield-check-outline" size={mS(14)} color="#6B7280" />
-                    <Text style={styles.footerText}>Safety Insured</Text>
-                </View>
+                <MaterialCommunityIcons name="chevron-right" size={mS(20)} color="#1E3A8A" />
             </View>
         </Animated.View>
     );
 };
 
-// ==================== PREMIUM STYLES ====================
-
 const styles = StyleSheet.create({
     container: {
-        paddingTop: vS(8),
-        paddingHorizontal: hS(16),
         width: '100%',
     },
-
-    // 1. Header Section
-    headerSection: {
+    // Header
+    headerRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: vS(16),
-        paddingHorizontal: hS(4),
+        alignItems: 'flex-start',
+        marginBottom: vS(12),
+    },
+    headerLeft: {
+        flex: 1,
     },
     titleRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: hS(6),
+        gap: hS(8),
+        marginBottom: vS(4),
     },
     headerTitle: {
-        fontSize: mS(22),
-        fontWeight: '900',
-        color: '#111827',
-        letterSpacing: -0.5,
+        fontSize: mS(18),
+        fontWeight: '800',
     },
-    greenDot: {
-        width: mS(8),
-        height: mS(8),
-        borderRadius: mS(4),
-        backgroundColor: '#10B981',
-        marginTop: vS(2),
+    statusPill: {
+        paddingHorizontal: hS(8),
+        paddingVertical: vS(2),
+        borderRadius: mS(6),
     },
-    etaText: {
-        fontSize: mS(14),
-        color: '#6B7280',
-        fontWeight: '600',
-        marginTop: vS(2),
+    statusPillText: {
+        fontSize: mS(10),
+        fontWeight: '700',
     },
-    lottieContainer: {
-        width: mS(50),
-        height: mS(50),
+    subtitleText: {
+        fontSize: mS(13),
+        fontWeight: '500',
+    },
+    headerCallBtn: {
+        width: mS(36),
+        height: mS(36),
+        borderRadius: mS(8),
+        borderWidth: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        marginLeft: hS(12),
     },
 
-    // 2. OTP Section
-    otpSection: {
-        alignItems: 'center',
-        marginBottom: vS(20),
-    },
-    otpGlassCard: {
-        width: '100%',
-        paddingVertical: vS(16),
-        borderRadius: mS(24),
-        alignItems: 'center',
+    // Driver Card
+    driverCard: {
+        borderRadius: mS(16),
         borderWidth: 1,
-    },
-    otpDigitsContainer: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        gap: hS(12),
+        padding: mS(12),
         marginBottom: vS(12),
-    },
-    otpDigitCircle: {
-        width: mS(46),
-        height: mS(46),
-        borderRadius: mS(23),
-        justifyContent: 'center',
-        alignItems: 'center',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
-        shadowRadius: 4,
+        shadowRadius: 8,
         elevation: 2,
     },
-    otpCode: {
-        fontSize: mS(24),
-        fontWeight: '700',
-    },
-    otpLabel: {
-        fontSize: mS(10),
-        fontWeight: '700',
-        letterSpacing: 1.5,
-    },
-
-    // 3. Premium Driver Card
-    premiumDriverCard: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: mS(28),
-        padding: mS(16),
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.08,
-        shadowRadius: 20,
-        elevation: 10,
-        borderWidth: 1,
-        borderColor: '#F9FAFB',
-        marginBottom: vS(16),
-    },
-    driverCoreRow: {
+    driverCardRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: vS(16),
-    },
-    avatarGlowWrapper: {
-        position: 'relative',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    avatarGlow: {
-        position: 'absolute',
-        width: mS(68),
-        height: mS(68),
-        borderRadius: mS(34),
-        borderWidth: 2,
-        borderColor: colors.primary,
-        opacity: 0.1,
-    },
-    premiumAvatar: {
-        width: mS(56),
-        height: mS(56),
-        borderRadius: mS(28),
-        overflow: 'hidden',
     },
     avatarContainer: {
+        width: mS(50),
+        height: mS(50),
+        borderRadius: mS(25),
+        overflow: 'hidden',
         backgroundColor: '#F3F4F6',
-        borderWidth: 1.5,
-        borderColor: '#FFFFFF',
     },
     avatarImage: {
         width: '100%',
         height: '100%',
-        resizeMode: 'cover',
     },
     placeholderAvatar: {
-        width: '100%',
-        height: '100%',
-        backgroundColor: '#F3F4F6',
+        flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    driverInfoBody: {
+    driverInfo: {
         flex: 1,
         marginLeft: hS(12),
     },
@@ -416,119 +379,141 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: hS(4),
-        marginBottom: vS(2),
     },
-    driverNameBold: {
-        fontSize: mS(16),
-        fontWeight: '800',
-        color: '#111827',
-    },
-    verifiedIcon: {
-        marginTop: vS(1),
+    driverName: {
+        fontSize: mS(15),
+        fontWeight: '700',
     },
     ratingRow: {
         flexDirection: 'row',
         alignItems: 'center',
+        marginTop: vS(2),
+        marginBottom: vS(2),
     },
     ratingText: {
         fontSize: mS(12),
-        fontWeight: '700',
-        color: '#4B5563',
+        fontWeight: '600',
         marginLeft: hS(2),
     },
-    rideCount: {
+    ridesText: {
         fontSize: mS(12),
-        color: '#9CA3AF',
         fontWeight: '500',
     },
-    carDetailsArea: {
-        alignItems: 'flex-end',
+    carInfoText: {
+        fontSize: mS(12),
+        fontWeight: '500',
     },
-    plateBadge: {
-        backgroundColor: '#111827',
-        paddingHorizontal: hS(8),
-        paddingVertical: vS(4),
+    plateBox: {
+        borderWidth: 1,
         borderRadius: mS(8),
+        paddingHorizontal: hS(10),
+        paddingVertical: vS(6),
+        alignItems: 'center',
     },
     plateText: {
-        fontSize: mS(11),
-        fontWeight: '900',
-        color: '#FFFFFF',
-    },
-    carModelText: {
-        fontSize: mS(10),
-        color: '#6B7280',
+        fontSize: mS(12),
         fontWeight: '700',
-        marginTop: vS(4),
-        maxWidth: hS(80),
+        textAlign: 'center',
+        lineHeight: vS(16),
     },
 
-    // 4. Action Section
-    actionSection: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        paddingTop: vS(16),
-        borderTopWidth: 1,
-        borderTopColor: '#F3F4F6',
+    // OTP & Actions
+    grayBox: {
+        borderRadius: mS(16),
+        marginBottom: vS(12),
+        paddingHorizontal: hS(16),
     },
-    roundActionBtn: {
+    otpSection: {
         alignItems: 'center',
-        gap: vS(6),
+        paddingVertical: vS(12),
     },
-    neumorphIcon: {
-        width: mS(48),
+    otpTitle: {
+        fontSize: mS(13),
+        fontWeight: '700',
+        marginBottom: vS(12),
+    },
+    otpBoxes: {
+        flexDirection: 'row',
+        gap: hS(12),
+        marginBottom: vS(12),
+    },
+    otpBox: {
+        width: mS(42),
         height: mS(48),
-        borderRadius: mS(24),
-        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderRadius: mS(8),
         justifyContent: 'center',
         alignItems: 'center',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 10,
-        elevation: 5,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 1,
     },
-    actionLabel: {
-        fontSize: mS(10),
-        fontWeight: '800',
-        color: '#4B5563',
+    otpDigit: {
+        fontSize: mS(22),
+        fontWeight: '700',
     },
-
-    // 5. Status Strip
-    statusStrip: {
-        marginBottom: vS(16),
+    otpSubtitle: {
+        fontSize: mS(11),
+        fontWeight: '500',
     },
-    stripGradient: {
-        backgroundColor: colors.primary,
-        borderRadius: mS(16),
-        paddingVertical: vS(12),
-        alignItems: 'center',
-        opacity: 0.9,
-    },
-    stripText: {
-        fontSize: mS(14),
-        fontWeight: '800',
-        color: '#FFFFFF',
-        letterSpacing: 0.5,
-    },
-
-    // 6. Footer
-    footerInfo: {
+    actionsRow: {
         flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingVertical: vS(12),
+        borderTopWidth: 1,
+    },
+    actionBtn: {
+        alignItems: 'center',
+        flex: 1,
+    },
+    actionIconWrapper: {
+        width: mS(44),
+        height: mS(44),
+        borderRadius: mS(22),
+        borderWidth: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        gap: hS(16),
-        marginBottom: vS(20),
+        marginBottom: vS(6),
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 1,
     },
-    footerItem: {
+    actionBtnText: {
+        fontSize: mS(11),
+        fontWeight: '600',
+    },
+
+    // Footer
+    footerBanner: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: hS(4),
+        padding: mS(12),
+        borderRadius: mS(16),
+        marginBottom: vS(12),
     },
-    footerText: {
+    shieldIconWrapper: {
+        width: mS(32),
+        height: mS(32),
+        borderRadius: mS(16),
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: hS(12),
+    },
+    footerTextContainer: {
+        flex: 1,
+    },
+    footerTitle: {
+        fontSize: mS(13),
+        fontWeight: '700',
+        marginBottom: vS(2),
+    },
+    footerDesc: {
         fontSize: mS(11),
-        color: '#9CA3AF',
-        fontWeight: '600',
+        fontWeight: '500',
     },
 });
 

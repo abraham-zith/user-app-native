@@ -1,28 +1,44 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, Text, View, FlatList, TouchableOpacity, StatusBar, ActivityIndicator } from 'react-native';
 import { useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { RootState } from '../../../../redux/store';
-import colors from '../../../../constant/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-// Replace with your actual navigation constant for Scheduled details if different
-import { BookedTripScreen_Nav } from '../../../../Navigations/navigations';
+import { BookedTripScreen_Nav, TabNavigation_Nav } from '../../../../Navigations/navigations';
 import { useAppTheme } from '../../../../hooks/useAppTheme';
-import { useGetActiveTripbyUserIdQuery } from '../../../../service/userApi';
+import { useGetActiveTripbyUserIdQuery, useGetTripQuery } from '../../../../service/userApi';
 
 const ScheduledTripsList = () => {
     const insets = useSafeAreaInsets();
     const navigation = useNavigation<any>();
     const { colors: appColors, isDark } = useAppTheme();
+    const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming');
 
     const localuser = useSelector((state: RootState) => state.userSlice.user);
     const { refetch, isFetching } = useGetActiveTripbyUserIdQuery(localuser?.id, {
         skip: !localuser?.id,
     });
 
-    // Select the scheduledTrips array we set up in Redux
+    const { data: tripsData, isFetching: isPastFetching, refetch: refetchPast } = useGetTripQuery(
+        { id: localuser?.id, limit: 50 },
+        { skip: !localuser?.id }
+    );
+
+    const pastTrips = React.useMemo(() => {
+        return (tripsData?.data?.data || []).filter((trip: any) =>
+            trip.booking_type === 'SCHEDULED' &&
+            ['COMPLETED', 'CANCELLED', 'MID_CANCELLED'].includes(trip.trip_status)
+        ).slice(0, 5);
+    }, [tripsData]);
+
+    const handleRefresh = () => {
+        refetch();
+        refetchPast();
+    };
+
     const scheduledTrips = useSelector((state: RootState) => state.tripSlice.scheduledTrips);
+
     const getStatusInfo = (status: string) => {
         switch (status) {
             case 'REQUESTED':
@@ -38,203 +54,407 @@ const ScheduledTripsList = () => {
                 return { label: 'Cancelled', bgColor: isDark ? 'rgba(239, 68, 68, 0.1)' : '#FEE2E2', dotColor: '#EF4444', textColor: isDark ? '#F87171' : '#B91C1C' };
             case 'COMPLETED':
                 return { label: 'Completed', bgColor: isDark ? 'rgba(16, 185, 129, 0.1)' : '#ECFDF5', dotColor: '#10B981', textColor: isDark ? '#34D399' : '#059669' };
+            case 'CONFIRMED':
+                return { label: 'Confirmed', bgColor: isDark ? 'rgba(34, 197, 94, 0.15)' : '#DCFCE7', dotColor: '#16A34A', textColor: '#16A34A' };
             default:
                 return { label: status, bgColor: isDark ? 'rgba(148, 163, 184, 0.1)' : '#F3F4F6', dotColor: '#9CA3AF', textColor: isDark ? '#94A3B8' : '#6B7280' };
         }
     };
 
+    const formatRideType = (type: string) => {
+        if (!type) return 'Ride';
+        const parts = type.split('_');
+        return parts.map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join(' ');
+    };
+
     const renderTripItem = ({ item }: { item: any }) => {
         const statusInfo = getStatusInfo(item.trip_status);
         const isSearching = item.trip_status === 'REQUESTED';
+        const dateObj = item.scheduled_start_time ? new Date(item.scheduled_start_time) : new Date();
+        const month = dateObj.toLocaleString('en-US', { month: 'short' }).toUpperCase();
+        const date = dateObj.getDate();
+        const day = dateObj.toLocaleString('en-US', { weekday: 'short' }).toUpperCase();
+        const timeStr = dateObj.toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+        // Build Title
+        let rideTypeTitle = formatRideType(item.ride_type);
+        if (item.service_type === 'OUTSTATION' && !rideTypeTitle.toLowerCase().includes('outstation')) {
+            rideTypeTitle += ' • Outstation';
+        } else if (item.ride_type === 'OUTSTATION_ONE_WAY') {
+            rideTypeTitle = 'One Way • Outstation';
+        } else if (item.ride_type === 'OUTSTATION_ROUND_TRIP') {
+            rideTypeTitle = 'Round Trip • Outstation';
+        }
+
+        const isConfirmed = item.trip_status === 'ACCEPTED' || item.trip_status === 'CONFIRMED' || item.trip_status === 'REQUESTED';
 
         return (
             <TouchableOpacity
-                style={[styles.card, { backgroundColor: appColors.card, borderColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#E5E7EB', borderWidth: isDark ? 1 : 1 }]}
+                style={[styles.card, { backgroundColor: appColors.card, borderColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F1F5F9', borderWidth: 1 }]}
                 activeOpacity={0.7}
                 onPress={() => navigation.navigate(BookedTripScreen_Nav, item)}
             >
-                <View style={styles.cardHeader}>
-                    <View style={[
-                        styles.statusTag,
-                        { backgroundColor: statusInfo.bgColor }
-                    ]}>
-                        <View style={[
-                            styles.dot,
-                            { backgroundColor: statusInfo.dotColor }
-                        ]} />
-                        <Text style={[
-                            styles.statusText,
-                            { color: statusInfo.textColor }
-                        ]}>
-                            {statusInfo.label}
-                        </Text>
+                <View style={styles.cardTopRow}>
+                    {/* Date Block */}
+                    <View style={[styles.dateBlock, { borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0', backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#F8FAFC' }]}>
+                        <Text style={[styles.dateMonth, { color: '#3B82F6' }]}>{month}</Text>
+                        <Text style={[styles.dateDay, { color: appColors.text }]}>{date}</Text>
+                        <Text style={[styles.dateWeekday, { color: appColors.secondaryText }]}>{day}</Text>
                     </View>
 
-                    {/* Display the Scheduled Date/Time */}
-                    <View style={styles.timeContainer}>
-                        <MaterialCommunityIcons name="clock-outline" size={14} color={isDark ? appColors.secondaryText : "#6B7280"} />
-                        <Text style={[styles.dateTimeText, { color: appColors.secondaryText }]}>
-                            {item.scheduled_start_time ? new Date(item.scheduled_start_time).toLocaleString([], {
-                                month: 'short',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                            }) : 'Pending Time'}
-                        </Text>
+                    {/* Trip Info Block */}
+                    <View style={styles.tripInfoBlock}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <Text style={[styles.rideTypeTitle, { color: '#2563EB', flex: 1 }]} numberOfLines={1}>
+                                {rideTypeTitle}
+                            </Text>
+                            <View style={[styles.statusBadge, { backgroundColor: statusInfo.bgColor }]}>
+                                <Text style={[styles.statusBadgeText, { color: statusInfo.textColor }]}>
+                                    {statusInfo.label}
+                                </Text>
+                            </View>
+                            <TouchableOpacity style={{ paddingLeft: 8 }}>
+                                <MaterialCommunityIcons name="dots-vertical" size={20} color={isDark ? appColors.text : "#475569"} />
+                            </TouchableOpacity>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                            <MaterialCommunityIcons name="clock-outline" size={14} color="#64748B" />
+                            <Text style={[styles.timeText, { color: isDark ? appColors.text : '#0F172A' }]}>{timeStr}</Text>
+                        </View>
+
+                        {/* Timeline Addresses */}
+                        <View style={styles.timelineContainer}>
+                            <View style={styles.timelineDots}>
+                                <View style={styles.pickupDot} />
+                                <View style={styles.dottedLine} />
+                                <MaterialCommunityIcons name="map-marker" size={12} color="#EF4444" style={{ marginLeft: -2 }} />
+                            </View>
+                            <View style={styles.addressSection}>
+                                <Text style={[styles.addressText, { color: isDark ? appColors.text : '#0F172A' }]} numberOfLines={2}>
+                                    {item.pickup_address || 'Current Location'}
+                                </Text>
+                                <Text style={[styles.addressText, { color: isDark ? appColors.text : '#0F172A', marginTop: 12 }]} numberOfLines={2}>
+                                    {item.drop_address}
+                                </Text>
+                            </View>
+                        </View>
                     </View>
                 </View>
 
-                <View style={styles.cardBody}>
-                    <View style={[styles.avatarContainer, { backgroundColor: isSearching ? (isDark ? 'rgba(255, 255, 255, 0.05)' : '#F9FAFB') : (isDark ? 'rgba(56, 189, 248, 0.1)' : '#F0F9FF') }]}>
-                        <MaterialCommunityIcons
-                            name="calendar-clock"
-                            size={24}
-                            color={isSearching ? (isDark ? '#94A3B8' : '#94A3B8') : (isDark ? '#38BDF8' : colors.primary)}
-                        />
+                {/* Divider */}
+                <View style={[styles.cardDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F1F5F9' }]} />
+
+                {/* Bottom Row */}
+                <View style={styles.bottomRow}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                        <MaterialCommunityIcons name="account-outline" size={18} color="#1E3A8A" />
+                        {isSearching ? (
+                            <Text style={[styles.driverText, { color: appColors.secondaryText }]} numberOfLines={1}>
+                                Driver: <Text style={{ color: '#2563EB', fontWeight: '600' }}>Searching...</Text>
+                            </Text>
+                        ) : (
+                            <Text style={[styles.driverText, { color: appColors.secondaryText }]} numberOfLines={1}>
+                                Driver: <Text style={{ color: appColors.text, fontWeight: '600' }}>{item.driver_details?.full_name || 'Assigned'}</Text>
+                            </Text>
+                        )}
                     </View>
-
-                    <View style={styles.infoSection}>
-                        <Text style={[styles.addressLabel, { color: isDark ? 'rgba(255, 255, 255, 0.4)' : '#9CA3AF' }]}>Pickup Location</Text>
-                        <Text style={[styles.addressText, { color: appColors.text }]} numberOfLines={1}>
-                            {item.pickup_address || 'Current Location'}
-                        </Text>
-                        <View style={[styles.verticalDivider, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#E5E7EB' }]} />
-                        <Text style={[styles.addressLabel, { color: isDark ? 'rgba(255, 255, 255, 0.4)' : '#9CA3AF' }]}>Drop-off Location</Text>
-                        <Text style={[styles.addressText, { color: appColors.text }]} numberOfLines={1}>
-                            {item.drop_address}
-                        </Text>
-                    </View>
-
-                    <MaterialCommunityIcons name="chevron-right" size={24} color="#CCC" />
-                </View>
-
-                <View style={[styles.driverQuickInfo, { borderTopColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F3F4F6', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' }]}>
-                    {isSearching ? (
-                        <Text style={[styles.driverNote, { color: appColors.secondaryText }]}>
-                            Driver: <Text style={{ fontWeight: '700', color: appColors.text }}>Searching...</Text>
-                        </Text>
-                    ) : (
-                        <Text style={[styles.driverNote, { color: appColors.secondaryText }]}>
-                            Driver: <Text style={{ fontWeight: '700', color: appColors.text }}>{item.driver_details?.full_name || 'Assigned'}</Text>
-                        </Text>
-                    )}
-                    <View style={{ backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F3F4F6', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
-                        <Text style={{ fontSize: 10, fontWeight: '700', color: appColors.text, textTransform: 'uppercase' }}>
-                            {(item.ride_type || 'RIDE').replace(/_/g, ' ')}
+                    <View style={[styles.serviceBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F1F5F9' }]}>
+                        <Text style={[styles.serviceBadgeText, { color: appColors.secondaryText }]}>
+                            {item.trip_status || 'SCHEDULED'}
                         </Text>
                     </View>
                 </View>
             </TouchableOpacity>
-        )
+        );
+    };
+
+    const renderEmptyState = () => (
+        <View style={styles.emptyState}>
+            <MaterialCommunityIcons name="calendar-blank" size={60} color={isDark ? 'rgba(255, 255, 255, 0.1)' : "#E2E8F0"} />
+            <Text style={[styles.emptyTitle, { color: appColors.text }]}>No scheduled rides</Text>
+            <Text style={[styles.emptySub, { color: appColors.secondaryText }]}>
+                {activeTab === 'upcoming' ? "Your upcoming bookings will appear here." : "Your past bookings will appear here."}
+            </Text>
+        </View>
+    );
+
+    const renderFooter = () => {
+        if (activeTab === 'past') {
+            if (pastTrips.length === 0) return null;
+            return (
+                <TouchableOpacity 
+                    style={[styles.bookBtn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#2563EB', marginTop: 16 }]}
+                    onPress={() => navigation.navigate(TabNavigation_Nav, { screen: 'Activity' })}
+                >
+                    <Text style={[styles.bookBtnText, { color: '#2563EB' }]}>View All Past Trips</Text>
+                </TouchableOpacity>
+            );
+        }
+
+        if (activeTab !== 'upcoming' || scheduledTrips.length === 0) return null;
+        return (
+            <TouchableOpacity style={[styles.footerAlert, { backgroundColor: isDark ? appColors.card : '#F8FAFC' }]}>
+                <MaterialCommunityIcons name="calendar-clock" size={36} color="#2563EB" />
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={[styles.alertTitle, { color: appColors.text }]}>Need to make changes?</Text>
+                    <Text style={[styles.alertSub, { color: appColors.secondaryText }]}>
+                        You can reschedule or cancel up to 2 hours before pickup.
+                    </Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={24} color={isDark ? appColors.secondaryText : "#475569"} />
+            </TouchableOpacity>
+        );
     };
 
     return (
-        <View style={[styles.safeArea, {
-            paddingTop: insets.top,
-            paddingBottom: insets.bottom,
-            backgroundColor: appColors.background
-        }]}>
-            <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={isDark ? appColors.background : "white"} />
-            <View style={[styles.header, { backgroundColor: appColors.card, borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F3F4F6' }]}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                    <MaterialCommunityIcons name="arrow-left" size={24} color={isDark ? appColors.text : "#111"} />
+        <View style={[styles.container, { backgroundColor: appColors.background, paddingTop: insets.top }]}>
+            <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={appColors.background} />
+
+            {/* Header */}
+            <View style={[styles.header, { backgroundColor: appColors.background }]}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
+                    <MaterialCommunityIcons name="arrow-left" size={24} color={appColors.text} />
                 </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: appColors.text }]}>Scheduled Bookings</Text>
-                {isFetching ? (
-                    <View style={{ width: 40, alignItems: 'center' }}>
+                <Text style={[styles.headerTitle, { color: appColors.text }]}>Scheduled Trips</Text>
+                {isFetching || isPastFetching ? (
+                    <View style={styles.iconBtn}>
                         <ActivityIndicator size="small" color={appColors.text} />
                     </View>
                 ) : (
-                    <TouchableOpacity onPress={() => refetch()} style={{ width: 40, alignItems: 'center' }}>
+                    <TouchableOpacity onPress={handleRefresh} style={styles.iconBtn}>
                         <MaterialCommunityIcons name="refresh" size={24} color={appColors.text} />
                     </TouchableOpacity>
                 )}
             </View>
 
+            {/* Tabs */}
+            <View style={[styles.tabsContainer, { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : '#F1F5F9' }]}>
+                <TouchableOpacity
+                    style={[styles.tab, activeTab === 'upcoming' && styles.activeTab]}
+                    onPress={() => setActiveTab('upcoming')}
+                >
+                    <Text style={[styles.tabText, { color: activeTab === 'upcoming' ? '#2563EB' : appColors.secondaryText }]}>Upcoming</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={[styles.tab, activeTab === 'past' && styles.activeTab]}
+                    onPress={() => setActiveTab('past')}
+                >
+                    <Text style={[styles.tabText, { color: activeTab === 'past' ? '#2563EB' : appColors.secondaryText }]}>Past</Text>
+                </TouchableOpacity>
+            </View>
+
+            {/* List */}
             <FlatList
-                data={scheduledTrips}
+                data={activeTab === 'upcoming' ? scheduledTrips : pastTrips}
                 keyExtractor={(item) => item.trip_id.toString()}
                 renderItem={renderTripItem}
                 contentContainerStyle={styles.listContent}
-                ListEmptyComponent={
-                    <View style={styles.emptyState}>
-                        <MaterialCommunityIcons name="calendar-blank" size={60} color={isDark ? 'rgba(255, 255, 255, 0.1)' : "#E5E7EB"} />
-                        <Text style={[styles.emptyTitle, { color: appColors.text }]}>No scheduled rides</Text>
-                        <Text style={[styles.emptySub, { color: appColors.secondaryText }]}>Your upcoming bookings will appear here.</Text>
-                    </View>
+                ListHeaderComponent={
+                    activeTab === 'upcoming' && scheduledTrips.length > 0 ? (
+                        <Text style={styles.sectionTitle}>UPCOMING TRIPS</Text>
+                    ) : null
                 }
+                ListEmptyComponent={renderEmptyState}
+                ListFooterComponent={renderFooter}
+                showsVerticalScrollIndicator={false}
             />
+
+            {/* Book New Trip Button */}
+            <View style={[styles.bottomBtnContainer, { paddingBottom: insets.bottom || 20 }]}>
+                <TouchableOpacity
+                    style={styles.bookBtn}
+                    activeOpacity={0.8}
+                    onPress={() => navigation.goBack()}
+                >
+                    <MaterialCommunityIcons name="plus" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+                    <Text style={styles.bookBtnText}>Book New Trip</Text>
+                </TouchableOpacity>
+            </View>
         </View>
     );
 };
 
 const styles = StyleSheet.create({
-    safeArea: { flex: 1, backgroundColor: '#F9FAFB' },
+    container: { flex: 1 },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 16,
-        paddingVertical: 15,
-        backgroundColor: 'white',
-        borderBottomWidth: 1,
-        borderBottomColor: '#F3F4F6',
+        paddingVertical: 12,
     },
-    backBtn: { width: 40, height: 40, justifyContent: 'center' },
-    headerTitle: { fontSize: 18, fontWeight: '800', color: '#111' },
-    listContent: { padding: 15 },
+    iconBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+    headerTitle: { fontSize: 18, fontWeight: '700' },
+    tabsContainer: {
+        flexDirection: 'row',
+        borderBottomWidth: 1,
+        marginHorizontal: 16,
+    },
+    tab: {
+        flex: 1,
+        alignItems: 'center',
+        paddingVertical: 12,
+        borderBottomWidth: 2,
+        borderBottomColor: 'transparent',
+    },
+    activeTab: {
+        borderBottomColor: '#2563EB',
+    },
+    tabText: {
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    listContent: {
+        paddingHorizontal: 16,
+        paddingBottom: 100, // padding for bottom fixed button
+        paddingTop: 16,
+    },
+    sectionTitle: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#94A3B8',
+        marginBottom: 12,
+        letterSpacing: 0.5,
+    },
     card: {
-        backgroundColor: 'white',
         borderRadius: 16,
         padding: 16,
-        marginBottom: 15,
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
+        marginBottom: 16,
     },
-    cardHeader: {
+    cardTopRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+    },
+    dateBlock: {
+        width: 52,
+        borderWidth: 1,
+        borderRadius: 12,
+        paddingVertical: 8,
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    dateMonth: { fontSize: 10, fontWeight: '800' },
+    dateDay: { fontSize: 20, fontWeight: '700', marginVertical: -2 },
+    dateWeekday: { fontSize: 10, fontWeight: '600' },
+    tripInfoBlock: {
+        flex: 1,
+    },
+    rideTypeTitle: {
+        fontSize: 14,
+        fontWeight: '700',
+    },
+    statusBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 8,
+    },
+    statusBadgeText: {
+        fontSize: 10,
+        fontWeight: '700',
+    },
+    timeText: {
+        fontSize: 13,
+        fontWeight: '600',
+        marginLeft: 6,
+    },
+    timelineContainer: {
+        flexDirection: 'row',
+        marginTop: 16,
+    },
+    timelineDots: {
+        alignItems: 'center',
+        width: 16,
+        marginRight: 8,
+        paddingTop: 4,
+    },
+    pickupDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#10B981',
+    },
+    dottedLine: {
+        width: 1,
+        height: 24,
+        borderStyle: 'dotted',
+        borderWidth: 1,
+        borderColor: '#CBD5E1',
+        marginVertical: 2,
+        borderRadius: 1,
+    },
+    addressSection: {
+        flex: 1,
+    },
+    addressText: {
+        fontSize: 13,
+        fontWeight: '500',
+    },
+    cardDivider: {
+        height: 1,
+        width: '100%',
+        marginVertical: 14,
+    },
+    bottomRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 15,
     },
-    statusTag: {
+    driverText: {
+        fontSize: 13,
+        marginLeft: 6,
+    },
+    serviceBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+    },
+    serviceBadgeText: {
+        fontSize: 10,
+        fontWeight: '700',
+        textTransform: 'uppercase',
+    },
+    footerAlert: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 20,
+        padding: 16,
+        borderRadius: 16,
+        marginTop: 8,
+        marginBottom: 24,
     },
-    dot: { width: 6, height: 6, borderRadius: 3, marginRight: 6 },
-    statusText: { fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
-    timeContainer: { flexDirection: 'row', alignItems: 'center' },
-    dateTimeText: { fontSize: 12, fontWeight: '600', color: '#6B7280', marginLeft: 4 },
-    cardBody: { flexDirection: 'row', alignItems: 'flex-start' },
-    avatarContainer: {
-        width: 44,
-        height: 44,
-        borderRadius: 12,
-        justifyContent: 'center',
-        alignItems: 'center',
+    alertTitle: {
+        fontSize: 14,
+        fontWeight: '700',
+        marginBottom: 2,
     },
-    infoSection: { flex: 1, marginLeft: 15 },
-    addressLabel: { fontSize: 10, color: '#9CA3AF', textTransform: 'uppercase', fontWeight: '600' },
-    addressText: { fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 4 },
-    verticalDivider: { height: 10, width: 1, backgroundColor: '#E5E7EB', marginLeft: 5, marginVertical: 2 },
-    driverQuickInfo: {
-        marginTop: 15,
-        paddingTop: 12,
-        borderTopWidth: 1,
-        borderTopColor: '#F3F4F6',
+    alertSub: {
+        fontSize: 12,
+        lineHeight: 18,
     },
-    driverNote: { fontSize: 12, color: '#4B5563' },
     emptyState: { alignItems: 'center', marginTop: 100 },
-    emptyTitle: { fontSize: 18, fontWeight: '700', color: '#374151', marginTop: 15 },
-    emptySub: { fontSize: 14, color: '#9CA3AF', marginTop: 5 },
+    emptyTitle: { fontSize: 18, fontWeight: '700', marginTop: 15 },
+    emptySub: { fontSize: 14, marginTop: 5 },
+    bottomBtnContainer: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        paddingHorizontal: 16,
+        paddingTop: 16,
+        backgroundColor: 'transparent',
+    },
+    bookBtn: {
+        flexDirection: 'row',
+        backgroundColor: '#1D4ED8',
+        paddingVertical: 16,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    bookBtnText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: '700',
+    },
 });
 
 export default ScheduledTripsList;

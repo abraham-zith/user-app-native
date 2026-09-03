@@ -8,6 +8,8 @@ import {
   ScrollView,
   ToastAndroid,
   Platform,
+  Image,
+  Dimensions,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,7 +22,7 @@ import { Car, CheckedIcon, UnCheckedIcon } from '../../assets/svg';
 import { Styles } from '../../lib/styles';
 import colors from '../../constant/colors';
 import fonts from '../../constant/fonts';
-import { OTPScreen_Nav, TabNavigation_Nav } from '../../Navigations/navigations';
+import { OTPScreen_Nav, TabNavigation_Nav, TermsAndConditions_Nav, PrivacyPolicy_Nav } from '../../Navigations/navigations';
 import { hS, vS, mS } from '../../lib/responsive'; // Assuming these are your responsive helpers
 
 // --- Components ---
@@ -96,6 +98,30 @@ const SignUpScreen: React.FC<any> = ({ navigation }) => {
       } else {
         ToastAndroid.show("Please fill all required fields correctly.", ToastAndroid.SHORT);
       }
+      return;
+    }
+
+    if (firstName.trim().length < 2 || firstName.trim().length > 30) {
+      setShowValidation(true);
+      ToastAndroid.show("First Name must be between 2 and 30 characters.", ToastAndroid.SHORT);
+      return;
+    }
+
+    if (/[^a-zA-Z\s]/.test(firstName)) {
+      setShowValidation(true);
+      ToastAndroid.show("First Name should not contain numbers or special characters.", ToastAndroid.SHORT);
+      return;
+    }
+
+    if (lastName && (lastName.trim().length < 2 || lastName.trim().length > 30)) {
+      setShowValidation(true);
+      ToastAndroid.show("Last Name must be between 2 and 30 characters.", ToastAndroid.SHORT);
+      return;
+    }
+
+    if (lastName && /[^a-zA-Z\s]/.test(lastName)) {
+      setShowValidation(true);
+      ToastAndroid.show("Last Name should not contain numbers or special characters.", ToastAndroid.SHORT);
       return;
     }
 
@@ -234,238 +260,346 @@ const SignUpScreen: React.FC<any> = ({ navigation }) => {
   const mobileValidation = validateMobile(mobileNumber, countryCode);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: appColors.background }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: isDark ? '#020813' : appColors.background }]}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
         {/* --- PREMIUM HEADER SECTION --- */}
-        <View style={styles.headerContainer}>
-          <Text style={[styles.welcomeText, { color: appColors.primary }]}>Welcome to T2Drive</Text>
-          <Text style={[styles.titleText, { color: appColors.text }]}>Create Your Profile</Text>
-          <Text style={[styles.descriptionText, { color: appColors.lightTextColor }]}>
-            Join our community for a seamless travel experience. Just a few more details to get you started!
-          </Text>
-        </View>
+        <View style={[styles.headerContainer, isDark && { zIndex: 10 }]}>
+          {isDark && (
+            <View style={{ position: 'absolute', top: vS(-insets.top), right: hS(-24), width: Dimensions.get('window').width, height: vS(240), pointerEvents: 'none' }}>
+              <Image
+                source={require('../../assets/png/SignupBackground.png')}
+                style={{ width: '100%', height: '100%', resizeMode: 'cover', position: 'absolute' }}
+              />
+              {/* <Image
+                source={require('../../assets/png/LoginscreenLocation.png')}
+                style={{ width: hS(40), height: vS(50), resizeMode: 'contain', position: 'absolute', right: hS(60), top: vS(80) }}
+              /> */}
+              {/* <Image
+                source={require('../../assets/png/t2drive_car_transparent_hd.png')}
+                style={{ width: hS(180), height: vS(100), resizeMode: 'contain', position: 'absolute', right: hS(-20), bottom: vS(40) }}
+              /> */}
+            </View>
+          )}
 
-        <FormInput
-          required
-          label="First Name"
-          placeholder="First name"
-          placeholderTextColor={appColors.lightTextColor}
-          value={firstName}
-          onChangeText={setFirstName}
-          icon="account-outline"
-          appColors={appColors}
-          hasError={showValidation && !firstName}
-        />
-
-        <FormInput
-          label="Last Name"
-          placeholder="Last name"
-          placeholderTextColor={appColors.lightTextColor}
-          value={lastName}
-          onChangeText={setLastName}
-          icon="account-outline"
-          appColors={appColors}
-        />
-
-        {/* Mobile Number Input */}
-        <View style={styles.fieldContainer}>
-          <Text style={[styles.fieldLabel, { color: appColors.text }]}>Mobile Number</Text>
-          <View style={[styles.inputWrapper, {
-            backgroundColor: appColors.card,
-            borderColor: (showValidation && (!mobileValidation.valid)) ? '#EF4444' : appColors.border,
-            shadowColor: isDark ? '#000' : '#64748B'
-          }]}>
-            <DropDown
-              data={countryList}
-              value={countryCode}
-              onSelect={setCountryCode}
-              renderTrigger={(selectedItem) => (
-                <View style={styles.countryPickerTrigger}>
-                  <FastImage
-                    source={{
-                      uri: `https://flagcdn.com/w40/${selectedItem?.code?.toLowerCase() || 'in'}.png`,
-                      priority: FastImage.priority.normal
-                    }}
-                    style={styles.flagIcon}
-                  />
-                  <Text style={[styles.countryCode, { color: appColors.text }]}>{selectedItem?.value || '+91'}</Text>
-                  <MaterialCommunityIcons name="chevron-down" size={mS(20)} color={appColors.lightTextColor} />
-                </View>
-              )}
-            />
-            <View style={[styles.verticalDivider, { backgroundColor: appColors.divider }]} />
-            <TextInput
-              style={[styles.textInput, { color: appColors.text }]}
-              placeholder="1234567890"
-              placeholderTextColor={appColors.lightTextColor}
-              keyboardType="phone-pad"
-              value={mobileNumber}
-              onChangeText={(text) => setMobileNumber(text.replace(/[^0-9]/g, ""))}
-              maxLength={10}
-            />
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: vS(16), zIndex: 10 }}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: mS(4), zIndex: 10 }}>
+              <MaterialCommunityIcons name="arrow-left" size={mS(24)} color={isDark ? '#FFFFFF' : appColors.text} />
+            </TouchableOpacity>
+            <View style={{ position: 'absolute', left: 0, right: 0, alignItems: 'center' }}>
+              <Image source={isDark ? require('../../assets/png/T2DriveLogo.png') : require('../../assets/png/T2DriveDarkLogo.png')} style={{ width: hS(100), height: vS(24), resizeMode: 'contain' }} />
+            </View>
           </View>
-        </View>
 
-        {/* Email Input */}
-        <FormInput
-          required
-          label="Email Address"
-          placeholder="Email Address"
-          placeholderTextColor={appColors.lightTextColor}
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          icon="email-outline"
-          appColors={appColors}
-          hasError={showValidation && !EMAIL_REGEX.test(email)}
-        />
-
-        <View style={styles.fieldContainer}>
-          <Text style={[styles.fieldLabel, { color: appColors.text }]}>Select Gender</Text>
-          <View style={[styles.segmentedControl, { backgroundColor: appColors.divider }]}>
-            {options.map((item) => {
-              const isSelected = gender === item.value;
-              return (
-                <TouchableOpacity
-                  key={item.value}
-                  style={[
-                    styles.segmentButton,
-                    isSelected && [styles.segmentButtonActive, { backgroundColor: appColors.button }]
-                  ]}
-                  onPress={() => setGender(item.value)}
-                  activeOpacity={0.8}
-                >
-                  <MaterialCommunityIcons
-                    name={item.icon as any}
-                    size={mS(18)}
-                    color={isSelected ? '#FFFFFF' : '#64748B'}
-                  />
-                  <Text style={[
-                    styles.segmentText,
-                    isSelected && styles.segmentTextActive
-                  ]}>
-                    {item.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* DOB Input */}
-        <View style={styles.fieldContainer}>
-          <View style={styles.fieldLabelRow}>
-            <Text style={[styles.fieldLabel, { color: appColors.text }]}>Date of Birth</Text>
-            <Text style={styles.fieldAsterisk}>*</Text>
-          </View>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => setShowDatePicker(true)}
-            style={[styles.premiumPickerContainer, {
-              backgroundColor: appColors.card,
-              borderColor: (showValidation && !dob) ? '#EF4444' : appColors.border
-            }]}
-          >
-            <MaterialCommunityIcons name="calendar-month-outline" size={mS(20)} color={appColors.lightTextColor} />
-            <Text style={[styles.premiumPickerText, { color: dob ? appColors.text : appColors.lightTextColor }]}>
-              {dob ? formatDatePretty(dob) : "Select Your Birthday"}
+          <View style={{ zIndex: 10 }}>
+            <Text style={[styles.titleText, { color: isDark ? '#FFFFFF' : appColors.text }]}>Create Your Account</Text>
+            <Text style={[styles.descriptionText, { color: isDark ? '#FFFFFF' : appColors.lightTextColor, maxWidth: '60%' }]}>
+              {isDark ? "Let's get you started on the road!" : "Join T2Drive and enjoy seamless travel experience."}
             </Text>
-            <MaterialCommunityIcons name="chevron-down" size={mS(20)} color={appColors.lightTextColor} />
-          </TouchableOpacity>
+          </View>
         </View>
 
-        {/* --- REFERRAL SECTION --- */}
-        <View style={styles.fieldContainer}>
-          <Text style={[styles.fieldLabel, { color: appColors.text }]}>Referral Code (Optional)</Text>
-          <View style={[styles.inputWrapper, {
-            backgroundColor: appColors.card,
-            borderColor: referralError ? '#EF4444' : isReferralApplied ? '#10B981' : appColors.border,
-          }]}>
-            <View style={[styles.iconBox, { backgroundColor: appColors.background }]}>
-              <MaterialCommunityIcons
-                name="ticket-percent-outline"
-                size={mS(20)}
-                color={referralError ? '#EF4444' : isReferralApplied ? '#10B981' : appColors.lightTextColor}
+        <View style={isDark ? { zIndex: 20, backgroundColor: '#020813', borderWidth: 1, borderColor: '#152B4D', borderRadius: mS(24), padding: hS(16), paddingTop: vS(20), marginTop: vS(0) } : {}}>
+
+          <FormInput
+            required
+            label="First Name"
+            placeholder="First name"
+            placeholderTextColor={isDark ? '#9CA3AF' : appColors.lightTextColor}
+            value={firstName}
+            onChangeText={setFirstName}
+            maxLength={30}
+            icon="account-outline"
+            appColors={appColors}
+            isDark={isDark}
+            hasError={showValidation && (!firstName || firstName.trim().length < 2 || firstName.trim().length > 30 || /[^a-zA-Z\s]/.test(firstName))}
+            errorMessage={
+              !firstName ? "First Name is required" :
+                /[^a-zA-Z\s]/.test(firstName) ? "First Name should not contain numbers or special characters" :
+                  (firstName.trim().length < 2 || firstName.trim().length > 30) ? "First Name must be 2-30 characters" : undefined
+            }
+          />
+
+          <FormInput
+            label="Last Name"
+            placeholder="Last name"
+            placeholderTextColor={isDark ? '#9CA3AF' : appColors.lightTextColor}
+            value={lastName}
+            onChangeText={setLastName}
+            maxLength={30}
+            icon="account-outline"
+            appColors={appColors}
+            isDark={isDark}
+            hasError={showValidation && !!(lastName && (lastName.trim().length < 2 || lastName.trim().length > 30 || /[^a-zA-Z\s]/.test(lastName)))}
+            errorMessage={
+              lastName && /[^a-zA-Z\s]/.test(lastName) ? "Last Name should not contain numbers or special characters" :
+                lastName && (lastName.trim().length < 2 || lastName.trim().length > 30) ? "Last Name must be 2-30 characters" : undefined
+            }
+          />
+
+          {/* Mobile Number Input */}
+          <View style={styles.fieldContainer}>
+            <Text style={[styles.fieldLabel, { color: isDark ? '#FFFFFF' : appColors.text }]}>Mobile Number</Text>
+            {/* 
+              <View style={[styles.inputWrapper, {
+              backgroundColor: isDark ? '#041026' : appColors.card,
+              borderColor: (showValidation && (!mobileValidation.valid)) ? '#EF4444' : isDark ? '#152B4D' : appColors.border,
+              shadowColor: isDark ? '#000' : '#64748B',
+              borderRadius: isDark ? mS(12) : mS(8)
+            }]}>
+              <DropDown
+                data={countryList}
+                value={countryCode}
+                onSelect={setCountryCode}
+                renderTrigger={(selectedItem) => (
+                  <View style={styles.countryPickerTrigger}>
+                    <FastImage
+                      source={{
+                        uri: `https://flagcdn.com/w40/${selectedItem?.code?.toLowerCase() || 'in'}.png`,
+                        priority: FastImage.priority.normal
+                      }}
+                      style={styles.flagIcon}
+                    />
+                    <Text style={[styles.countryCode, { color: isDark ? '#FFFFFF' : appColors.text }]}>{selectedItem?.value || '+91'}</Text>
+                    <MaterialCommunityIcons name="chevron-down" size={mS(20)} color={isDark ? '#9CA3AF' : appColors.lightTextColor} />
+                  </View>
+                )}
+              />
+              <View style={[styles.verticalDivider, { backgroundColor: isDark ? '#152B4D' : appColors.divider }]} />
+              <TextInput
+                style={[styles.textInput, { color: isDark ? '#FFFFFF' : appColors.text }]}
+                placeholder="1234567890"
+                placeholderTextColor={isDark ? '#9CA3AF' : appColors.lightTextColor}
+                keyboardType="phone-pad"
+                value={mobileNumber}
+                onChangeText={(text) => setMobileNumber(text.replace(/[^0-9]/g, ""))}
+                maxLength={10}
               />
             </View>
-            <TextInput
-              placeholder="Enter Referral Code"
-              placeholderTextColor={appColors.lightTextColor}
-              style={[styles.textInput, { color: appColors.text }]}
-              value={referralCode}
-              onChangeText={(text) => {
-                setReferralCode(text);
-                setIsReferralApplied(false);
-                setReferralError('');
-              }}
-              autoCapitalize="characters"
-              editable={!isReferralApplied}
-            />
-            {isReferralApplied ? (
-              <TouchableOpacity onPress={() => setIsReferralApplied(false)}>
-                <MaterialCommunityIcons name="close-circle" size={mS(24)} color="#EF4444" />
-              </TouchableOpacity>
-            ) : (
+            */}
+            <View style={[styles.inputWrapper, {
+              backgroundColor: isDark ? '#041026' : appColors.card,
+              borderColor: (showValidation && (!mobileValidation.valid)) ? '#EF4444' : isDark ? '#152B4D' : appColors.border,
+              shadowColor: isDark ? '#000' : '#64748B',
+              borderRadius: isDark ? mS(12) : mS(8)
+            }]}>
               <TouchableOpacity
-                onPress={handleApplyReferral}
-                disabled={isValidatingReferral || !referralCode.trim()}
-                style={[styles.applyButton, { backgroundColor: appColors.button }]}
+                style={styles.countryPickerTrigger}
+                onPress={() => ToastAndroid.show('T2Drive is currently available in India only', ToastAndroid.SHORT)}
               >
-                {isValidatingReferral ? (
-                  <Text style={styles.applyButtonText}>...</Text>
-                ) : (
-                  <Text style={styles.applyButtonText}>Apply</Text>
-                )}
+                <FastImage
+                  source={{
+                    uri: `https://flagcdn.com/w40/in.png`,
+                    priority: FastImage.priority.normal
+                  }}
+                  style={styles.flagIcon}
+                />
+                <Text style={[styles.countryCode, { color: isDark ? '#FFFFFF' : appColors.text }]}>+91</Text>
+                <MaterialCommunityIcons name="chevron-down" size={mS(20)} color={isDark ? '#9CA3AF' : appColors.lightTextColor} />
               </TouchableOpacity>
-            )}
+              <View style={[styles.verticalDivider, { backgroundColor: isDark ? '#152B4D' : appColors.divider }]} />
+              <TextInput
+                style={[styles.textInput, { color: isDark ? '#FFFFFF' : appColors.text }]}
+                placeholder="1234567890"
+                placeholderTextColor={isDark ? '#9CA3AF' : appColors.lightTextColor}
+                keyboardType="phone-pad"
+                value={mobileNumber}
+                onChangeText={(text) => setMobileNumber(text.replace(/[^0-9]/g, ""))}
+                maxLength={10}
+              />
+            </View>
+            {showValidation && (!mobileValidation.valid) ? (
+              <Text style={{ color: '#EF4444', fontSize: mS(12), marginTop: vS(4), marginLeft: hS(4) }}>{mobileValidation.message}</Text>
+            ) : null}
           </View>
-          {referralError ? (
-            <Text style={styles.errorText}>{referralError}</Text>
-          ) : isReferralApplied ? (
-            <Text style={styles.successText}>Code applied successfully!</Text>
-          ) : null}
-        </View>
+
+          {/* Email Input */}
+          <FormInput
+            required
+            label="Email Address"
+            placeholder="Enter your email address"
+            placeholderTextColor={isDark ? '#9CA3AF' : appColors.lightTextColor}
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            icon="email-outline"
+            appColors={appColors}
+            isDark={isDark}
+            hasError={showValidation && (!email || !EMAIL_REGEX.test(email))}
+            errorMessage={!email ? "Email Address is required" : "Invalid email format"}
+          />
+
+          <View style={styles.fieldContainer}>
+            <Text style={[styles.fieldLabel, { color: isDark ? '#FFFFFF' : appColors.text }]}>Select Gender</Text>
+            <View style={styles.segmentedControl}>
+              {options.map((item, index) => {
+                const isSelected = gender === item.value;
+                return (
+                  <TouchableOpacity
+                    key={item.value}
+                    style={[
+                      styles.segmentButton,
+                      { backgroundColor: isDark ? '#041026' : appColors.card, borderColor: isDark ? '#152B4D' : appColors.border, borderRadius: isDark ? mS(12) : mS(8) },
+                      isSelected && [styles.segmentButtonActive, { backgroundColor: isDark ? '#007BFF' : '#0B3370', borderColor: isDark ? '#007BFF' : '#0B3370' }],
+                      index === 0 ? { marginLeft: 0 } : {},
+                      index === options.length - 1 ? { marginRight: 0 } : {}
+                    ]}
+                    onPress={() => setGender(item.value)}
+                    activeOpacity={0.8}
+                  >
+                    <MaterialCommunityIcons
+                      name={item.icon as any}
+                      size={mS(18)}
+                      color={isSelected ? '#FFFFFF' : isDark ? '#9CA3AF' : '#64748B'}
+                    />
+                    <Text style={[
+                      styles.segmentText,
+                      { color: isDark ? '#9CA3AF' : appColors.text },
+                      isSelected && styles.segmentTextActive
+                    ]}>
+                      {item.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* DOB Input */}
+          <View style={styles.fieldContainer}>
+            <View style={styles.fieldLabelRow}>
+              <Text style={[styles.fieldLabel, { color: isDark ? '#FFFFFF' : appColors.text }]}>Date of Birth</Text>
+              <Text style={styles.fieldAsterisk}>*</Text>
+            </View>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => setShowDatePicker(true)}
+              style={[styles.premiumPickerContainer, {
+                backgroundColor: isDark ? '#041026' : appColors.card,
+                borderColor: (showValidation && !dob) ? '#EF4444' : isDark ? '#152B4D' : appColors.border,
+                borderRadius: isDark ? mS(12) : mS(8)
+              }]}
+            >
+              <MaterialCommunityIcons name="calendar-month-outline" size={mS(20)} color={isDark ? '#FFFFFF' : appColors.lightTextColor} />
+              <Text style={[styles.premiumPickerText, { color: dob ? (isDark ? '#FFFFFF' : appColors.text) : (isDark ? '#9CA3AF' : appColors.lightTextColor) }]}>
+                {dob ? formatDatePretty(dob) : "Select your birthday"}
+              </Text>
+              <MaterialCommunityIcons name="chevron-down" size={mS(20)} color={isDark ? '#9CA3AF' : appColors.lightTextColor} />
+            </TouchableOpacity>
+            {showValidation && !dob ? (
+              <Text style={{ color: '#EF4444', fontSize: mS(12), marginTop: vS(4), marginLeft: hS(4) }}>Date of Birth is required</Text>
+            ) : null}
+          </View>
+
+          {/* --- REFERRAL SECTION --- */}
+          <View style={styles.fieldContainer}>
+            <Text style={[styles.fieldLabel, { color: isDark ? '#FFFFFF' : appColors.text }]}>Referral Code (Optional)</Text>
+            <View style={[styles.inputWrapper, {
+              backgroundColor: isDark ? '#041026' : appColors.card,
+              borderColor: referralError ? '#EF4444' : isReferralApplied ? '#10B981' : isDark ? '#152B4D' : appColors.border,
+              borderRadius: isDark ? mS(12) : mS(8)
+            }]}>
+              <View style={[styles.iconBox, { backgroundColor: isDark ? 'transparent' : appColors.background }]}>
+                <MaterialCommunityIcons
+                  name="gift-outline"
+                  size={mS(20)}
+                  color={referralError ? '#EF4444' : isReferralApplied ? '#10B981' : isDark ? '#FFFFFF' : appColors.lightTextColor}
+                />
+              </View>
+              <TextInput
+                placeholder="Enter referral code"
+                placeholderTextColor={isDark ? '#9CA3AF' : appColors.lightTextColor}
+                style={[styles.textInput, { color: isDark ? '#FFFFFF' : appColors.text }]}
+                value={referralCode}
+                onChangeText={(text) => {
+                  setReferralCode(text);
+                  setIsReferralApplied(false);
+                  setReferralError('');
+                }}
+                autoCapitalize="characters"
+                editable={!isReferralApplied}
+              />
+              {isReferralApplied ? (
+                <TouchableOpacity onPress={() => setIsReferralApplied(false)}>
+                  <MaterialCommunityIcons name="close-circle" size={mS(24)} color="#EF4444" />
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  onPress={handleApplyReferral}
+                  disabled={isValidatingReferral || !referralCode.trim()}
+                  style={[styles.applyButton, { backgroundColor: isDark ? '#007BFF' : appColors.button }]}
+                >
+                  {isValidatingReferral ? (
+                    <Text style={styles.applyButtonText}>...</Text>
+                  ) : (
+                    <Text style={styles.applyButtonText}>Apply</Text>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+            {referralError ? (
+              <Text style={styles.errorText}>{referralError}</Text>
+            ) : isReferralApplied ? (
+              <Text style={styles.successText}>Code applied successfully!</Text>
+            ) : null}
+          </View>
 
 
 
-        {/* Terms Section */}
-        <View style={styles.termsRow}>
-          <TouchableOpacity onPress={() => setAgreedToTerms(!agreedToTerms)}>
-            {agreedToTerms ? <CheckedIcon width={mS(18)} height={mS(18)} fill={appColors.primary} /> : <UnCheckedIcon width={mS(18)} height={mS(18)} stroke={appColors.lightTextColor} />}
-          </TouchableOpacity>
-          <Text style={[styles.termsText, { color: appColors.lightTextColor }]}>
-            By signing up, you agree to T2Drive's
-            <Text style={[fonts.bold, { color: appColors.text }]}> Terms & Conditions </Text>
-            and <Text style={[fonts.bold, { color: appColors.text }]}>Privacy Policy</Text>.
-          </Text>
-        </View>
-
-        {showValidation && (
-          <View style={{ marginBottom: vS(20), alignItems: 'center' }}>
-            <Text style={{ color: '#EF4444', fontSize: mS(14), fontWeight: '700', textAlign: 'center' }}>
-              {(!firstName || !mobileNumber || !email || !dob) ? "Please fill all required fields" :
-                (!mobileValidation.valid) ? mobileValidation.message :
-                  (!EMAIL_REGEX.test(email)) ? "Invalid email format" : ""}
+          {/* Terms Section */}
+          <View style={styles.termsRow}>
+            <TouchableOpacity onPress={() => setAgreedToTerms(!agreedToTerms)}>
+              {agreedToTerms ? <View style={{ backgroundColor: isDark ? '#007BFF' : 'transparent', borderRadius: 4 }}><CheckedIcon width={mS(18)} height={mS(18)} fill={isDark ? '#007BFF' : appColors.primary} /></View> : <UnCheckedIcon width={mS(18)} height={mS(18)} stroke={isDark ? '#9CA3AF' : appColors.lightTextColor} />}
+            </TouchableOpacity>
+            <Text style={[styles.termsText, { color: isDark ? '#9CA3AF' : appColors.lightTextColor }]}>
+              By signing up, you agree to T2Drive's
+              <Text onPress={() => navigation.navigate(TermsAndConditions_Nav)} style={[fonts.bold, { color: isDark ? '#00BFFF' : appColors.text, textDecorationLine: 'underline' }]}> Terms & Conditions </Text>
+              and <Text onPress={() => navigation.navigate(PrivacyPolicy_Nav)} style={[fonts.bold, { color: isDark ? '#00BFFF' : appColors.text, textDecorationLine: 'underline' }]}>Privacy Policy</Text>.
             </Text>
           </View>
-        )}
 
-        {/* Action Button */}
-        <Button
-          onPress={handleSignUp}
-          loading={updateLoading || otpLoading}
-          style={[styles.signUpButton, { backgroundColor: appColors.button, shadowColor: appColors.button }]}
-        >
-          <Text style={styles.signUpButtonText}>Sign Up</Text>
-        </Button>
 
-        {/* Decorative Car SVG */}
-        <View pointerEvents="none" style={styles.carPosition}>
-          <Car width={hS(350)} height={vS(150)} />
+
+          {/* Action Button */}
+          <Button
+            onPress={handleSignUp}
+            loading={updateLoading || otpLoading}
+            style={[styles.signUpButton, { backgroundColor: isDark ? '#007BFF' : '#0B3370', borderRadius: isDark ? mS(12) : mS(8) }]}
+          >
+            <View style={styles.buttonContentRow}>
+              <Text style={styles.signUpButtonText}>Sign Up</Text>
+              {(!updateLoading && !otpLoading) && (
+                <MaterialCommunityIcons name="arrow-right" size={mS(20)} color="#fff" style={styles.buttonIcon} />
+              )}
+            </View>
+          </Button>
+        </View>
+
+        <View pointerEvents="none" style={[styles.taxiPosition, { marginHorizontal: -hS(24) }]}>
+          {isDark ? (
+            <View style={{ width: Dimensions.get('window').width, height: vS(220), justifyContent: 'flex-end', alignItems: 'center', marginTop: vS(20) }}>
+              <Image
+                source={require('../../assets/png/SignupBackground.png')}
+                style={{ width: Dimensions.get('window').width, height: '100%', resizeMode: 'cover', position: 'absolute' }}
+              />
+              {/* <Image
+                source={require('../../assets/png/LoginscreenLocation.png')}
+                style={{ width: hS(40), height: vS(50), resizeMode: 'contain', position: 'absolute', bottom: vS(100), right: hS(100) }}
+              /> */}
+              <Image
+                source={require('../../assets/png/SignupCar.png')}
+                style={{ width: hS(280), height: vS(140), resizeMode: 'contain', position: 'absolute', bottom: vS(-10) }}
+              />
+            </View>
+          ) : (
+            <Image
+              source={require('../../assets/png/t2drive_yellow_taxi.png')}
+              style={{ width: '100%', height: vS(180), resizeMode: 'cover' }}
+            />
+          )}
         </View>
       </ScrollView>
 
@@ -488,42 +622,46 @@ const SignUpScreen: React.FC<any> = ({ navigation }) => {
   );
 };
 
-const FormInput = ({ label, icon, required, appColors, hasError, ...props }: any) => (
+const FormInput = ({ label, icon, required, appColors, isDark, hasError, errorMessage, ...props }: any) => (
   <View style={styles.fieldContainer}>
     {label && (
       <View style={styles.fieldLabelRow}>
-        <Text style={[styles.fieldLabel, { color: appColors.text }]}>{label}</Text>
+        <Text style={[styles.fieldLabel, { color: isDark ? '#FFFFFF' : appColors.text }]}>{label}</Text>
         {required && <Text style={styles.fieldAsterisk}>*</Text>}
       </View>
     )}
     <View style={[styles.inputWrapper, {
-      backgroundColor: appColors.card,
-      borderColor: hasError ? '#EF4444' : appColors.border
+      backgroundColor: isDark ? '#041026' : appColors.card,
+      borderColor: hasError ? '#EF4444' : isDark ? '#152B4D' : appColors.border,
+      borderRadius: isDark ? mS(12) : mS(8)
     }]}>
-      <View style={[styles.iconBox, { backgroundColor: appColors.background }]}>
-        <MaterialCommunityIcons name={icon} size={mS(20)} color={hasError ? '#EF4444' : appColors.lightTextColor} />
+      <View style={[styles.iconBox, { backgroundColor: isDark ? 'transparent' : appColors.background }]}>
+        <MaterialCommunityIcons name={icon} size={mS(20)} color={hasError ? '#EF4444' : isDark ? '#FFFFFF' : appColors.lightTextColor} />
       </View>
       <TextInput
-        placeholderTextColor={appColors.lightTextColor}
-        style={[styles.textInput, { color: appColors.text }]}
+        placeholderTextColor={isDark ? '#9CA3AF' : appColors.lightTextColor}
+        style={[styles.textInput, { color: isDark ? '#FFFFFF' : appColors.text }]}
         {...props}
       />
     </View>
+    {hasError && errorMessage ? (
+      <Text style={{ color: '#EF4444', fontSize: mS(12), marginTop: vS(4), marginLeft: hS(4) }}>{errorMessage}</Text>
+    ) : null}
   </View>
 );
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
   },
   scrollContent: {
     paddingHorizontal: hS(24),
-    paddingBottom: vS(40),
+    paddingBottom: vS(20),
   },
   headerContainer: {
-    marginTop: vS(40),
-    marginBottom: vS(20),
+    marginTop: vS(20),
+    marginBottom: vS(16),
   },
   welcomeText: {
     fontSize: mS(14),
@@ -534,51 +672,47 @@ const styles = StyleSheet.create({
     marginBottom: vS(8),
   },
   titleText: {
-    fontSize: mS(32),
+    fontSize: mS(24),
     fontWeight: '800',
-    color: '#1E293B',
-    lineHeight: mS(40),
-    marginBottom: vS(10),
+    color: '#0F172A',
+    marginBottom: vS(8),
   },
   descriptionText: {
-    fontSize: mS(15),
-    color: '#64748B',
-    lineHeight: vS(22),
-    fontWeight: '500',
+    fontSize: mS(13),
+    color: '#475569',
+    lineHeight: vS(20),
+    fontWeight: '400',
   },
   fieldContainer: {
-    marginBottom: vS(14),
+    marginBottom: vS(12),
   },
   fieldLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: vS(4),
-    marginLeft: hS(4),
+    marginBottom: vS(6),
+    marginLeft: hS(2),
   },
   fieldLabel: {
-    fontSize: mS(14),
+    fontSize: mS(13),
     fontWeight: '700',
-    color: '#334155',
+    color: '#0F172A',
+    marginBottom: vS(6),
+    marginLeft: hS(2),
   },
   fieldAsterisk: {
     color: '#EF4444',
-    fontSize: mS(14),
-    marginLeft: hS(4),
+    fontSize: mS(13),
+    marginLeft: hS(2),
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: '#E2E8F0',
-    borderRadius: mS(16),
-    height: vS(60),
-    paddingHorizontal: hS(16),
-    shadowColor: '#64748B',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    borderRadius: mS(8),
+    height: vS(48),
+    paddingHorizontal: hS(12),
   },
   iconBox: {
     width: mS(40),
@@ -614,31 +748,30 @@ const styles = StyleSheet.create({
   },
   verticalDivider: {
     width: 1,
-    height: vS(24),
+    height: vS(20),
     backgroundColor: '#E2E8F0',
-    marginHorizontal: hS(16),
+    marginHorizontal: hS(8),
   },
   premiumPickerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: '#E2E8F0',
-    borderRadius: mS(16),
-    paddingHorizontal: hS(16),
-    height: vS(54),
+    borderRadius: mS(8),
+    paddingHorizontal: hS(12),
+    height: vS(48),
   },
   premiumPickerText: {
     flex: 1,
-    fontSize: mS(15),
-    fontWeight: '600',
+    fontSize: mS(14),
+    fontWeight: '500',
     marginLeft: hS(10),
   },
   segmentedControl: {
     flexDirection: 'row',
-    backgroundColor: '#E2E8F0',
-    borderRadius: mS(14),
-    padding: 2,
+    justifyContent: 'space-between',
+    backgroundColor: 'transparent',
     marginTop: vS(4),
   },
   segmentButton: {
@@ -646,21 +779,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: vS(10),
-    borderRadius: mS(12),
+    height: vS(48),
+    borderRadius: mS(8),
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: hS(4),
   },
   segmentButtonActive: {
-    backgroundColor: colors.button,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: '#0B3370',
+    borderColor: '#0B3370',
   },
   segmentText: {
     fontSize: mS(13),
     fontWeight: '700',
-    color: '#64748B',
+    color: '#0F172A',
     marginLeft: hS(6),
   },
   segmentTextActive: {
@@ -682,28 +815,30 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   signUpButton: {
-    backgroundColor: colors.button,
-    height: vS(56),
-    borderRadius: mS(18),
+    backgroundColor: '#0B3370',
+    height: vS(48),
+    borderRadius: mS(8),
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: colors.button,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 15,
-    elevation: 8,
+    marginTop: vS(8),
+  },
+  buttonContentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonIcon: {
+    marginLeft: hS(6),
   },
   signUpButtonText: {
-    fontSize: mS(18),
-    fontWeight: '800',
+    fontSize: mS(15),
+    fontWeight: '700',
     color: '#FFFFFF',
-    letterSpacing: 0.5,
   },
-  carPosition: {
+  taxiPosition: {
     marginTop: vS(20),
-    alignSelf: 'flex-end',
-    marginRight: hS(-60),
-    opacity: 0.8,
+    alignSelf: 'stretch',
+    alignItems: 'center',
   },
   applyButton: {
     paddingHorizontal: hS(12),

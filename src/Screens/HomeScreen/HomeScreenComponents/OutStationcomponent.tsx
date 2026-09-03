@@ -1,57 +1,3 @@
-// import React from "react";
-// import { View, Text, StyleSheet } from "react-native";
-// import { OutStationImage } from '../../../assets/svg';
-// import { Styles } from "../../../lib/styles";
-// import fonts from "../../../constant/fonts";
-// import { useAppTheme } from "../../../hooks/useAppTheme";
-
-// // Import your responsive utilities
-// import { hS, vS, mS } from '../../../lib/responsive';
-
-// export function OutstationComponent() {
-//     const { colors: appColors, isDark } = useAppTheme();
-//     return (
-//         <View style={style.container}>
-//             <Text style={[fonts.bold, style.title, { color: appColors.text }]}>
-//                 Recent Outside Station
-//             </Text>
-
-//             <View style={style.imageWrapper}>
-//                 <OutStationImage
-//                     width={'100%'}
-//                     height={vS(142)}
-//                 />
-//             </View>
-//         </View>
-//     );
-// }
-
-// const style = StyleSheet.create({
-//     container: {
-//         // Use percentage width or scale for full responsiveness
-//         width: '100%',
-//         // verticalScale for height ensures rhythm is kept
-//         minHeight: vS(165),
-//         // gap between text and image
-//         rowGap: vS(9),
-//         // Center the component horizontally within its parent
-//         alignSelf: 'center',
-//     },
-//     title: {
-//         // mS (Moderate Scale) is best for font sizes
-//         fontSize: mS(13),
-//         fontWeight: '700',
-//         lineHeight: vS(16),
-//         paddingHorizontal: hS(20),
-//         color: '#1E293B',
-//     },
-//     imageWrapper: {
-//         width: '100%',
-//         alignItems: 'center',
-//         justifyContent: 'center',
-//     }
-// });
-
 import React, { useEffect, useRef } from "react";
 import { View, Text, StyleSheet, Animated, TouchableOpacity, ScrollView, Image, FlatList } from "react-native";
 import { OutStationImage } from '../../../assets/svg';
@@ -87,8 +33,8 @@ export function OutstationComponent() {
         { id: localuser?.id, limit: 20 },
         { skip: !localuser?.id }
     );
-    const outstationTrips = (tripsData?.data?.data || []).filter((trip: Trip) => 
-        (trip.ride_type === 'OUTSTATION_ONE_WAY' || trip.ride_type === 'OUTSTATION_ROUND_TRIP') && 
+    const outstationTrips = (tripsData?.data?.data || []).filter((trip: Trip) =>
+        (trip.ride_type === 'OUTSTATION_ONE_WAY' || trip.ride_type === 'OUTSTATION_ROUND_TRIP') &&
         ['COMPLETED', 'CANCELLED', 'MID_CANCELLED'].includes(trip.trip_status)
     );
 
@@ -298,13 +244,14 @@ interface StatCardProps {
 }
 
 function StatCard({ icon, label, value, appColors, iconColor, iconBgColor }: StatCardProps) {
+    const isDark = useAppTheme().isDark;
     return (
-        <View style={[styles.statCard, { backgroundColor: appColors.cardBg, borderColor: appColors.border }]}>
+        <View style={[styles.statCard, { backgroundColor: isDark ? '#0A1931' : appColors.card, borderColor: isDark ? 'transparent' : appColors.border }]}>
             <View style={[styles.statIconContainer, { backgroundColor: iconBgColor || appColors.primary + '15' }]}>
                 <Ionicons name={icon as any} size={18} color={iconColor || appColors.button} />
             </View>
-            <Text style={[styles.statLabel, { color: appColors.secondaryText }]}>{label}</Text>
-            <Text style={[fonts.bold, styles.statValue, { color: appColors.text }]}>{value}</Text>
+            <Text style={[styles.statLabel, { color: isDark ? '#9CA3AF' : appColors.secondaryText }]}>{label}</Text>
+            <Text style={[fonts.bold, styles.statValue, { color: isDark ? '#F3F4F6' : appColors.text }]}>{value}</Text>
         </View>
     );
 }

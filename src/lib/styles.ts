@@ -486,4 +486,9 @@ export const Styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 13,
   },
+  logoImage: {
+    width: 100,
+    height: 100,
+    alignSelf: 'center',
+  },
 });

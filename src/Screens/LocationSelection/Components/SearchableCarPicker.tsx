@@ -10,7 +10,8 @@ import {
     SectionList,
     Dimensions,
     KeyboardAvoidingView,
-    Platform
+    Platform,
+    Image
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { ALL_CARS, CarModel, INDIAN_CAR_DATABASE } from '../../../constant/cars';
@@ -95,7 +96,8 @@ const SearchableCarPicker: React.FC<SearchableCarPickerProps> = ({ onSelect, pla
                     style={styles.searchButton}
                 >
                     <View style={styles.searchIconOuter}>
-                        <MaterialCommunityIcons name="car-select" size={mS(22)} color={colors.primary} />
+                        {/* <MaterialCommunityIcons name="car-select" size={mS(22)} color={colors.primary} /> */}
+                        <Image source={require('../../../assets/png/T2Drive_SearchableCar.png')} style={{ width: mS(80), height: mS(44), resizeMode: 'contain' }} />
                     </View>
                     <View style={styles.searchTextContainer}>
                         <Text style={[styles.label, { color: colors.secondaryText }]}>VEHICLE</Text>
@@ -137,7 +139,7 @@ const SearchableCarPicker: React.FC<SearchableCarPickerProps> = ({ onSelect, pla
             </View>
 
             {/* Selection Modal */}
-            <Modal statusBarTranslucent navigationBarTranslucent                 visible={isOpen}
+            <Modal statusBarTranslucent navigationBarTranslucent visible={isOpen}
                 animationType="slide"
                 transparent={true}
                 onRequestClose={() => setIsOpen(false)}
@@ -151,7 +153,7 @@ const SearchableCarPicker: React.FC<SearchableCarPickerProps> = ({ onSelect, pla
                         <View style={styles.modalHeader}>
                             <View style={styles.dragHandle} />
                             <Text style={[styles.modalTitle, { color: colors.text }]}>Select Vehicle</Text>
-                            
+
                             <View style={[styles.searchInputContainer, { backgroundColor: isDark ? colors.background : '#F8FAFC', borderColor: colors.border, borderWidth: isDark ? 1 : 0 }]}>
                                 <MaterialCommunityIcons name="magnify" size={mS(20)} color={colors.secondaryText} />
                                 <TextInput
@@ -229,10 +231,11 @@ const styles = StyleSheet.create({
         padding: mS(16),
     },
     searchIconOuter: {
-        width: mS(44),
+        width: mS(80),
         height: mS(44),
         borderRadius: mS(12),
-        backgroundColor: 'rgba(96, 165, 250, 0.1)',
+        // backgroundColor: 'rgba(96, 165, 250, 0.1)',
+        backgroundColor: 'transparent',
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: hS(14),

@@ -7,6 +7,8 @@ import {
   SignUpScreen_Nav,
   WelcomeScreen_Nav,
   SuspensionScreen_Nav,
+  TermsAndConditions_Nav,
+  PrivacyPolicy_Nav,
 } from './navigations';
 import WelcomeScreen from '../Screens/Auth/WelcomeScreen';
 import LoginScreen from '../Screens/Auth/LoginScreen';
@@ -14,6 +16,8 @@ import OTPScreen from '../Screens/Auth/OTPScreen';
 import SignUpScreen from '../Screens/Auth/SignUpScreen';
 import OTPSuccessScreen from '../Screens/Auth/OTPSuccessScreen';
 import SuspensionScreen from '../Screens/Auth/SuspensionScreen';
+import TermsAndConditionsScreen from '../Screens/Auth/TermsAndConditionsScreen';
+import PrivacyPolicyScreen from '../Screens/Auth/PrivacyPolicyScreen';
 import { useSelector } from 'react-redux';
 import { RootState } from '../redux/store';
 
@@ -33,6 +37,8 @@ const AuthNavigation: React.FC<ScreenProps> = () => {
       <Stack.Screen name={OTPSuccessScreen_Nav} component={OTPSuccessScreen} />
       <Stack.Screen name={SignUpScreen_Nav} component={SignUpScreen} />
       <Stack.Screen name={SuspensionScreen_Nav} component={SuspensionScreen} />
+      <Stack.Screen name={TermsAndConditions_Nav} component={TermsAndConditionsScreen} />
+      <Stack.Screen name={PrivacyPolicy_Nav} component={PrivacyPolicyScreen} />
     </Stack.Navigator>
   );
 };

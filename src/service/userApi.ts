@@ -336,11 +336,23 @@ export const userApi = createApi({
     getWalletSettings: builder.query<any, string>({
       query: (userId) => `/wallet/settings/${userId}`,
     }),
-    updateWalletSettings: builder.mutation<any, { userId: string; enabled?: boolean; threshold_amount?: number; reload_amount?: number }>({
+    updateWalletSettings: builder.mutation<any, { userId: string; enabled?: boolean; threshold_amount?: number; reload_amount?: number; payment_method?: string }>({
       query: ({ userId, ...body }) => ({
         url: `/wallet/settings/${userId}`,
         method: 'PUT',
         body,
+      }),
+    }),
+    reportTransactionIssue: builder.mutation<any, { userId: string; transactionId: string; rideId?: string; category: string; description: string }>({
+      query: (body) => ({
+        url: `/support/tickets/user`,
+        method: 'POST',
+        body: {
+          user_id: body.userId,
+          subject: `Transaction Issue: ${body.transactionId}`,
+          description: `Ride ID: ${body.rideId || 'N/A'}\nCategory: ${body.category}\n\n${body.description}`,
+          category: 'payment'
+        },
       }),
     }),
 
@@ -394,6 +406,7 @@ export const {
   usePayTripWithWalletMutation,
   useGetWalletSettingsQuery,
   useUpdateWalletSettingsMutation,
+  useReportTransactionIssueMutation,
 } = userApi;
 
 

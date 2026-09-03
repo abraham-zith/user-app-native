@@ -17,6 +17,7 @@ import {
   Keyboard,
   Image,
   Switch,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -43,7 +44,9 @@ import Config from 'react-native-config';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { hS, vS, mS } from '../../lib/responsive';
 import colors from '../../constant/colors';
-import { WalletSuccessScreen_Nav, WalletPinSetupScreen_Nav } from '../../Navigations/navigations';
+import { WalletSuccessScreen_Nav, WalletPinSetupScreen_Nav, TransactionDetailsScreen_Nav } from '../../Navigations/navigations';
+import LowBalanceBanner from '../../Components/Wallet/LowBalanceBanner';
+import { downloadWalletStatement, shareWalletStatement } from '../../utils/pdfGenerator';
 
 /* ─────────── SKELETON ─────────── */
 const Skeleton = ({
@@ -125,48 +128,152 @@ const WalletScreen = () => {
   const transactions = txnData?.data ?? [];
   const isLoading = (isBalanceFetching || isTxnFetching) && !balanceData && !txnData;
 
+  const { trendAmount, isTrendPositive } = useMemo(() => {
+    if (!transactions || transactions.length === 0) return { trendAmount: 0, isTrendPositive: true };
+
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+    const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+    let currentMonthNet = 0;
+    let lastMonthNet = 0;
+
+    transactions.forEach((txn: any) => {
+      if (!txn.date) return;
+      const parts = txn.date.split('/');
+      if (parts.length === 3) {
+        const txnMonth = parseInt(parts[1], 10) - 1;
+        const txnYear = parseInt(parts[2], 10);
+
+        const isCredit = txn.type === 'CREDIT' || txn.transaction_type === 'WALLET_TOPUP' || txn.transaction_type === 'REFUND' || txn.transaction_type === 'REFERRAL_REWARD';
+        const amount = Number(txn.amount) || 0;
+        const signedAmount = isCredit ? Math.abs(amount) : -Math.abs(amount);
+
+        if (txnMonth === currentMonth && txnYear === currentYear) {
+          currentMonthNet += signedAmount;
+        } else if (txnMonth === lastMonth && txnYear === lastMonthYear) {
+          lastMonthNet += signedAmount;
+        }
+      }
+    });
+
+    const diff = currentMonthNet - lastMonthNet;
+    return {
+      trendAmount: Math.abs(diff),
+      isTrendPositive: diff >= 0
+    };
+  }, [transactions]);
+
   // Add Money Modal
   const [addMoneyVisible, setAddMoneyVisible] = useState(false);
   const [topupAmount, setTopupAmount] = useState('');
+
+  // PDF Generation State
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
+
+  // Transactions Display State
+  const [showAllTransactions, setShowAllTransactions] = useState(false);
 
   // Auto Reload Modal
   const [autoReloadVisible, setAutoReloadVisible] = useState(false);
   const [arEnabled, setArEnabled] = useState(false);
   const [arThreshold, setArThreshold] = useState('');
   const [arReloadAmount, setArReloadAmount] = useState('');
+  const [arPaymentMethod, setArPaymentMethod] = useState('CARD');
 
   const openAutoReload = () => {
     if (settingsData?.data) {
       setArEnabled(settingsData.data.enabled || false);
       setArThreshold(String(settingsData.data.threshold_amount || 500));
       setArReloadAmount(String(settingsData.data.reload_amount || 1000));
+      setArPaymentMethod(settingsData.data.payment_method || 'CARD');
     } else {
       setArEnabled(false);
       setArThreshold('500');
       setArReloadAmount('1000');
+      setArPaymentMethod('CARD');
     }
     setAutoReloadVisible(true);
   };
 
   const handleSaveAutoReload = async () => {
-    try {
-      await updateSettings({
-        userId,
-        enabled: arEnabled,
-        threshold_amount: Number(arThreshold) || 500,
-        reload_amount: Number(arReloadAmount) || 1000,
-      }).unwrap();
-      refetchSettings();
-      setAutoReloadVisible(false);
-      Alert.alert('Success', 'Auto Reload settings saved.');
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Failed to save settings.');
+    const isFirstTimeSetup = !settingsData?.data?.enabled && arEnabled;
+
+    const saveSettings = async () => {
+      try {
+        if (isFirstTimeSetup) {
+          const amount = Number(arReloadAmount) || 1000;
+          if (amount < 50) {
+            Alert.alert('Minimum Amount', 'Auto-reload amount must be at least ₹50');
+            return;
+          }
+          const orderRes = await createOrder({ userId, amount }).unwrap();
+          const options = {
+            description: 'Auto-Reload Setup Authorization',
+            currency: orderRes.data?.currency || 'INR',
+            key: Config.RAZORPAY_KEY_ID || 'rzp_test_SCjewpaZ96XBWa',
+            amount: orderRes.data?.amount || String(amount * 100),
+            name: 'VDrive',
+            order_id: orderRes.data?.id,
+            prefill: {
+              email: user?.email || '',
+              contact: user?.phone_number || '',
+              name: user?.full_name || '',
+            },
+            theme: { color: colors.button },
+          };
+          const data = await RazorpayCheckout.open(options);
+          const verifyRes = await verifyPayment({
+            userId,
+            amount,
+            razorpay_order_id: data.razorpay_order_id || '',
+            razorpay_payment_id: data.razorpay_payment_id || '',
+            razorpay_signature: data.razorpay_signature || '',
+          }).unwrap();
+
+          if (!verifyRes.success) {
+            throw new Error('Payment verification failed');
+          }
+        }
+
+        await updateSettings({
+          userId,
+          enabled: arEnabled,
+          threshold_amount: Number(arThreshold) || 500,
+          reload_amount: Number(arReloadAmount) || 1000,
+          payment_method: arPaymentMethod,
+        }).unwrap();
+
+        refetchSettings();
+        if (isFirstTimeSetup) {
+          refetchBalance();
+          refetchTxns();
+        }
+        setAutoReloadVisible(false);
+        Alert.alert('Success', 'Auto Reload settings saved.');
+      } catch (e: any) {
+        const msg = e?.message || e?.error?.description || e?.description || 'Failed to save settings or payment cancelled.';
+        Alert.alert('Error', msg);
+      }
+    };
+
+    if (isFirstTimeSetup) {
+      Alert.alert(
+        'Confirm Auto-Reload',
+        `To authenticate your ${arPaymentMethod}, an initial top-up of ₹${arReloadAmount} will be processed now. Auto-reload will then trigger automatically when balance falls below ₹${arThreshold}.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Proceed to Pay', onPress: saveSettings }
+        ]
+      );
+    } else {
+      saveSettings();
     }
   };
-
-  // Transaction Detail Modal
-  const [txnDetailVisible, setTxnDetailVisible] = useState(false);
-  const [selectedTxn, setSelectedTxn] = useState<any>(null);
 
   // Refresh
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -228,15 +335,30 @@ const WalletScreen = () => {
     }
   };
 
-  /* ─────── SHARE RECEIPT ─────── */
-  const handleShare = async () => {
-    if (!selectedTxn) return;
+  /* ─────── PDF STATEMENT HANDLERS ─────── */
+  const handleDownloadStatement = async () => {
+    if (isGeneratingPDF || transactions.length === 0) return;
+    setIsGeneratingPDF(true);
     try {
-      await Share.share({
-        title: 'Wallet Transaction Receipt',
-        message: `VDrive Wallet Receipt\n\nID: ${selectedTxn.id}\nDescription: ${selectedTxn.title}\nDate: ${selectedTxn.date} ${selectedTxn.time}\nAmount: ${selectedTxn.amount > 0 ? '+' : ''}₹${Math.abs(selectedTxn.amount)}\nStatus: ${selectedTxn.status}`,
-      });
-    } catch { }
+      const filePath = await downloadWalletStatement(user, balance, transactions);
+      Alert.alert('Success', `Statement downloaded successfully to ${filePath}`);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to download statement');
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
+  const handleShareStatement = async () => {
+    if (isGeneratingPDF || transactions.length === 0) return;
+    setIsGeneratingPDF(true);
+    try {
+      await shareWalletStatement(user, balance, transactions);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to share statement');
+    } finally {
+      setIsGeneratingPDF(false);
+    }
   };
 
   /* ─────── RENDER ─────── */
@@ -246,18 +368,17 @@ const WalletScreen = () => {
 
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: appColors.background }]}>
-        <TouchableOpacity
-          style={[styles.backBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F1F5F9' }]}
-          onPress={() => navigation.goBack()}
-        >
-          <MaterialCommunityIcons name="arrow-left" size={mS(22)} color={appColors.text} />
+        <TouchableOpacity style={styles.headerIconBtn} onPress={() => navigation.goBack()}>
+          <MaterialCommunityIcons name="arrow-left" size={mS(24)} color={appColors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: appColors.text }]}>My Wallet</Text>
-        <View style={{ width: mS(40) }} />
+        <Text style={[styles.headerTitle, { color: appColors.text, flex: 1, textAlign: 'center' }]}>My Wallet</Text>
+        <TouchableOpacity style={styles.headerIconBtn}>
+          <MaterialCommunityIcons name="help-circle-outline" size={mS(24)} color={appColors.text} />
+        </TouchableOpacity>
       </View>
 
       <FlatList
-        data={transactions}
+        data={showAllTransactions ? transactions : transactions.slice(0, 5)}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + vS(40) }]}
@@ -266,7 +387,7 @@ const WalletScreen = () => {
           <>
             {/* Balance Card */}
             {isLoading ? (
-              <View style={[styles.balanceCard, { backgroundColor: '#1E3A8A' }]}>
+              <View style={[styles.balanceCard, { backgroundColor: '#082075' }]}>
                 <Skeleton width={120} height={16} borderRadius={8} style={{ marginBottom: vS(12) }} />
                 <Skeleton width={180} height={40} borderRadius={8} style={{ marginBottom: vS(24) }} />
                 <View style={{ flexDirection: 'row', gap: hS(12) }}>
@@ -275,23 +396,37 @@ const WalletScreen = () => {
                 </View>
               </View>
             ) : (
-              <View style={styles.balanceCard}>
-                <View style={styles.balanceHeader}>
-                  <Text style={styles.balanceLabel}>Total Balance</Text>
-                  <MaterialCommunityIcons name="wallet-outline" size={mS(22)} color="rgba(255,255,255,0.7)" />
+              <View style={[styles.balanceCard, { backgroundColor: '#082075', overflow: 'hidden' }]}>
+                <MaterialCommunityIcons name="wallet-bifold" size={mS(160)} color="rgba(255,255,255,0.04)" style={{ position: 'absolute', right: -mS(30), top: -mS(20), transform: [{ rotate: '-20deg' }] }} />
+
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <View>
+                    <View style={styles.balanceHeader}>
+                      <Text style={styles.balanceLabel}>Total Balance</Text>
+                      <MaterialCommunityIcons name="eye" size={mS(16)} color="#FFF" />
+                    </View>
+                    <Text style={styles.balanceValue}>₹{Number(balance).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+                  </View>
+                  <View style={styles.walletIconContainer}>
+                    {/* <MaterialCommunityIcons name="wallet-bifold" size={mS(36)} color="rgba(255,255,255,0.2)" /> */}
+                    <Image source={require('../../assets/png/WalletScreenImage.png')} style={{ width: mS(75), height: mS(75) }} />
+                    <View style={styles.currencyBadge}>
+                      <Text style={styles.currencyBadgeText}>₹</Text>
+                    </View>
+                  </View>
                 </View>
-                <Text style={styles.balanceValue}>₹{Number(balance).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cardActions}>
+
+                <View style={[styles.cardActions, { flexDirection: 'row', justifyContent: 'space-between', marginTop: vS(12) }]}>
                   <TouchableOpacity
-                    style={styles.cardActionBtn}
+                    style={[styles.cardActionBtn, { flex: 1, justifyContent: 'center', backgroundColor: '#FFF' }]}
                     onPress={() => { setTopupAmount(''); setAddMoneyVisible(true); }}
                     activeOpacity={0.85}
                   >
-                    <MaterialCommunityIcons name="plus-circle-outline" size={mS(18)} color="#1E3A8A" />
-                    <Text style={styles.cardActionText}>Add Money</Text>
+                    <MaterialCommunityIcons name="plus-circle-outline" size={mS(18)} color="#082075" />
+                    <Text style={[styles.cardActionText, { color: '#082075' }]}>Add Money</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.cardActionBtn, { backgroundColor: 'rgba(255,255,255,0.18)', marginLeft: hS(12) }]}
+                    style={[styles.cardActionBtn, { backgroundColor: 'rgba(255,255,255,0.15)', marginLeft: hS(12), flex: 1, justifyContent: 'center' }]}
                     onPress={() => navigation.navigate(WalletPinSetupScreen_Nav)}
                     activeOpacity={0.85}
                   >
@@ -300,27 +435,91 @@ const WalletScreen = () => {
                       {hasWalletPin ? 'Reset PIN' : 'Setup PIN'}
                     </Text>
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.cardActionBtn, { backgroundColor: 'rgba(255,255,255,0.18)', marginLeft: hS(12) }]}
-                    onPress={openAutoReload}
-                    activeOpacity={0.85}
-                  >
-                    <MaterialCommunityIcons name="autorenew" size={mS(18)} color="#FFF" />
-                    <Text style={[styles.cardActionText, { color: '#FFF' }]}>Auto Reload</Text>
-                  </TouchableOpacity>
-                </ScrollView>
+                </View>
               </View>
             )}
 
+            {/* Auto Reload Banner */}
+            {!isLoading && (
+              <TouchableOpacity
+                style={[styles.autoReloadCard, { backgroundColor: isDark ? appColors.card : '#FFF', borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0', borderWidth: 1 }]}
+                onPress={openAutoReload}
+                activeOpacity={0.75}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: hS(12) }}>
+                  <View style={{ backgroundColor: '#10B981', padding: mS(6), borderRadius: mS(20), width: mS(36), height: mS(36), justifyContent: 'center', alignItems: 'center' }}>
+                    <MaterialCommunityIcons name="autorenew" size={mS(20)} color="#FFF" />
+                  </View>
+                  <View>
+                    <Text style={{ fontSize: mS(15), fontWeight: '700', color: appColors.text }}>Auto Reload</Text>
+                    <Text style={{ fontSize: mS(12), color: appColors.secondaryText, marginTop: vS(2) }}>
+                      {settingsData?.data?.enabled ? <Text style={{ color: '#10B981' }}>Active</Text> : 'Inactive'} • Min. Balance ₹{settingsData?.data?.threshold_amount || 100}
+                    </Text>
+                  </View>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={mS(24)} color={appColors.secondaryText} />
+              </TouchableOpacity>
+            )}
+
             {/* Security Banner */}
-            <View style={[styles.securityBanner, { backgroundColor: isDark ? 'rgba(16,185,129,0.1)' : '#ECFDF5', borderColor: isDark ? 'rgba(16,185,129,0.2)' : '#D1FAE5' }]}>
-              <MaterialCommunityIcons name="shield-lock" size={mS(16)} color="#10B981" />
-              <Text style={[styles.securityText, { color: isDark ? '#34D399' : '#065F46' }]}>
-                All transactions are end-to-end secured
-              </Text>
+            <View style={[styles.securityBannerCard, { backgroundColor: isDark ? 'rgba(16,185,129,0.1)' : '#F0FDF4', borderColor: isDark ? 'rgba(16,185,129,0.2)' : '#DCFCE7' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: hS(8) }}>
+                <MaterialCommunityIcons name="shield-check" size={mS(18)} color="#059669" />
+                <Text style={[styles.securityText, { color: isDark ? '#34D399' : '#047857' }]}>
+                  All transactions are end-to-end secured
+                </Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={mS(20)} color="#059669" />
             </View>
 
-            <Text style={[styles.sectionTitle, { color: appColors.text }]}>Recent Transactions</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: vS(16), zIndex: 10 }}>
+              <Text style={[styles.sectionTitle, { color: appColors.text, marginBottom: 0 }]}>Recent Transactions</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                {transactions.length > 5 && (
+                  <TouchableOpacity onPress={() => setShowAllTransactions(!showAllTransactions)} style={{ marginRight: hS(8) }}>
+                    <Text style={{ color: '#1E3A8A', fontSize: mS(14), fontWeight: '700' }}>
+                      {showAllTransactions ? 'See Less' : 'See More'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity onPress={() => setMenuVisible(true)} style={{ padding: 4 }}>
+                  <MaterialCommunityIcons name="dots-vertical" size={mS(22)} color={appColors.text} />
+                </TouchableOpacity>
+                <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)}>
+                  <TouchableWithoutFeedback onPress={() => setMenuVisible(false)}>
+                    <View style={{ flex: 1 }}>
+                      <View style={[styles.dropdownMenu, { backgroundColor: appColors.card, borderColor: isDark ? '#374151' : '#E2E8F0' }]}>
+                        <TouchableOpacity
+                          style={styles.dropdownItem}
+                          onPress={() => { setMenuVisible(false); handleDownloadStatement(); }}
+                          disabled={isGeneratingPDF || transactions.length === 0}
+                        >
+                          {isGeneratingPDF ? (
+                            <ActivityIndicator size="small" color={appColors.text} style={{ marginRight: hS(8) }} />
+                          ) : (
+                            <MaterialCommunityIcons name="file-download-outline" size={mS(20)} color={appColors.text} style={{ marginRight: hS(8) }} />
+                          )}
+                          <Text style={[styles.dropdownText, { color: appColors.text }]}>Download PDF</Text>
+                        </TouchableOpacity>
+                        <View style={{ height: 1, backgroundColor: isDark ? '#374151' : '#E2E8F0' }} />
+                        <TouchableOpacity
+                          style={styles.dropdownItem}
+                          onPress={() => { setMenuVisible(false); handleShareStatement(); }}
+                          disabled={isGeneratingPDF || transactions.length === 0}
+                        >
+                          {isGeneratingPDF ? (
+                            <ActivityIndicator size="small" color={appColors.text} style={{ marginRight: hS(8) }} />
+                          ) : (
+                            <MaterialCommunityIcons name="share-variant-outline" size={mS(20)} color={appColors.text} style={{ marginRight: hS(8) }} />
+                          )}
+                          <Text style={[styles.dropdownText, { color: appColors.text }]}>Share PDF</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </TouchableWithoutFeedback>
+                </Modal>
+              </View>
+            </View>
           </>
         }
         renderItem={({ item }) => {
@@ -329,7 +528,7 @@ const WalletScreen = () => {
           return (
             <TouchableOpacity
               style={[styles.txnRow, { backgroundColor: appColors.card, borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'transparent', borderWidth: isDark ? 1 : 0 }]}
-              onPress={() => { setSelectedTxn(item); setTxnDetailVisible(true); }}
+              onPress={() => navigation.navigate(TransactionDetailsScreen_Nav, { transaction: item })}
               activeOpacity={0.75}
             >
               <View style={[styles.txnIcon, { backgroundColor: isDark ? icon.darkBg : icon.bg }]}>
@@ -380,9 +579,37 @@ const WalletScreen = () => {
                 Your wallet activity will appear here.{'\n'}Add money to get started.
               </Text>
             </View>
-          )
-        }
+          )}
       />
+
+      {/* ═══ BOTTOM STICKY FOOTER ═══ */}
+      <View style={[styles.bottomStickyFooter, { backgroundColor: isDark ? appColors.card : '#F8FAFC', borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0', borderWidth: 1 }]}>
+        <View style={styles.footerLeft}>
+          <Text style={[styles.footerLabel, { color: appColors.secondaryText }]}>Current Balance</Text>
+          <Text style={[styles.footerValue, { color: appColors.text }]}>₹{Number(balance).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+        </View>
+
+        {/* <View style={{ alignItems: 'flex-start', flex: 1, paddingLeft: hS(8) }}>
+          <View style={[styles.trendBadge, { backgroundColor: isTrendPositive ? (isDark ? 'rgba(16,185,129,0.15)' : '#D1FAE5') : (isDark ? 'rgba(239,68,68,0.15)' : '#FEE2E2') }]}>
+            <MaterialCommunityIcons name={isTrendPositive ? "arrow-up" : "arrow-down"} size={mS(12)} color={isTrendPositive ? "#10B981" : "#EF4444"} />
+            <Text style={[styles.trendText, { color: isTrendPositive ? '#059669' : '#DC2626' }]}>₹{trendAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+          </View>
+          <Text style={[styles.trendSub, { color: appColors.secondaryText }]}>vs last month</Text>
+        </View> */}
+
+        {/* <View style={[styles.footerDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0' }]} /> */}
+
+        {/* <TouchableOpacity style={styles.footerRight} activeOpacity={0.75}>
+          <View style={styles.footerRightIconBox}>
+            <MaterialCommunityIcons name="crown" size={mS(18)} color="#FFF" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.footerRightTitle, { color: appColors.text }]}>Wallet Benefits</Text>
+            <Text style={[styles.footerRightSub, { color: appColors.secondaryText }]} numberOfLines={2}>Use wallet balance to get faster checkouts & offers!</Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={mS(20)} color={appColors.secondaryText} />
+        </TouchableOpacity> */}
+      </View>
 
       {/* ═══ AUTO RELOAD MODAL ═══ */}
       <Modal
@@ -406,7 +633,7 @@ const WalletScreen = () => {
               thumbColor={'#f4f3f4'}
             />
           </View>
-          
+
           <Text style={[styles.sheetSubtitle, { color: appColors.secondaryText, marginBottom: vS(8) }]}>
             When balance falls below:
           </Text>
@@ -431,6 +658,22 @@ const WalletScreen = () => {
               value={arReloadAmount}
               onChangeText={setArReloadAmount}
             />
+          </View>
+
+          <Text style={[styles.sheetSubtitle, { color: appColors.secondaryText, marginBottom: vS(8) }]}>
+            Payment Method:
+          </Text>
+          <View style={[styles.quickRow, { opacity: arEnabled ? 1 : 0.5 }]} pointerEvents={arEnabled ? 'auto' : 'none'}>
+            {['CARD', 'UPI'].map((method) => (
+              <TouchableOpacity
+                key={method}
+                style={[styles.quickBtn, { backgroundColor: arPaymentMethod === method ? colors.button : (isDark ? '#374151' : '#F1F5F9') }]}
+                onPress={() => setArPaymentMethod(method)}
+                activeOpacity={0.75}
+              >
+                <Text style={[styles.quickBtnText, { color: arPaymentMethod === method ? '#FFF' : appColors.text }]}>{method}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
 
           <TouchableOpacity
@@ -516,65 +759,6 @@ const WalletScreen = () => {
         </View>
       </Modal>
 
-      {/* ═══ TRANSACTION DETAIL MODAL ═══ */}
-      <Modal
-        visible={txnDetailVisible}
-        transparent
-        animationType="slide"
-        statusBarTranslucent
-        onRequestClose={() => setTxnDetailVisible(false)}
-      >
-        <TouchableWithoutFeedback onPress={() => setTxnDetailVisible(false)}>
-          <View style={styles.modalOverlay} />
-        </TouchableWithoutFeedback>
-        {selectedTxn && (
-          <View style={[styles.modalSheet, { backgroundColor: appColors.card, paddingBottom: insets.bottom + vS(24) }]}>
-            <View style={[styles.sheetHandle, { backgroundColor: isDark ? '#4B5563' : '#E2E8F0' }]} />
-            <View style={styles.txnDetailHeader}>
-              <View
-                style={[
-                  styles.txnDetailIcon,
-                  { backgroundColor: Number(selectedTxn.amount) > 0 ? (isDark ? 'rgba(16,185,129,0.2)' : '#ECFDF5') : (isDark ? 'rgba(239,68,68,0.2)' : '#FEE2E2') },
-                ]}
-              >
-                <MaterialCommunityIcons
-                  name={Number(selectedTxn.amount) > 0 ? 'arrow-down-circle' : 'arrow-up-circle'}
-                  size={mS(36)}
-                  color={Number(selectedTxn.amount) > 0 ? '#10B981' : '#EF4444'}
-                />
-              </View>
-              <Text style={[styles.txnDetailTitle, { color: appColors.text }]}>{selectedTxn.title}</Text>
-              <Text style={[styles.txnDetailAmount, { color: Number(selectedTxn.amount) > 0 ? '#10B981' : '#EF4444' }]}>
-                {Number(selectedTxn.amount) > 0 ? '+' : ''}₹{Math.abs(Number(selectedTxn.amount)).toLocaleString('en-IN')}
-              </Text>
-            </View>
-
-            <View style={[styles.txnDetailCard, { backgroundColor: isDark ? '#1F2937' : '#F8FAFC', borderColor: isDark ? '#374151' : '#E2E8F0' }]}>
-              {[
-                { label: 'Transaction ID', value: selectedTxn.id },
-                { label: 'Date', value: selectedTxn.date },
-                { label: 'Time', value: selectedTxn.time },
-                { label: 'Type', value: (selectedTxn.type || '').replace(/_/g, ' ') },
-                { label: 'Status', value: selectedTxn.status },
-              ].map(({ label, value }) => (
-                <View key={label} style={styles.txnDetailRow}>
-                  <Text style={[styles.txnDetailLabel, { color: appColors.secondaryText }]}>{label}</Text>
-                  <Text style={[styles.txnDetailValue, { color: appColors.text }]} numberOfLines={1}>{value}</Text>
-                </View>
-              ))}
-            </View>
-
-            <TouchableOpacity
-              style={[styles.shareBtn, { borderColor: isDark ? 'rgba(255,255,255,0.12)' : '#E2E8F0' }]}
-              onPress={handleShare}
-              activeOpacity={0.8}
-            >
-              <MaterialCommunityIcons name="share-outline" size={mS(20)} color={appColors.text} />
-              <Text style={[styles.shareBtnText, { color: appColors.text }]}>Share Receipt</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </Modal>
     </View>
   );
 };
@@ -602,67 +786,111 @@ const styles = StyleSheet.create({
     fontSize: mS(20),
     fontWeight: '800',
   },
+  headerIconBtn: {
+    width: mS(40),
+    height: mS(40),
+    borderRadius: mS(20),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   listContent: {
     paddingHorizontal: hS(16),
   },
   balanceCard: {
-    backgroundColor: '#1E3A8A',
-    borderRadius: mS(24),
+    backgroundColor: '#0A2585',
+    borderRadius: mS(16),
     padding: hS(24),
-    marginBottom: vS(12),
-    shadowColor: '#1E3A8A',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
+    marginBottom: vS(16),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 8,
   },
   balanceHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: vS(8),
+    gap: hS(8),
   },
   balanceLabel: {
     fontSize: mS(14),
-    color: 'rgba(255,255,255,0.7)',
-    fontWeight: '600',
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '500',
   },
   balanceValue: {
     fontSize: mS(38),
-    fontWeight: '900',
+    fontWeight: '800',
     color: '#FFF',
     letterSpacing: -0.5,
-    marginBottom: vS(24),
+  },
+  walletIconContainer: {
+    position: 'relative',
+    marginTop: vS(4),
+    marginRight: hS(12),
+  },
+  currencyBadge: {
+    position: 'absolute',
+    bottom: -mS(6),
+    right: -mS(6),
+    width: mS(20),
+    height: mS(20),
+    borderRadius: mS(10),
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
+  },
+  currencyBadgeText: {
+    color: '#FFF',
+    fontSize: mS(10),
+    fontWeight: '700',
   },
   cardActions: {
     flexDirection: 'row',
   },
   cardActionBtn: {
     backgroundColor: '#FFF',
-    borderRadius: mS(14),
+    borderRadius: mS(12),
     paddingVertical: vS(10),
     paddingHorizontal: hS(16),
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: hS(6),
   },
   cardActionText: {
-    color: '#1E3A8A',
+    color: '#0A2585',
     fontWeight: '700',
     fontSize: mS(14),
   },
-  securityBanner: {
+  autoReloadCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: hS(8),
-    paddingVertical: vS(10),
+    justifyContent: 'space-between',
+    paddingVertical: vS(14),
+    paddingHorizontal: hS(16),
+    borderRadius: mS(12),
+    marginBottom: vS(12),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  securityBannerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: vS(12),
     paddingHorizontal: hS(16),
     borderRadius: mS(12),
     borderWidth: 1,
     marginBottom: vS(20),
   },
   securityText: {
-    fontSize: mS(12),
+    fontSize: mS(13),
     fontWeight: '600',
   },
   sectionTitle: {
@@ -673,22 +901,89 @@ const styles = StyleSheet.create({
   txnRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: mS(16),
-    padding: hS(14),
-    marginBottom: vS(8),
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
+    borderRadius: mS(12),
+    paddingVertical: vS(12),
+    paddingHorizontal: hS(12),
+    marginBottom: vS(10),
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.03)',
   },
   txnIcon: {
-    width: mS(48),
-    height: mS(48),
-    borderRadius: mS(24),
+    width: mS(42),
+    height: mS(42),
+    borderRadius: mS(21),
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: hS(12),
+  },
+  bottomStickyFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: hS(16),
+    paddingVertical: vS(16),
+    borderTopLeftRadius: mS(20),
+    borderTopRightRadius: mS(20),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  footerLeft: {
+    justifyContent: 'center',
+  },
+  footerLabel: {
+    fontSize: mS(12),
+    fontWeight: '500',
+    marginBottom: vS(2),
+  },
+  footerValue: {
+    fontSize: mS(18),
+    fontWeight: '800',
+  },
+  trendBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: hS(6),
+    paddingVertical: vS(2),
+    borderRadius: mS(4),
+  },
+  trendText: {
+    fontSize: mS(10),
+    fontWeight: '700',
+    marginLeft: hS(2),
+  },
+  trendSub: {
+    fontSize: mS(10),
+    marginTop: vS(2),
+  },
+  footerDivider: {
+    width: 1,
+    height: '100%',
+    marginHorizontal: hS(12),
+  },
+  footerRight: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  footerRightIconBox: {
+    width: mS(32),
+    height: mS(32),
+    borderRadius: mS(16),
+    backgroundColor: '#3B82F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: hS(10),
+  },
+  footerRightTitle: {
+    fontSize: mS(13),
+    fontWeight: '700',
+    marginBottom: vS(2),
+  },
+  footerRightSub: {
+    fontSize: mS(10),
+    lineHeight: mS(12),
   },
   txnBody: { flex: 1 },
   txnTitle: { fontSize: mS(14), fontWeight: '700', marginBottom: vS(3) },
@@ -812,4 +1107,28 @@ const styles = StyleSheet.create({
     gap: hS(8),
   },
   shareBtnText: { fontSize: mS(15), fontWeight: '700' },
+  dropdownMenu: {
+    position: 'absolute',
+    top: vS(420),
+    right: hS(20),
+    width: 180,
+    borderRadius: mS(12),
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+    zIndex: 100,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: vS(12),
+    paddingHorizontal: hS(16),
+  },
+  dropdownText: {
+    fontSize: mS(14),
+    fontWeight: '600',
+  },
 });

@@ -1,5 +1,5 @@
 
-import { ActivityIndicator, Animated, FlatList, Platform, RefreshControl, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Animated, FlatList, Platform, RefreshControl, ScrollView, StyleSheet, TextInput, TouchableOpacity, View, Image } from "react-native";
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Text } from "../../../Components";
 import { Styles } from "../../../lib/styles";
@@ -20,30 +20,51 @@ import { useAppTheme } from "../../../hooks/useAppTheme";
 
 const ActivityCardSkeleton = ({ isDark, appColors }: any) => (
     <View style={{
-        backgroundColor: appColors.card,
-        borderRadius: 16,
-        padding: 16,
+        backgroundColor: isDark ? appColors.card : '#FFFFFF',
+        borderRadius: 12,
+        paddingVertical: 12,
+        paddingHorizontal: 14,
         marginBottom: 12,
+        marginHorizontal: 2,
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        ...Platform.select({
-            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5 },
-            android: { elevation: 3 },
-        }),
+        shadowColor: '#64748B',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
     }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-            <Skeleton width={48} height={48} borderRadius={12} />
-            <View style={{ marginLeft: 14, flex: 1, gap: 8 }}>
-                <Skeleton width="80%" height={16} />
-                <Skeleton width="60%" height={12} />
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 8 }}>
-                    <Skeleton width={40} height={14} />
-                    <Skeleton width={60} height={14} borderRadius={4} />
+        {/* Left Icon */}
+        <Skeleton width={38} height={38} borderRadius={10} />
+
+        {/* Timeline Indicator */}
+        <View style={{ marginHorizontal: 8, width: 6, height: 38, alignItems: 'center', justifyContent: 'space-between' }}>
+            <Skeleton width={6} height={6} borderRadius={3} />
+            <Skeleton width={2} height={20} borderRadius={1} />
+            <Skeleton width={6} height={6} borderRadius={3} />
+        </View>
+
+        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+            {/* Middle Section */}
+            <View style={{ flex: 1, paddingRight: 4, justifyContent: 'center' }}>
+                <View style={{ marginBottom: 8 }}>
+                    <Skeleton width="85%" height={14} borderRadius={4} />
                 </View>
+                <Skeleton width="60%" height={12} borderRadius={4} />
+            </View>
+
+            {/* Right Section */}
+            <View style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
+                <View style={{ marginBottom: 8 }}>
+                    <Skeleton width={50} height={14} borderRadius={4} />
+                </View>
+                <Skeleton width={60} height={14} borderRadius={4} />
             </View>
         </View>
-        <Skeleton width={20} height={20} borderRadius={10} />
+
+        <View style={{ marginLeft: 8 }}>
+            <Skeleton width={12} height={20} borderRadius={4} />
+        </View>
     </View>
 );
 
@@ -78,29 +99,39 @@ const AnimatedListItem = ({ index, children }: { index: number, children: React.
 };
 
 const ActivityScreenSkeleton = ({ appColors, isDark }: any) => (
-    <View style={{ flex: 1, backgroundColor: appColors.background }}>
+    <View style={{ flex: 1, backgroundColor: isDark ? appColors.background : '#FFFFFF' }}>
         {/* Search & Filter Skeleton */}
         <View style={{
-            backgroundColor: appColors.card,
-            paddingTop: 10,
-            paddingBottom: 20,
+            paddingTop: 16,
+            paddingBottom: 16,
             paddingHorizontal: 16,
-            borderBottomLeftRadius: 24,
-            borderBottomRightRadius: 24,
         }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <Skeleton width="35%" height={48} borderRadius={12} />
-                <Skeleton width="62%" height={48} borderRadius={12} />
+                <View style={{ width: '40%' }}>
+                    <Skeleton width="100%" height={44} borderRadius={12} />
+                </View>
+                <View style={{ flex: 1 }}>
+                    <Skeleton width="100%" height={44} borderRadius={12} />
+                </View>
             </View>
         </View>
 
         {/* Tab Switcher Skeleton */}
         <View style={{
             flexDirection: 'row',
+            backgroundColor: isDark ? appColors.card : '#F8FAFC',
             marginHorizontal: 16,
-            marginVertical: 20,
+            marginBottom: 20,
+            marginTop: 4,
+            borderRadius: 16,
+            padding: 4,
+            alignItems: 'center'
         }}>
-            <Skeleton width="100%" height={48} borderRadius={14} />
+            <View style={{ flex: 1 }}><Skeleton width="100%" height={38} borderRadius={12} /></View>
+            <View style={{ width: 1, height: '40%', marginHorizontal: 2 }} />
+            <View style={{ flex: 1 }}><Skeleton width="100%" height={38} borderRadius={12} /></View>
+            <View style={{ width: 1, height: '40%', marginHorizontal: 2 }} />
+            <View style={{ flex: 1 }}><Skeleton width="100%" height={38} borderRadius={12} /></View>
         </View>
 
         {/* Ride List Skeleton */}
@@ -330,440 +361,462 @@ const Activity: React.FC<ScreenProps> = ({ navigation }) => {
     }
 
     return (
-        <View style={{ flex: 1, backgroundColor: appColors.background }}>
+        <View style={{ flex: 1, backgroundColor: isDark ? '#020813' : '#FFFFFF' }}>
             <Animated.View style={{ flex: 1, opacity: screenFadeAnim, transform: [{ translateY: screenSlideAnim }] }}>
                 {/* ───────────────────── SEARCH & FILTER SECTION ───────────────────── */}
                 <View style={{
-                backgroundColor: appColors.card,
-                paddingTop: 10,
-                paddingBottom: 20,
-                paddingHorizontal: 16,
-                borderBottomLeftRadius: 24,
-                borderBottomRightRadius: 24,
-                ...Platform.select({
-                    ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10 },
-                    android: { elevation: 4 },
-                }),
-            }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    {/* Filter Type Dropdown */}
-                    <Dropdown
-                        style={{
-                            width: '35%',
-                            backgroundColor: appColors.background,
+                    paddingTop: 16,
+                    paddingBottom: 16,
+                    paddingHorizontal: 16,
+                }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                        {/* Filter Type Dropdown */}
+                        <Dropdown
+                            style={{
+                                width: '40%',
+                                backgroundColor: isDark ? '#0A1931' : '#FFFFFF',
+                                borderRadius: 12,
+                                borderWidth: 1,
+                                borderColor: isDark ? '#1E3A8A' : '#E2E8F0',
+                                paddingHorizontal: 10,
+                                height: 44,
+                            }}
+                            renderLeftIcon={() => (
+                                <MaterialCommunityIcons name="calendar-month-outline" size={18} color={isDark ? appColors.text : '#1E293B'} style={{ marginRight: 8 }} />
+                            )}
+                            containerStyle={{ backgroundColor: appColors.card, borderColor: isDark ? 'transparent' : '#E2E8F0', borderRadius: 8 }}
+                            itemTextStyle={{ color: appColors.text, fontSize: 13 }}
+                            activeColor={isDark ? 'rgba(255,255,255,0.05)' : '#F1F5F9'}
+                            placeholderStyle={{ color: isDark ? appColors.text : '#1E293B', fontSize: 13, fontWeight: '500' }}
+                            selectedTextStyle={{ color: isDark ? appColors.text : '#1E293B', fontSize: 13, fontWeight: '500' }}
+                            data={searchOptions}
+                            labelField="label"
+                            valueField="value"
+                            value={searchBy}
+                            onChange={(item) => {
+                                setSearchBy(item.value);
+                                setSearchQuery('');
+                                setSelectedLocation(null);
+                                setSelectedRideType(null);
+                                // Removing manual setFilteredData to let useEffect handle it
+                            }}
+                        />
+
+                        {/* Dynamic Search Box */}
+                        <View style={{
+                            flex: 1,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            backgroundColor: isDark ? '#0A1931' : '#FFFFFF',
                             borderRadius: 12,
-                            paddingHorizontal: 10,
-                            height: 48,
-                        }}
-                        containerStyle={{ backgroundColor: appColors.card, borderColor: isDark ? 'transparent' : '#E2E8F0', borderRadius: 8 }}
-                        itemTextStyle={{ color: appColors.text, fontSize: 13 }}
-                        activeColor={isDark ? 'rgba(255,255,255,0.05)' : '#F1F5F9'}
-                        placeholderStyle={{ color: appColors.lightTextColor, fontSize: 13 }}
-                        selectedTextStyle={{ color: appColors.text, fontSize: 13, fontWeight: '600' }}
-                        data={searchOptions}
-                        labelField="label"
-                        valueField="value"
-                        value={searchBy}
-                        onChange={(item) => {
-                            setSearchBy(item.value);
-                            setSearchQuery('');
-                            setSelectedLocation(null);
-                            setSelectedRideType(null);
-                            // Removing manual setFilteredData to let useEffect handle it
-                        }}
-                    />
-
-                    {/* Dynamic Search Box */}
-                    <View style={{
-                        flex: 1,
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        backgroundColor: appColors.background,
-                        borderRadius: 12,
-                        paddingHorizontal: 12,
-                        height: 48,
-                    }}>
-                        <MaterialCommunityIcons
-                            name={"magnify"}
-                            size={20}
-                            color={appColors.lightTextColor}
-                        />
-
-                        {searchBy === 'location' ? (
-                            <Dropdown
-                                style={{ flex: 1, height: 48, marginLeft: 8 }}
-                                containerStyle={{ backgroundColor: appColors.card, borderColor: isDark ? 'transparent' : '#E2E8F0', borderRadius: 8 }}
-                                itemTextStyle={{ color: appColors.text, fontSize: 14 }}
-                                activeColor={isDark ? 'rgba(255,255,255,0.05)' : '#F1F5F9'}
-                                placeholder="Select Location"
-                                placeholderStyle={{ color: appColors.lightTextColor, fontSize: 14 }}
-                                selectedTextStyle={{ color: appColors.text, fontSize: 14, fontWeight: '600' }}
-                                data={locations}
-                                labelField="label"
-                                valueField="value"
-                                value={selectedLocation}
-                                onChange={(item) => handleLocationFilter(item.value)}
-                            />
-                        ) : searchBy === 'rideType' ? (
-                            <Dropdown
-                                style={{ flex: 1, height: 48, marginLeft: 8 }}
-                                containerStyle={{ backgroundColor: appColors.card, borderColor: isDark ? 'transparent' : '#E2E8F0', borderRadius: 8 }}
-                                itemTextStyle={{ color: appColors.text, fontSize: 14 }}
-                                activeColor={isDark ? 'rgba(255,255,255,0.05)' : '#F1F5F9'}
-                                placeholder="Select Ride Type"
-                                placeholderStyle={{ color: appColors.lightTextColor, fontSize: 14 }}
-                                selectedTextStyle={{ color: appColors.text, fontSize: 14, fontWeight: '600' }}
-                                data={rideTypeOptions}
-                                labelField="label"
-                                valueField="value"
-                                value={selectedRideType}
-                                onChange={(item) => setSelectedRideType(item.value)}
-                            />
-                        ) : searchBy === 'date' ? (
-                            <TouchableOpacity
-                                onPress={() => setShowDatePicker(true)}
-                                style={{ flex: 1, marginLeft: 8, height: 48, justifyContent: 'center' }}
-                            >
-                                <TextInput
-                                    placeholder="Tap calendar icon..."
-                                    placeholderTextColor={appColors.lightTextColor}
-                                    style={{ fontSize: 14, color: appColors.text, paddingVertical: 0 }}
-                                    value={startDate && endDate ? `${formatDateToDMY(startDate)} to ${formatDateToDMY(endDate)}` : ''}
-                                    editable={false}
-                                    pointerEvents="none"
-                                />
-                            </TouchableOpacity>
-                        ) : (
-                            <TextInput
-                                placeholder="Search destination..."
-                                placeholderTextColor={appColors.lightTextColor}
-                                style={{ flex: 1, marginLeft: 8, fontSize: 14, color: appColors.text }}
-                                value={searchQuery}
-                                onChangeText={handleSearch}
-                            />
-                        )}
-
-                        {searchBy === 'date' && (
-                            <TouchableOpacity onPress={() => setShowDatePicker(true)}>
-                                <MaterialCommunityIcons name="calendar-search" size={20} color="#2563EB" />
-                            </TouchableOpacity>
-                        )}
-
-                    </View>
-
-                </View>
-
-                {/* CLEAR ALL FILTERS BUTTON */}
-                {hasActiveFilters && (
-                    <TouchableOpacity
-                        onPress={clearAllFilters}
-                        style={{
-                            alignSelf: 'flex-end',
-                            marginTop: 10,
-                            paddingHorizontal: 12,
-                            paddingVertical: 6,
-                            backgroundColor: isDark ? 'rgba(59, 130, 246, 0.1)' : '#EFF6FF',
-                            borderRadius: 8,
                             borderWidth: 1,
-                            borderColor: isDark ? 'rgba(59, 130, 246, 0.2)' : '#DBEAFE'
-                        }}
-                    >
-                        <Text style={{
-                            color: isDark ? '#60A5FA' : '#2563EB',
-                            fontSize: 13,
-                            fontWeight: '700',
-                            textDecorationLine: 'underline'
+                            borderColor: isDark ? '#1E3A8A' : '#E2E8F0',
+                            paddingHorizontal: 10,
+                            height: 44,
                         }}>
-                            Clear All Filters
-                        </Text>
-                    </TouchableOpacity>
-                )}
-
-                {/* DATE PICKER MODAL */}
-                {showDatePicker ? (
-                    <DatePicker
-                        mode="range"
-                        visible={showDatePicker}
-                        onRangeSelect={(start, end) => {
-                            filterRidesByRange(start, end);
-                        }}
-                        onClose={() => setShowDatePicker(false)} />
-                ) : null}
-            </View>
-
-            {/* ───────────────────── MODERN TAB SWITCHER ───────────────────── */}
-            <View style={{
-                flexDirection: 'row',
-                backgroundColor: isDark ? appColors.iconBox : '#E2E8F0',
-                marginHorizontal: 16,
-                marginVertical: 20,
-                borderRadius: 14,
-                padding: 4,
-            }}>
-                <TouchableOpacity
-                    onPress={() => setActiveTab('completed')}
-                    style={{
-                        flex: 1,
-                        paddingVertical: 10,
-                        alignItems: 'center',
-                        borderRadius: 10,
-                        backgroundColor: activeTab === 'completed' ? appColors.card : 'transparent',
-
-                        ...(Platform.OS === 'ios'
-                            ? (activeTab === 'completed' ? { shadowColor: isDark ? '#000' : '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3 } : {})
-                            : (activeTab === 'completed' ? { elevation: 3 } : {})
-                        )
-                    }}
-                >
-                    <Text style={{ fontSize: 13, fontWeight: '700', color: activeTab === 'completed' ? (isDark ? appColors.text : colors.button) : appColors.lightTextColor }}>
-                        Completed
-                    </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    onPress={() => setActiveTab('cancelled')}
-                    style={{
-                        flex: 1,
-                        paddingVertical: 10,
-                        alignItems: 'center',
-                        borderRadius: 10,
-                        backgroundColor: activeTab === 'cancelled' ? appColors.card : 'transparent',
-
-                        ...(Platform.OS === 'ios'
-                            ? (activeTab === 'cancelled' ? { shadowColor: isDark ? '#000' : '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3 } : {})
-                            : (activeTab === 'cancelled' ? { elevation: 3 } : {})
-                        )
-                    }}
-                >
-                    <Text style={{ fontSize: 13, fontWeight: '700', color: activeTab === 'cancelled' ? (isDark ? appColors.text : colors.button) : appColors.lightTextColor }}>
-                        Cancelled
-                    </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    onPress={() => setActiveTab('upcoming')}
-                    style={{
-                        flex: 1,
-                        paddingVertical: 10,
-                        alignItems: 'center',
-                        borderRadius: 10,
-                        backgroundColor: activeTab === 'upcoming' ? appColors.card : 'transparent',
-                        ...(Platform.OS === 'ios'
-                            ? (activeTab === 'upcoming' ? { shadowColor: isDark ? '#000' : '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3 } : {})
-                            : (activeTab === 'upcoming' ? { elevation: 3 } : {})
-                        )
-                    }}
-                >
-                    <Text style={{ fontSize: 13, fontWeight: '700', color: activeTab === 'upcoming' ? (isDark ? appColors.text : colors.button) : appColors.lightTextColor }}>
-                        Upcoming
-                    </Text>
-                </TouchableOpacity>
-            </View>
-
-            {/* ───────────────────── SEE ALL / SHOW LESS BUTTON ───────────────────── */}
-            {!isLoading && !isFetching && !hasActiveFilters && trips?.data?.total && trips.data.total > 5 ? (
-                <View style={{ alignItems: 'flex-end', paddingHorizontal: 16, marginBottom: 10 }}>
-                    <TouchableOpacity
-                        onPress={() => {
-                            if (activeLimit === 5) {
-                                setActiveLimit(undefined);
-                            } else {
-                                setActiveLimit(5);
-                            }
-                        }}
-                    >
-                        <Text style={{
-                            fontSize: 14,
-                            fontWeight: '700',
-                            color: isDark ? appColors.primary : colors.button,
-                        }}>
-                            {activeLimit === 5 ? "See All" : "Show Less"}
-                        </Text>
-                    </TouchableOpacity>
-                </View>
-            ) : null}
-
-            {/* ───────────────────── RIDE LIST ───────────────────── */}
-            {(isLoading || (isFetching && rideHistory.length === 0)) ? (
-                <ScrollView style={{ paddingHorizontal: 16 }}
-                    refreshControl={
-                        <RefreshControl
-                            refreshing={isFetching}
-                            onRefresh={onRefresh}
-                            colors={[colors.button]}
-                            tintColor={colors.button}
-                        />
-                    }
-                >
-                    <View>
-                        {[1, 2, 3, 4, 5].map(i => <ActivityCardSkeleton key={i} isDark={isDark} appColors={appColors} />)}
-                    </View>
-                </ScrollView>
-            ) : (
-                <FlatList
-                    style={{ paddingHorizontal: 16 }}
-                    data={filteredData}
-                    keyExtractor={(item) => item.trip_id.toString()}
-                    removeClippedSubviews={false}
-                    initialNumToRender={10}
-                    maxToRenderPerBatch={5}
-                    refreshControl={
-                        <RefreshControl
-                            refreshing={isFetching}
-                            onRefresh={onRefresh}
-                            colors={[colors.button]}
-                            tintColor={colors.button}
-                        />
-                    }
-                    ListEmptyComponent={
-                        <View style={{ marginTop: 60, alignItems: 'center', paddingHorizontal: 40 }}>
                             <MaterialCommunityIcons
-                                name={searchQuery || selectedLocation ? "database-search-outline" : "car-off"}
-                                size={70}
-                                color={appColors.lightTextColor}
+                                name={"magnify"}
+                                size={20}
+                                color={isDark ? appColors.lightTextColor : '#64748B'}
                             />
-                            <Text style={{
-                                color: appColors.text,
-                                fontSize: 16,
-                                fontWeight: '600',
-                                marginTop: 15,
-                                textAlign: 'center'
-                            }}>
-                                {searchQuery || selectedLocation ? "No matches found" : "No rides yet"}
-                            </Text>
-                            <Text style={{ color: appColors.lightTextColor, textAlign: 'center', marginTop: 8 }}>
-                                {searchQuery || selectedLocation
-                                    ? "Try adjusting your filters or search terms."
-                                    : activeTab === 'upcoming'
-                                        ? "You don't have any scheduled trips."
-                                        : "Your completed trips will appear here."}
-                            </Text>
-                            {(searchQuery || selectedLocation) && (
+
+                            {searchBy === 'location' ? (
+                                <Dropdown
+                                    style={{ flex: 1, height: 48, marginLeft: 8 }}
+                                    containerStyle={{ backgroundColor: appColors.card, borderColor: isDark ? 'transparent' : '#E2E8F0', borderRadius: 8 }}
+                                    itemTextStyle={{ color: appColors.text, fontSize: 14 }}
+                                    activeColor={isDark ? 'rgba(255,255,255,0.05)' : '#F1F5F9'}
+                                    placeholder="Select Location"
+                                    placeholderStyle={{ color: appColors.lightTextColor, fontSize: 14 }}
+                                    selectedTextStyle={{ color: appColors.text, fontSize: 14, fontWeight: '600' }}
+                                    data={locations}
+                                    labelField="label"
+                                    valueField="value"
+                                    value={selectedLocation}
+                                    onChange={(item) => handleLocationFilter(item.value)}
+                                />
+                            ) : searchBy === 'rideType' ? (
+                                <Dropdown
+                                    style={{ flex: 1, height: 48, marginLeft: 8 }}
+                                    containerStyle={{ backgroundColor: appColors.card, borderColor: isDark ? 'transparent' : '#E2E8F0', borderRadius: 8 }}
+                                    itemTextStyle={{ color: appColors.text, fontSize: 14 }}
+                                    activeColor={isDark ? 'rgba(255,255,255,0.05)' : '#F1F5F9'}
+                                    placeholder="Select Ride Type"
+                                    placeholderStyle={{ color: appColors.lightTextColor, fontSize: 14 }}
+                                    selectedTextStyle={{ color: appColors.text, fontSize: 14, fontWeight: '600' }}
+                                    data={rideTypeOptions}
+                                    labelField="label"
+                                    valueField="value"
+                                    value={selectedRideType}
+                                    onChange={(item) => setSelectedRideType(item.value)}
+                                />
+                            ) : searchBy === 'date' ? (
                                 <TouchableOpacity
-                                    onPress={clearAllFilters}
-                                    style={{
-                                        marginTop: 20,
-                                        backgroundColor: appColors.iconBox,
-                                        paddingHorizontal: 20,
-                                        paddingVertical: 10,
-                                        borderRadius: 10
-                                    }}
+                                    onPress={() => setShowDatePicker(true)}
+                                    style={{ flex: 1, marginLeft: 8, height: 48, justifyContent: 'center' }}
                                 >
-                                    <Text style={{ color: isDark ? appColors.text : colors.button, fontWeight: '700' }}>Reset Filters</Text>
+                                    <TextInput
+                                        placeholder="Tap calendar icon..."
+                                        placeholderTextColor={appColors.lightTextColor}
+                                        style={{ fontSize: 14, color: appColors.text, paddingVertical: 0 }}
+                                        value={startDate && endDate ? `${formatDateToDMY(startDate)} to ${formatDateToDMY(endDate)}` : ''}
+                                        editable={false}
+                                        pointerEvents="none"
+                                    />
+                                </TouchableOpacity>
+                            ) : (
+                                <TextInput
+                                    placeholder="Search destination..."
+                                    placeholderTextColor={appColors.lightTextColor}
+                                    style={{ flex: 1, marginLeft: 8, fontSize: 14, color: appColors.text }}
+                                    value={searchQuery}
+                                    onChangeText={handleSearch}
+                                />
+                            )}
+
+                            {searchBy === 'date' && (
+                                <TouchableOpacity onPress={() => setShowDatePicker(true)}>
+                                    <MaterialCommunityIcons name="calendar-search" size={20} color="#2563EB" />
                                 </TouchableOpacity>
                             )}
+
                         </View>
-                    }
-                    ListFooterComponent={
-                        isFetching && activeLimit === undefined && rideHistory.length > 5 ? (
-                            <View style={{ alignItems: 'center', marginVertical: 20 }}>
-                                <ActivityIndicator size="small" color={colors.button} />
-                            </View>
-                        ) : null
-                    }
-                    renderItem={({ item, index }) => (
-                        <AnimatedListItem index={index}>
+
+                    </View>
+
+                    {/* CLEAR ALL FILTERS BUTTON */}
+                    {hasActiveFilters && (
                         <TouchableOpacity
-                            activeOpacity={0.9}
-                            onPress={() => {
-                                const status = item.trip_status.toUpperCase();
-                                if (activeTab === 'upcoming') {
-                                    if (status === 'REQUESTED' || status === 'ACCEPTED') {
-                                        navigation.navigate(RideDetailsEdit_Nav, { rideData: item });
-                                    } else if (status === 'ARRIVING' || status === 'ARRIVED') {
-                                        navigation.navigate(BookedTripScreen_Nav, item);
-                                    } else {
-                                        navigation.navigate(RideDetails_Nav, { rideData: item });
-                                    }
-                                } else {
-                                    if (status === 'REQUESTED') {
-                                        navigation.navigate(RideDetailsEdit_Nav, { rideData: item });
-                                    } else {
-                                        navigation.navigate(RideDetails_Nav, { rideData: item });
-                                    }
-                                }
-                            }}
+                            onPress={clearAllFilters}
                             style={{
-                                backgroundColor: appColors.card,
-                                borderRadius: 16,
-                                padding: 16,
-                                marginBottom: 12,
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                ...Platform.select({
-                                    ios: { shadowColor: isDark ? '#000' : '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5 },
-                                    android: { elevation: 3 },
-                                }),
+                                alignSelf: 'flex-end',
+                                marginTop: 10,
+                                paddingHorizontal: 12,
+                                paddingVertical: 6,
+                                backgroundColor: isDark ? 'rgba(59, 130, 246, 0.1)' : '#EFF6FF',
+                                borderRadius: 8,
+                                borderWidth: 1,
+                                borderColor: isDark ? 'rgba(59, 130, 246, 0.2)' : '#DBEAFE'
                             }}
                         >
-                            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                                {/* Icon changes based on booking type */}
-                                <View style={{
-                                    width: 48, height: 48, borderRadius: 12,
-                                    backgroundColor: isDark
-                                        ? (item.booking_type === 'SCHEDULED' ? 'rgba(234, 88, 12, 0.1)' : 'rgba(59, 130, 246, 0.1)')
-                                        : (item.booking_type === 'SCHEDULED' ? '#FFF7ED' : '#EFF6FF'),
-                                    alignItems: 'center', justifyContent: 'center'
+                            <Text style={{
+                                color: isDark ? '#60A5FA' : '#2563EB',
+                                fontSize: 13,
+                                fontWeight: '700',
+                                textDecorationLine: 'underline'
+                            }}>
+                                Clear All Filters
+                            </Text>
+                        </TouchableOpacity>
+                    )}
+
+                    {/* DATE PICKER MODAL */}
+                    {showDatePicker ? (
+                        <DatePicker
+                            mode="range"
+                            visible={showDatePicker}
+                            onRangeSelect={(start, end) => {
+                                filterRidesByRange(start, end);
+                            }}
+                            onClose={() => setShowDatePicker(false)} />
+                    ) : null}
+                </View>
+
+                {/* ───────────────────── MODERN TAB SWITCHER ───────────────────── */}
+                <View style={{
+                    flexDirection: 'row',
+                    backgroundColor: isDark ? '#0A1931' : '#F8FAFC',
+                    marginHorizontal: 16,
+                    marginBottom: 20,
+                    marginTop: 4,
+                    borderRadius: 16,
+                    padding: 4,
+                    alignItems: 'center'
+                }}>
+                    <TouchableOpacity
+                        onPress={() => setActiveTab('completed')}
+                        style={{
+                            flex: 1,
+                            flexDirection: 'row',
+                            paddingVertical: 10,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: 12,
+                            backgroundColor: activeTab === 'completed' ? (isDark ? '#007BFF' : '#152D5E') : 'transparent',
+                        }}
+                    >
+                        <View style={{ width: 18, height: 18, borderRadius: 4, backgroundColor: activeTab === 'completed' ? '#FFFFFF' : 'transparent', alignItems: 'center', justifyContent: 'center', marginRight: 8, borderWidth: activeTab === 'completed' ? 0 : 1, borderColor: isDark ? '#64748B' : '#94A3B8' }}>
+                            <MaterialCommunityIcons name="check" size={14} color={activeTab === 'completed' ? (isDark ? '#007BFF' : '#152D5E') : 'transparent'} />
+                        </View>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: activeTab === 'completed' ? '#FFFFFF' : (isDark ? '#9CA3AF' : '#64748B') }}>
+                            Completed
+                        </Text>
+                    </TouchableOpacity>
+
+                    {/* Vertical Divider */}
+                    <View style={{ width: 1, height: '40%', backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0', marginHorizontal: 2, opacity: (activeTab === 'completed' || activeTab === 'cancelled') ? 0 : 1 }} />
+
+                    <TouchableOpacity
+                        onPress={() => setActiveTab('cancelled')}
+                        style={{
+                            flex: 1,
+                            flexDirection: 'row',
+                            paddingVertical: 10,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: 12,
+                            backgroundColor: activeTab === 'cancelled' ? (isDark ? '#007BFF' : '#152D5E') : 'transparent',
+                        }}
+                    >
+                        <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: activeTab === 'cancelled' ? '#FFFFFF' : 'transparent', alignItems: 'center', justifyContent: 'center', marginRight: 8, borderWidth: activeTab === 'cancelled' ? 0 : 1, borderColor: activeTab === 'cancelled' ? 'transparent' : (isDark ? '#64748B' : '#94A3B8') }}>
+                            <MaterialCommunityIcons name="close" size={12} color={activeTab === 'cancelled' ? (isDark ? '#007BFF' : '#152D5E') : (isDark ? '#9CA3AF' : '#94A3B8')} />
+                        </View>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: activeTab === 'cancelled' ? '#FFFFFF' : (isDark ? '#9CA3AF' : '#64748B') }}>
+                            Cancelled
+                        </Text>
+                    </TouchableOpacity>
+
+                    {/* Vertical Divider */}
+                    <View style={{ width: 1, height: '40%', backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0', marginHorizontal: 2, opacity: (activeTab === 'cancelled' || activeTab === 'upcoming') ? 0 : 1 }} />
+
+                    <TouchableOpacity
+                        onPress={() => setActiveTab('upcoming')}
+                        style={{
+                            flex: 1,
+                            flexDirection: 'row',
+                            paddingVertical: 10,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: 12,
+                            backgroundColor: activeTab === 'upcoming' ? (isDark ? '#007BFF' : '#152D5E') : 'transparent',
+                        }}
+                    >
+                        <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: activeTab === 'upcoming' ? '#FFFFFF' : 'transparent', alignItems: 'center', justifyContent: 'center', marginRight: 8, borderWidth: activeTab === 'upcoming' ? 0 : 1, borderColor: activeTab === 'upcoming' ? 'transparent' : (isDark ? '#64748B' : '#94A3B8') }}>
+                            <MaterialCommunityIcons name="clock-outline" size={14} color={activeTab === 'upcoming' ? (isDark ? '#007BFF' : '#152D5E') : (isDark ? '#9CA3AF' : '#94A3B8')} />
+                        </View>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: activeTab === 'upcoming' ? '#FFFFFF' : (isDark ? '#9CA3AF' : '#64748B') }}>
+                            Upcoming
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+
+                {/* ───────────────────── SEE ALL / SHOW LESS BUTTON ───────────────────── */}
+                {/* ───────────────────── LIST HEADER & SEE ALL ───────────────────── */}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 10 }}>
+                    <Text style={{ fontSize: 16, fontWeight: '700', color: isDark ? '#FFFFFF' : appColors.text }}>
+                        {activeTab === 'completed' ? 'Completed Rides' : activeTab === 'cancelled' ? 'Cancelled Rides' : 'Upcoming Rides'}
+                    </Text>
+                    {!isLoading && !isFetching && !hasActiveFilters && trips?.data?.total && trips.data.total > 5 ? (
+                        <TouchableOpacity
+                            onPress={() => {
+                                if (activeLimit === 5) {
+                                    setActiveLimit(undefined);
+                                } else {
+                                    setActiveLimit(5);
+                                }
+                            }}
+                        >
+                            <Text style={{
+                                fontSize: 14,
+                                fontWeight: '700',
+                                color: isDark ? '#007BFF' : colors.button,
+                            }}>
+                                {activeLimit === 5 ? "See All ->" : "Show Less"}
+                            </Text>
+                        </TouchableOpacity>
+                    ) : null}
+                </View>
+
+                {/* ───────────────────── RIDE LIST ───────────────────── */}
+                {(isLoading || (isFetching && rideHistory.length === 0)) ? (
+                    <ScrollView style={{ paddingHorizontal: 16 }}
+                        refreshControl={
+                            <RefreshControl
+                                refreshing={isFetching}
+                                onRefresh={onRefresh}
+                                colors={[colors.button]}
+                                tintColor={colors.button}
+                            />
+                        }
+                    >
+                        <View>
+                            {[1, 2, 3, 4, 5].map(i => <ActivityCardSkeleton key={i} isDark={isDark} appColors={appColors} />)}
+                        </View>
+                    </ScrollView>
+                ) : (
+                    <FlatList
+                        style={{ paddingHorizontal: 16 }}
+                        data={filteredData}
+                        keyExtractor={(item) => item.trip_id.toString()}
+                        removeClippedSubviews={false}
+                        initialNumToRender={10}
+                        maxToRenderPerBatch={5}
+                        refreshControl={
+                            <RefreshControl
+                                refreshing={isFetching}
+                                onRefresh={onRefresh}
+                                colors={[colors.button]}
+                                tintColor={colors.button}
+                            />
+                        }
+                        ListEmptyComponent={
+                            <View style={{ marginTop: 60, alignItems: 'center', paddingHorizontal: 40 }}>
+                                <MaterialCommunityIcons
+                                    name={searchQuery || selectedLocation ? "database-search-outline" : "car-off"}
+                                    size={70}
+                                    color={appColors.lightTextColor}
+                                />
+                                <Text style={{
+                                    color: appColors.text,
+                                    fontSize: 16,
+                                    fontWeight: '600',
+                                    marginTop: 15,
+                                    textAlign: 'center'
                                 }}>
-                                    <MaterialCommunityIcons
-                                        name={item.booking_type === 'SCHEDULED' ? "calendar-clock" : "car-connected"}
-                                        size={26}
-                                        color={item.booking_type === 'SCHEDULED' && item.trip_status === 'REQUESTED' ? "#EA580C" : (isDark ? appColors.text : colors.button)}
-                                    />
+                                    {searchQuery || selectedLocation ? "No matches found" : "No rides yet"}
+                                </Text>
+                                <Text style={{ color: appColors.lightTextColor, textAlign: 'center', marginTop: 8 }}>
+                                    {searchQuery || selectedLocation
+                                        ? "Try adjusting your filters or search terms."
+                                        : activeTab === 'upcoming'
+                                            ? "You don't have any scheduled trips."
+                                            : "Your completed trips will appear here."}
+                                </Text>
+                                {(searchQuery || selectedLocation) && (
+                                    <TouchableOpacity
+                                        onPress={clearAllFilters}
+                                        style={{
+                                            marginTop: 20,
+                                            backgroundColor: appColors.iconBox,
+                                            paddingHorizontal: 20,
+                                            paddingVertical: 10,
+                                            borderRadius: 10
+                                        }}
+                                    >
+                                        <Text style={{ color: isDark ? appColors.text : colors.button, fontWeight: '700' }}>Reset Filters</Text>
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+                        }
+                        ListFooterComponent={
+                            isFetching && activeLimit === undefined && rideHistory.length > 5 ? (
+                                <View style={{ alignItems: 'center', marginVertical: 20 }}>
+                                    <ActivityIndicator size="small" color={colors.button} />
                                 </View>
-
-                                <View style={{ marginLeft: 14, flex: 1 }}>
-                                    <Text numberOfLines={1} style={{ fontSize: 15, fontWeight: '700', color: appColors.text }}>
-                                        {item.drop_address}
-                                    </Text>
-                                    <Text style={{ fontSize: 12, color: appColors.lightTextColor, marginTop: 2 }}>
-                                        {item.booking_type.toUpperCase()} • {
-                                            item?.scheduled_start_time || item?.original_scheduled_start_time ? (
-                                                <>
-                                                    {formatDate(new Date(item?.scheduled_start_time || item?.original_scheduled_start_time))}
-                                                    {" • "}
-                                                    {new Date(item?.scheduled_start_time || item?.original_scheduled_start_time).toLocaleTimeString([], {
-                                                        hour: '2-digit',
-                                                        minute: '2-digit',
-                                                        hour12: true
-                                                    })}
-                                                </>
-                                            ) : 'N/A'
+                            ) : null
+                        }
+                        renderItem={({ item, index }) => (
+                            <AnimatedListItem index={index}>
+                                <TouchableOpacity
+                                    activeOpacity={0.9}
+                                    onPress={() => {
+                                        const status = item.trip_status.toUpperCase();
+                                        if (activeTab === 'upcoming') {
+                                            if (status === 'REQUESTED' || status === 'ACCEPTED') {
+                                                navigation.navigate(RideDetailsEdit_Nav, { rideData: item });
+                                            } else if (status === 'ARRIVING' || status === 'ARRIVED') {
+                                                navigation.navigate(BookedTripScreen_Nav, item);
+                                            } else {
+                                                navigation.navigate(RideDetails_Nav, { rideData: item });
+                                            }
+                                        } else {
+                                            navigation.navigate(RideDetails_Nav, { rideData: item });
                                         }
-                                    </Text>
+                                    }}
+                                    style={{
+                                        backgroundColor: isDark ? '#0A1931' : '#FFFFFF',
+                                        borderRadius: 12,
+                                        paddingVertical: 12,
+                                        paddingHorizontal: 14,
+                                        marginBottom: 12,
+                                        marginHorizontal: 2,
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                        borderWidth: isDark ? 1 : 0,
+                                        borderColor: isDark ? '#1E3A8A' : 'transparent',
+                                        shadowColor: '#64748B',
+                                        shadowOffset: { width: 0, height: 2 },
+                                        shadowOpacity: 0.05,
+                                        shadowRadius: 8,
+                                        elevation: 2,
+                                    }}
+                                >
+                                    {/* Left Image */}
+                                    <View style={{
+                                        width: 50, height: 40,
+                                        alignItems: 'center', justifyContent: 'center'
+                                    }}>
+                                        <Image
+                                            // source={item.ride_type === 'OUTSTATION_ONE_WAY' || item.ride_type === 'OUTSTATION_ROUND_TRIP' ? require('../../../assets/png/T2Drive_CarSedan.png') : item.booking_type === 'SCHEDULED' ? require('../../../assets/png/car.png') : require('../../../assets/png/t2drive_yellow_taxi.png')}
+                                            source={require('../../../assets/png/T2Drive_CarSedan.png')}
+                                            style={{ width: '100%', height: '100%', resizeMode: 'contain' }}
+                                        />
+                                    </View>
 
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-                                        <Text style={{ fontSize: 13, fontWeight: '800', color: appColors.text }}>
-                                            ₹{Number(item.total_fare)}
-                                        </Text>
+                                    {/* Timeline Indicator */}
+                                    <View style={{ alignItems: 'center', marginHorizontal: 8 }}>
+                                        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#10B981', shadowColor: '#10B981', shadowRadius: 4, shadowOpacity: isDark ? 0.8 : 0, shadowOffset: { width: 0, height: 0 } }} />
+                                        <View style={{ width: 1, height: 24, borderStyle: 'dotted', borderWidth: 1, borderColor: isDark ? '#1E3A8A' : '#CBD5E1', marginVertical: 2, borderRadius: 1 }} />
+                                        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#F59E0B', shadowColor: '#F59E0B', shadowRadius: 4, shadowOpacity: isDark ? 0.8 : 0, shadowOffset: { width: 0, height: 0 } }} />
+                                    </View>
 
-                                        {/* DYNAMIC STATUS COLORS */}
-                                        <View style={{
-                                            marginLeft: 8, paddingHorizontal: 6, paddingVertical: 2,
-                                            borderRadius: 4,
-                                            backgroundColor:
-                                                item.trip_status.toLowerCase() === 'completed' ? (isDark ? 'rgba(22, 101, 52, 0.2)' : '#DCFCE7') :
-                                                    (item.trip_status.toLowerCase() === 'requested' || item.trip_status.toLowerCase() === 'accepted') ? (isDark ? 'rgba(154, 52, 18, 0.2)' : '#FFEDD5') : (isDark ? 'rgba(153, 27, 27, 0.2)' : '#FEE2E2')
-                                        }}>
-                                            <Text style={{
-                                                fontSize: 10, fontWeight: '700',
-                                                color:
-                                                    item.trip_status.toLowerCase() === 'completed' ? (isDark ? '#4ADE80' : '#166534') :
-                                                        (item.trip_status.toLowerCase() === 'requested' || item.trip_status.toLowerCase() === 'accepted') ? (isDark ? '#FB923C' : '#9A3412') : (isDark ? '#F87171' : '#991B1B')
-                                            }}>
-                                                {item.trip_status.toUpperCase()}
+                                    <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+                                        {/* Middle Section (Destination + Subtitle) */}
+                                        <View style={{ flex: 1, paddingRight: 4 }}>
+                                            <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: '700', color: isDark ? appColors.text : '#0F172A' }}>
+                                                {item.drop_address}
                                             </Text>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                                                <MaterialCommunityIcons name={item.booking_type === 'SCHEDULED' ? "calendar-month-outline" : "update"} size={12} color="#64748B" />
+                                                <Text style={{ fontSize: 10, color: item.booking_type === 'SCHEDULED' ? '#64748B' : '#3B82F6', marginLeft: 4, fontWeight: '700', letterSpacing: 0.2 }}>
+                                                    {item.booking_type === 'SCHEDULED' ? 'SCHEDULED' : 'LIVE'}
+                                                </Text>
+                                                <MaterialCommunityIcons name="circle-small" size={14} color="#CBD5E1" style={{ marginHorizontal: 0 }} />
+                                                <Text style={{ fontSize: 9.5, color: '#64748B', fontWeight: '500' }}>
+                                                    {item?.scheduled_start_time || item?.original_scheduled_start_time ? (
+                                                        <>
+                                                            {formatDate(new Date(item?.scheduled_start_time || item?.original_scheduled_start_time))}
+                                                            <MaterialCommunityIcons name="circle-small" size={12} color="#CBD5E1" style={{ marginHorizontal: 0 }} />
+                                                            {new Date(item?.scheduled_start_time || item?.original_scheduled_start_time).toLocaleTimeString([], {
+                                                                hour: '2-digit',
+                                                                minute: '2-digit',
+                                                                hour12: true
+                                                            })}
+                                                        </>
+                                                    ) : 'N/A'}
+                                                </Text>
+                                            </View>
+                                        </View>
+
+                                        {/* Right Section (Price + Status) */}
+                                        <View style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
+                                            <Text style={{ fontSize: 13, fontWeight: '800', color: isDark ? appColors.text : '#0F172A' }}>
+                                                ₹{Number(item.total_fare).toFixed(2)}
+                                            </Text>
+                                            <View style={{
+                                                marginTop: 4, paddingHorizontal: 6, paddingVertical: 2,
+                                                borderRadius: 4,
+                                                backgroundColor:
+                                                    item.trip_status.toLowerCase() === 'completed' ? (isDark ? '#064E3B' : '#DCFCE7') :
+                                                        (item.trip_status.toLowerCase() === 'requested' || item.trip_status.toLowerCase() === 'accepted') ? (isDark ? '#7C2D12' : '#FFEDD5') : (isDark ? '#7F1D1D' : '#FEE2E2')
+                                            }}>
+                                                <Text style={{
+                                                    fontSize: 7.5, fontWeight: '800', letterSpacing: 0.2,
+                                                    color:
+                                                        item.trip_status.toLowerCase() === 'completed' ? (isDark ? '#10B981' : '#166534') :
+                                                            (item.trip_status.toLowerCase() === 'requested' || item.trip_status.toLowerCase() === 'accepted') ? (isDark ? '#F97316' : '#9A3412') : (isDark ? '#EF4444' : '#991B1B')
+                                                }}>
+                                                    {item.trip_status.toUpperCase()}
+                                                </Text>
+                                            </View>
                                         </View>
                                     </View>
-                                </View>
-                            </View>
-                            <MaterialCommunityIcons name="chevron-right" size={20} color="#CBD5E1" />
-                        </TouchableOpacity>
-                        </AnimatedListItem>
-                    )}
-                />
-            )}
+                                    <MaterialCommunityIcons name="chevron-right" size={20} color={isDark ? appColors.text : "#0F172A"} style={{ marginLeft: 8 }} />
+                                </TouchableOpacity>
+                            </AnimatedListItem>
+                        )}
+                    />
+                )}
             </Animated.View>
         </View>
     );

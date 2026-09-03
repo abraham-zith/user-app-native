@@ -5,7 +5,8 @@ import {
     StyleSheet,
     TouchableOpacity,
     View,
-    ScrollView
+    ScrollView,
+    Image
 } from "react-native";
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useRoute, useNavigation } from "@react-navigation/native";
@@ -14,7 +15,6 @@ import { useAppTheme } from "../../../hooks/useAppTheme";
 
 // Internal Components & Constants
 import { Text } from "../../../Components";
-import { Styles } from "../../../lib/styles";
 import colors from "../../../constant/colors";
 import formatDate from "../../../Components/FormatDate";
 import generateInvoicePDF from "../../Invoice/GenerateInvoice";
@@ -22,31 +22,26 @@ import { RootState } from "../../../redux/store";
 import { hS, mS, vS } from "../../../lib/responsive";
 import { HelpContactScreen_Nav } from "../../../Navigations/navigations";
 
-// Responsive Scaling Utils
-// Assuming these are your utility names: hS (Horizontal), vS (Vertical), mS (Moderate)
-
-
 const RideDetails: React.FC<any> = () => {
     const { colors: appColors, isDark } = useAppTheme();
     const navigation = useNavigation<any>();
     const route = useRoute<any>();
     const { rideData } = route.params;
+    
     // Redux State
     const localuser = useSelector((state: RootState) => state?.userSlice?.user);
 
     // Component State
-    const [open, setIsOpen] = useState(true);
-    const [SummaryOpen, setSummaryOpen] = useState(true);
+    const [routeOpen, setRouteOpen] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
 
     // Address Parsing
-    const pickupaddressname = rideData?.pickup_address?.split(',')[0];
-    const pickupaddressDetail = rideData?.pickup_address?.substring(rideData.pickup_address.indexOf(',') + 1).trim();
-    const dropaddressname = rideData?.drop_address?.split(',')[0];
-    const dropaddressDetail = rideData?.drop_address?.substring(rideData.drop_address.indexOf(',') + 1).trim();
+    const pickupaddressname = rideData?.pickup_address?.split(',')[0] || 'Pickup';
+    const pickupaddressDetail = rideData?.pickup_address?.substring(rideData.pickup_address.indexOf(',') + 1).trim() || 'Address not available';
+    const dropaddressname = rideData?.drop_address?.split(',')[0] || 'Dropoff';
+    const dropaddressDetail = rideData?.drop_address?.substring(rideData.drop_address.indexOf(',') + 1).trim() || 'Address not available';
 
     const handleInvoiceAction = useCallback((action: 'email' | 'display') => {
-        // Now passing localuser directly to the generator function
         generateInvoicePDF(
             navigation,
             action,
@@ -56,190 +51,184 @@ const RideDetails: React.FC<any> = () => {
         );
     }, [navigation, rideData, localuser]);
 
+    // Format Fare properly
+    const rawFare = rideData?.total_fare ? String(rideData.total_fare).replace('₹', '') : '0';
+    const fareValue = Number(rawFare);
+
     return (
-        <View style={[styles.container, {
-            paddingVertical: vS(20),
-            paddingHorizontal: hS(20),
-            backgroundColor: isDark ? appColors.background : '#f6f9fe'
-        }]}>
+        <View style={[styles.container, { backgroundColor: isDark ? appColors.background : '#F9FAFB' }]}>
+            {/* App Bar Header */}
+            <View style={[styles.appBar, { backgroundColor: appColors.card }]}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.appBarIcon}>
+                    <MaterialCommunityIcons name="arrow-left" size={mS(24)} color={appColors.text} />
+                </TouchableOpacity>
+                <Text style={[styles.appBarTitle, { color: appColors.text }]}>Ride Details</Text>
+                <TouchableOpacity style={styles.appBarIcon}>
+                    <MaterialCommunityIcons name="dots-vertical" size={mS(24)} color={appColors.text} />
+                </TouchableOpacity>
+            </View>
+
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-
-                {/* Header */}
-                <View style={styles.header}>
-                    <MaterialCommunityIcons
-                        name="arrow-left"
-                        size={mS(25)}
-                        onPress={() => navigation.goBack()}
-                        color={appColors.text}
-                    />
-                    <Text style={[styles.headerTitle, { color: appColors.text }]}>Details</Text>
-                </View>
-
-                {/* Main Card */}
-                <View style={[styles.mainCard, { backgroundColor: appColors.card, shadowColor: isDark ? '#000' : '#000' }]}>
-                    <View style={styles.cardPadding}>
-                        <View style={styles.rowBetween}>
-                            <View>
-                                <Text style={[styles.rideTypeTitle, { color: appColors.text }]}>Cab Ride</Text>
-                                <Text style={[styles.dateTimeText, { color: appColors.secondaryText }]}>
-                                    {formatDate(rideData.scheduled_start_time)}{" \u2022 "}
-                                    {rideData.scheduled_start_time ?
-                                        new Date(rideData.scheduled_start_time).toLocaleTimeString([], {
-                                            hour: '2-digit', minute: '2-digit', hour12: true
-                                        }) : 'N/A'}
-                                </Text>
-                                <Text style={[styles.fareText, { color: appColors.text }]}>
-                                    <Text style={[
-                                        { fontWeight: 'bold', color: appColors.text },
-                                        rideData.trip_status === 'CANCELLED' && styles.strikethrough
-                                    ]}>
-                                        ₹{Number(rideData.total_fare.replace('₹', ''))}
-                                    </Text>
-                                    <Text style={[
-                                        rideData.trip_status === 'CANCELLED' && styles.strikethrough,
-                                        { color: appColors.secondaryText }
-                                    ]}>
-                                        (.est)
-                                    </Text>
-                                </Text>
-                            </View>
-                            <View style={styles.statusContainer}>
-                                <MaterialCommunityIcons name="car" size={mS(25)} color={appColors.text} />
-                                <View style={[
-                                    styles.statusBadge,
-                                    { backgroundColor: rideData.trip_status === 'COMPLETED' ? (isDark ? 'rgba(36, 123, 78, 0.2)' : '#E5FBF4') : (isDark ? 'rgba(147, 22, 6, 0.2)' : '#f8b7b7') }
-                                ]}>
-                                    <MaterialCommunityIcons
-                                        name={rideData.trip_status === 'COMPLETED' ? "check" : "close"}
-                                        size={mS(14)}
-                                        color={rideData.trip_status === 'COMPLETED' ? (isDark ? '#4ADE80' : '#247b4e') : (isDark ? '#FCA5A5' : '#931606')}
-                                    />
-                                    <Text style={[
-                                        styles.statusText,
-                                        { color: rideData.trip_status === 'COMPLETED' ? (isDark ? '#4ADE80' : '#247b4e') : (isDark ? '#FCA5A5' : '#931606') }
-                                    ]}>
-                                        {rideData.trip_status}
-                                    </Text>
-                                </View>
-                            </View>
+                
+                {/* CARD 1: Ride Info & Trip Route */}
+                <View style={[styles.card, { backgroundColor: appColors.card, borderColor: isDark ? 'rgba(255,255,255,0.05)' : '#E5E7EB' }]}>
+                    {/* Ride Info Top */}
+                    <View style={styles.rideInfoTop}>
+                        <View style={styles.rideInfoLeft}>
+                            <Text style={[styles.rideTypeTitle, { color: appColors.text }]}>Cab Ride</Text>
+                            <Text style={[styles.dateTimeText, { color: appColors.secondaryText }]}>
+                                {rideData?.scheduled_start_time ? formatDate(rideData.scheduled_start_time) : 'N/A'}
+                                {' • '}
+                                {rideData?.scheduled_start_time ? new Date(rideData.scheduled_start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : ''}
+                            </Text>
+                            <Text style={[styles.fareTextMain, rideData?.trip_status === 'CANCELLED' && styles.strikethrough, { color: appColors.text }]}>
+                                ₹{fareValue} <Text style={{ color: appColors.secondaryText }}>(est)</Text>
+                            </Text>
                         </View>
-
-                        <View style={[styles.rowBetween, { marginTop: vS(20) }]}>
-                            <Text style={[styles.sectionLabel, { color: appColors.secondaryText }]}>Address details</Text>
-                            <MaterialCommunityIcons
-                                name={open ? "chevron-up" : "chevron-down"}
-                                size={mS(25)}
-                                onPress={() => setIsOpen(!open)}
-                                color={appColors.secondaryText}
+                        <View style={styles.rideInfoRight}>
+                            <Image 
+                                source={require('../../../assets/png/T2Drive_SearchableCar.png')}
+                                style={styles.carImage}
                             />
+                            <View style={[
+                                styles.statusBadge,
+                                { backgroundColor: rideData?.trip_status === 'COMPLETED' ? (isDark ? 'rgba(34, 197, 94, 0.15)' : '#DCFCE7') : (isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEE2E2') }
+                            ]}>
+                                <MaterialCommunityIcons
+                                    name={rideData?.trip_status === 'COMPLETED' ? "check" : "close"}
+                                    size={mS(14)}
+                                    color={rideData?.trip_status === 'COMPLETED' ? '#16A34A' : '#EF4444'}
+                                />
+                                <Text style={[
+                                    styles.statusText,
+                                    { color: rideData?.trip_status === 'COMPLETED' ? '#16A34A' : '#EF4444' }
+                                ]}>
+                                    {rideData?.trip_status || 'UNKNOWN'}
+                                </Text>
+                            </View>
                         </View>
+                    </View>
 
-                        {open && (
-                            <View style={styles.addressSection}>
-                                <Text style={[styles.rideIdText, { color: appColors.secondaryText }]}>Ride ID #{rideData.trip_code}</Text>
-                                <View style={styles.addressRow}>
-                                    <View style={styles.timelineContainer}>
-                                        <MaterialCommunityIcons name="record-circle" size={mS(20)} color={'#247b4e'} />
-                                        <View style={[styles.timelineDottedLine, { borderColor: appColors.border }]} />
-                                        <MaterialCommunityIcons name="map-marker-circle" size={mS(20)} color={'#931606'} />
+                    <View style={[styles.horizontalDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F3F4F6' }]} />
+
+                    {/* Trip Route Bottom */}
+                    <TouchableOpacity style={styles.routeHeaderRow} onPress={() => setRouteOpen(!routeOpen)} activeOpacity={0.7}>
+                        <Text style={[styles.routeHeaderTitle, { color: appColors.text }]}>Trip Route</Text>
+                        <MaterialCommunityIcons name={routeOpen ? "chevron-up" : "chevron-right"} size={mS(20)} color="#2563EB" />
+                    </TouchableOpacity>
+
+                    {routeOpen && (
+                        <View style={styles.timelineSection}>
+                            <View style={styles.timelinePoint}>
+                                <View style={styles.timelineLeft}>
+                                    <View style={[styles.circleOutlined, { borderColor: '#16A34A' }]}>
+                                        <View style={[styles.circleFilled, { backgroundColor: '#16A34A' }]} />
                                     </View>
-                                    <View style={styles.addressTextWrapper}>
-                                        <View>
-                                            <Text style={[styles.addressName, { color: appColors.text }]}>{pickupaddressname}</Text>
-                                            <Text style={[styles.addressDetail, { color: appColors.secondaryText }]}>{pickupaddressDetail}</Text>
-                                        </View>
-                                        <View style={{ marginTop: vS(15) }}>
-                                            <Text style={[styles.addressName, { color: appColors.text }]}>{dropaddressname}</Text>
-                                            <Text style={[styles.addressDetail, { color: appColors.secondaryText }]}>{dropaddressDetail}</Text>
-                                        </View>
-                                        <Text style={[styles.estStats, { color: appColors.secondaryText }]}>19.8 mins {'.'} 8.1 kms(.est)</Text>
-                                    </View>
+                                    <View style={styles.dottedLine} />
+                                </View>
+                                <View style={styles.timelineRight}>
+                                    <Text style={[styles.locationName, { color: appColors.text }]}>{pickupaddressname}</Text>
+                                    <Text style={[styles.locationDetail, { color: appColors.secondaryText }]}>{pickupaddressDetail}</Text>
                                 </View>
                             </View>
-                        )}
-                    </View>
 
-                    <TouchableOpacity style={[styles.helpButton, { backgroundColor: isDark ? appColors.iconBox : '#dbecfe' }]} onPress={() => navigation.navigate(HelpContactScreen_Nav)}>
-                        <View style={styles.rowCenter}>
-                            <MaterialCommunityIcons name="headphones-box" size={mS(35)} color={appColors.primary} />
-                            <View style={{ marginLeft: hS(10) }}>
-                                <Text style={[styles.boldText, { color: appColors.text }]}>Need help?</Text>
-                                <Text style={[styles.smallText, { color: appColors.secondaryText }]}>We're a tap away</Text>
+                            <View style={[styles.timelinePoint, { marginTop: 0 }]}>
+                                <View style={styles.timelineLeft}>
+                                    <View style={[styles.circleOutlined, { borderColor: '#EF4444' }]}>
+                                        <View style={[styles.circleFilled, { backgroundColor: '#EF4444' }]} />
+                                    </View>
+                                </View>
+                                <View style={styles.timelineRight}>
+                                    <Text style={[styles.locationName, { color: appColors.text }]}>{dropaddressname}</Text>
+                                    <Text style={[styles.locationDetail, { color: appColors.secondaryText }]}>{dropaddressDetail}</Text>
+                                </View>
+                            </View>
+
+                            <View style={styles.estStatsRow}>
+                                <MaterialCommunityIcons name="clock-outline" size={mS(14)} color={appColors.secondaryText} />
+                                <Text style={[styles.estStatsText, { color: appColors.secondaryText }]}>
+                                    {/* Ideally dynamic values from rideData, using mock to match image for now */}
+                                    19.8 mins • 8.1 kms (est)
+                                </Text>
                             </View>
                         </View>
-                        <MaterialCommunityIcons name="chevron-right" size={mS(20)} color={appColors.secondaryText} />
-                    </TouchableOpacity>
+                    )}
                 </View>
 
-                {/* Ride Summary Section */}
-                <View style={styles.summarySection}>
-                    <View style={styles.summaryHeader}>
-                        <MaterialCommunityIcons name="note-text-outline" size={mS(25)} color={appColors.text} />
-                        <Text style={[styles.summaryTitle, { color: appColors.text }]}>RIDE SUMMARY</Text>
+                {/* CARD 2: Need Help */}
+                <TouchableOpacity 
+                    style={[styles.helpCard, { backgroundColor: isDark ? 'rgba(37, 99, 235, 0.1)' : '#EFF6FF' }]}
+                    onPress={() => navigation.navigate(HelpContactScreen_Nav)}
+                >
+                    <View style={styles.helpIconBox}>
+                        <MaterialCommunityIcons name="headphones" size={mS(24)} color="#FFFFFF" />
+                    </View>
+                    <View style={styles.helpTextContainer}>
+                        <Text style={[styles.helpTitle, { color: '#1E3A8A' }]}>Need help?</Text>
+                        <Text style={[styles.helpSubtitle, { color: isDark ? '#94A3B8' : '#475569' }]}>We're a tap away</Text>
+                    </View>
+                    <MaterialCommunityIcons name="chevron-right" size={mS(20)} color="#2563EB" />
+                </TouchableOpacity>
+
+                {/* CARD 3: Fare Summary */}
+                <View style={styles.fareSummaryWrapper}>
+                    <View style={styles.fareHeaderRow}>
+                        <MaterialCommunityIcons name="text-box-outline" size={mS(20)} color={appColors.text} />
+                        <Text style={[styles.fareHeaderTitle, { color: appColors.text }]}>Fare Summary</Text>
+                        <MaterialCommunityIcons name="chevron-right" size={mS(20)} color={appColors.secondaryText} />
                     </View>
 
-                    <View style={[styles.summaryCard, { backgroundColor: appColors.card, borderColor: appColors.border }]}>
-                        <TouchableOpacity
-                            onPress={() => setSummaryOpen(!SummaryOpen)}
-                            style={styles.summaryFareRow}
-                        >
-                            <Text style={[styles.boldText, { color: appColors.text }]}>Suggested Fare</Text>
-                            <View style={styles.rowCenter}>
-                                <Text style={[styles.boldText, { color: appColors.text }]}>
-                                    ₹{(Number(rideData.base_fare) + Number(rideData.driver_allowance)).toFixed(1)}
-                                </Text>
-                                <MaterialCommunityIcons
-                                    name={SummaryOpen ? "chevron-up" : "chevron-down"}
-                                    size={mS(25)}
-                                    color={appColors.secondaryText}
-                                />
-                            </View>
-                        </TouchableOpacity>
+                    <View style={[styles.fareCard, { backgroundColor: appColors.card, borderColor: isDark ? 'rgba(255,255,255,0.05)' : '#E5E7EB' }]}>
+                        <View style={styles.fareTotalRow}>
+                            <Text style={[styles.fareTotalLabel, { color: appColors.text }]}>Total Fare</Text>
+                            <Text style={[styles.fareTotalAmount, { color: '#16A34A' }]}>₹{fareValue}</Text>
+                        </View>
 
-                        {SummaryOpen && (
-                            <View style={[styles.summaryDetail, { borderTopColor: appColors.border }]}>
-                                <Text style={[styles.smallLabel, { color: appColors.secondaryText }]}>Total Fare</Text>
-                                <Text style={[styles.fareBreakdown, { color: appColors.secondaryText }]}>
-                                    {rideData.base_fare} + Driver allowance({rideData.driver_allowance})
-                                </Text>
-                            </View>
-                        )}
+                        <View style={[styles.dashedDivider, { borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0' }]} />
 
-                        <View style={[styles.actionRow, { borderTopColor: appColors.border }]}>
-                            <TouchableOpacity
-                                style={[styles.actionButton,
-                                rideData.trip_status === 'CANCELLED' && { opacity: 0.5 }
-                                ]}
-                                disabled={rideData.trip_status === 'CANCELLED'}
+                        <View style={styles.breakdownRow}>
+                            <Text style={[styles.breakdownLabel, { color: appColors.secondaryText }]}>Base Fare</Text>
+                            <Text style={[styles.breakdownValue, { color: appColors.secondaryText }]}>₹{rideData?.base_fare || '0.00'}</Text>
+                        </View>
+                        
+                        <View style={styles.breakdownRow}>
+                            <Text style={[styles.breakdownLabel, { color: appColors.secondaryText }]}>Driver Allowance</Text>
+                            <Text style={[styles.breakdownValue, { color: appColors.secondaryText }]}>₹{rideData?.driver_allowance || '0.00'}</Text>
+                        </View>
+
+                        <View style={[styles.solidDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#E5E7EB' }]} />
+
+                        <View style={styles.actionFooter}>
+                            <TouchableOpacity 
+                                style={styles.actionBtn}
+                                disabled={rideData?.trip_status === 'CANCELLED'}
                                 onPress={() => handleInvoiceAction('email')}
                             >
-                                <MaterialCommunityIcons name="email-outline" color={appColors.primary} size={mS(25)} />
-                                <Text style={styles.actionText}>Email Receipt</Text>
+                                <MaterialCommunityIcons name="email-outline" size={mS(20)} color="#2563EB" />
+                                <Text style={[styles.actionBtnText, { color: '#2563EB' }]}>Email Receipt</Text>
                             </TouchableOpacity>
 
-                            <View style={[styles.verticalDivider, { backgroundColor: appColors.border }]} />
+                            <View style={[styles.verticalDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E5E7EB' }]} />
 
-                            <TouchableOpacity
-                                style={[styles.actionButton,
-                                rideData.trip_status === 'CANCELLED' && { opacity: 0.5 }
-                                ]}
-                                disabled={rideData.trip_status === 'CANCELLED'}
+                            <TouchableOpacity 
+                                style={styles.actionBtn}
+                                disabled={rideData?.trip_status === 'CANCELLED'}
                                 onPress={() => handleInvoiceAction('display')}
                             >
-                                <Text style={styles.actionText}>Invoice</Text>
-                                <MaterialCommunityIcons name="download-circle" color={appColors.primary} size={mS(20)} />
+                                <Text style={[styles.actionBtnText, { color: '#2563EB', marginRight: hS(6) }]}>Invoice</Text>
+                                <View style={styles.invoiceIconCircle}>
+                                    <MaterialCommunityIcons name="download" size={mS(12)} color="#FFFFFF" />
+                                </View>
                             </TouchableOpacity>
                         </View>
                     </View>
                 </View>
 
                 {/* Footer Disclaimer */}
-                <View style={styles.disclaimerContainer}>
-                    <MaterialCommunityIcons name="information-outline" size={mS(20)} color={appColors.secondaryText} />
-                    <Text style={[styles.disclaimerText, { color: appColors.secondaryText }]}>
-                        T2Drive serves solely as a facilitator between you and independent Captains. The fare
-                        displayed is an estimate; the final fare is subject to mutual agreement. A tax invoice
-                        will not be provided for this trip. Please refer to the T&Cs for further details.
+                <View style={[styles.disclaimerBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#F1F5F9' }]}>
+                    <MaterialCommunityIcons name="information-outline" size={mS(20)} color={isDark ? '#CBD5E1' : '#334155'} style={styles.infoIcon} />
+                    <Text style={[styles.disclaimerText, { color: isDark ? '#94A3B8' : '#475569' }]}>
+                        T2Drive serves solely as a facilitator between you and independent Captains. The fare displayed is an estimate; the final fare is subject to mutual agreement. A tax invoice will not be provided for this trip. Please refer to the T&Cs for further details.
                     </Text>
                 </View>
 
@@ -249,7 +238,7 @@ const RideDetails: React.FC<any> = () => {
             <Modal statusBarTranslucent navigationBarTranslucent transparent visible={isLoading} animationType="fade">
                 <View style={styles.modalBackground}>
                     <View style={styles.activityWrapper}>
-                        <ActivityIndicator size="large" color="#fff" />
+                        <ActivityIndicator size="large" color="#FFFFFF" />
                         <Text style={styles.loadingText}>Processing...</Text>
                     </View>
                 </View>
@@ -261,216 +250,323 @@ const RideDetails: React.FC<any> = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f6f9fe',
     },
-    scrollContent: {
-        paddingHorizontal: hS(8),
-        paddingVertical: vS(10),
-    },
-    header: {
+    // App Bar
+    appBar: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginVertical: vS(15),
-    },
-    headerTitle: {
-        fontSize: mS(20),
-        fontWeight: 'bold',
-        marginLeft: hS(10),
-    },
-    mainCard: {
-        backgroundColor: colors.background,
-        borderRadius: mS(12),
-        elevation: 3,
+        justifyContent: 'space-between',
+        paddingHorizontal: hS(16),
+        paddingVertical: vS(16),
+        elevation: 2,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: vS(2) },
-        shadowOpacity: 0.2,
-        shadowRadius: mS(4),
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+    },
+    appBarIcon: {
+        padding: mS(4),
+    },
+    appBarTitle: {
+        fontSize: mS(18),
+        fontWeight: '700',
+    },
+
+    scrollContent: {
+        paddingHorizontal: hS(16),
+        paddingVertical: vS(16),
+        paddingBottom: vS(40),
+    },
+    
+    // Shared Card Styles
+    card: {
+        borderRadius: mS(16),
+        borderWidth: 1,
+        marginBottom: vS(16),
         overflow: 'hidden',
     },
-    cardPadding: {
-        padding: mS(15),
-    },
-    rowBetween: {
+
+    // Ride Info Top
+    rideInfoTop: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
+        padding: mS(16),
     },
-    rowCenter: {
-        flexDirection: 'row',
-        alignItems: 'center',
+    rideInfoLeft: {
+        flex: 1,
     },
     rideTypeTitle: {
-        fontSize: mS(18),
-        fontWeight: 'bold',
+        fontSize: mS(16),
+        fontWeight: '800',
+        marginBottom: vS(4),
     },
     dateTimeText: {
-        fontSize: mS(13),
-        color: '#687487',
-        marginTop: vS(2),
+        fontSize: mS(12),
+        fontWeight: '500',
+        marginBottom: vS(8),
     },
-    fareText: {
-        fontSize: mS(14),
-        marginTop: vS(2),
+    fareTextMain: {
+        fontSize: mS(16),
+        fontWeight: '800',
     },
     strikethrough: {
         textDecorationLine: 'line-through',
-        color: '#94A3B8', // Optional: Dim the color to light grey for better UX
+        opacity: 0.5,
     },
-    statusContainer: {
-        alignItems: 'center',
+    rideInfoRight: {
+        alignItems: 'flex-end',
+        justifyContent: 'space-between',
+    },
+    carImage: {
+        width: mS(80),
+        height: mS(40),
+        resizeMode: 'contain',
     },
     statusBadge: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: hS(8),
-        paddingVertical: vS(2),
+        paddingVertical: vS(4),
         borderRadius: mS(6),
-        marginTop: vS(5),
+        marginTop: vS(8),
     },
     statusText: {
-        fontSize: mS(12),
-        fontWeight: 'bold',
+        fontSize: mS(11),
+        fontWeight: '700',
         marginLeft: hS(4),
     },
-    sectionLabel: {
-        fontSize: mS(14),
-        color: '#687487',
+
+    horizontalDivider: {
+        height: 1,
+        width: '100%',
     },
-    addressSection: {
-        marginTop: vS(10),
-    },
-    rideIdText: {
-        fontSize: mS(12),
-        color: '#687487',
-        marginBottom: vS(10),
-    },
-    addressRow: {
+
+    // Trip Route Bottom
+    routeHeaderRow: {
         flexDirection: 'row',
-    },
-    timelineContainer: {
+        justifyContent: 'space-between',
         alignItems: 'center',
-        marginRight: hS(10),
+        padding: mS(16),
     },
-    timelineDottedLine: {
+    routeHeaderTitle: {
+        fontSize: mS(15),
+        fontWeight: '700',
+    },
+    timelineSection: {
+        paddingHorizontal: mS(16),
+        paddingBottom: mS(16),
+    },
+    timelinePoint: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+    },
+    timelineLeft: {
+        alignItems: 'center',
+        width: mS(24),
+    },
+    circleOutlined: {
+        width: mS(16),
+        height: mS(16),
+        borderRadius: mS(8),
+        borderWidth: 2,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+    },
+    circleFilled: {
+        width: mS(6),
+        height: mS(6),
+        borderRadius: mS(3),
+    },
+    dottedLine: {
         width: 1,
-        height: vS(30),
+        height: vS(32),
         borderStyle: 'dotted',
         borderWidth: 1,
-        borderColor: '#687487',
+        borderColor: '#CBD5E1',
         marginVertical: vS(2),
     },
-    addressTextWrapper: {
+    timelineRight: {
         flex: 1,
+        marginLeft: hS(12),
+        paddingBottom: vS(20),
     },
-    addressName: {
+    locationName: {
         fontSize: mS(14),
-        fontWeight: 'bold',
+        fontWeight: '700',
+        marginBottom: vS(2),
     },
-    addressDetail: {
+    locationDetail: {
         fontSize: mS(12),
-        color: '#687487',
+        fontWeight: '500',
     },
-    estStats: {
-        fontSize: mS(12),
-        color: '#687487',
-        marginTop: vS(10),
-    },
-    helpButton: {
+    estStatsRow: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        backgroundColor: '#dbecfe',
+        marginLeft: hS(36),
+        marginTop: -vS(12),
+    },
+    estStatsText: {
+        fontSize: mS(11),
+        fontWeight: '500',
+        marginLeft: hS(6),
+    },
+
+    // Need Help Card
+    helpCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
         padding: mS(12),
+        borderRadius: mS(12),
+        marginBottom: vS(16),
     },
-    summarySection: {
-        marginVertical: vS(20),
+    helpIconBox: {
+        width: mS(40),
+        height: mS(40),
+        borderRadius: mS(8),
+        backgroundColor: '#2563EB',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    summaryHeader: {
+    helpTextContainer: {
+        flex: 1,
+        marginLeft: hS(12),
+    },
+    helpTitle: {
+        fontSize: mS(15),
+        fontWeight: '700',
+        marginBottom: vS(2),
+    },
+    helpSubtitle: {
+        fontSize: mS(12),
+        fontWeight: '500',
+    },
+
+    // Fare Summary
+    fareSummaryWrapper: {
+        marginBottom: vS(16),
+    },
+    fareHeaderRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: vS(10),
+        marginBottom: vS(12),
+        paddingHorizontal: hS(4),
     },
-    summaryTitle: {
+    fareHeaderTitle: {
+        flex: 1,
         fontSize: mS(15),
-        fontWeight: 'bold',
+        fontWeight: '700',
         marginLeft: hS(8),
     },
-    summaryCard: {
-        backgroundColor: colors.background,
-        borderRadius: mS(12),
-        borderWidth: 0.5,
-        borderColor: '#ddd',
-        elevation: 2,
+    fareCard: {
+        borderRadius: mS(16),
+        borderWidth: 1,
+        overflow: 'hidden',
     },
-    summaryFareRow: {
+    fareTotalRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        padding: mS(15),
+        alignItems: 'center',
+        padding: mS(16),
     },
-    summaryDetail: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        padding: mS(12),
-        marginHorizontal: hS(10),
+    fareTotalLabel: {
+        fontSize: mS(15),
+        fontWeight: '700',
+    },
+    fareTotalAmount: {
+        fontSize: mS(16),
+        fontWeight: '800',
+    },
+    dashedDivider: {
         borderTopWidth: 1,
         borderStyle: 'dashed',
-        borderColor: '#ccc',
+        marginHorizontal: mS(16),
+        marginBottom: vS(12),
     },
-    actionRow: {
+    breakdownRow: {
         flexDirection: 'row',
-        borderTopWidth: 1,
-        borderColor: '#ccc',
-        paddingVertical: vS(10),
+        justifyContent: 'space-between',
+        paddingHorizontal: mS(16),
+        marginBottom: vS(12),
     },
-    actionButton: {
+    breakdownLabel: {
+        fontSize: mS(13),
+        fontWeight: '500',
+    },
+    breakdownValue: {
+        fontSize: mS(13),
+        fontWeight: '600',
+    },
+    solidDivider: {
+        height: 1,
+        width: '100%',
+    },
+    actionFooter: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    actionBtn: {
         flex: 1,
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
+        paddingVertical: vS(16),
     },
-    actionText: {
+    actionBtnText: {
         fontSize: mS(14),
-        fontWeight: 'bold',
-        color: '#2479dd',
-        marginHorizontal: hS(5),
+        fontWeight: '700',
+        marginLeft: hS(6),
     },
     verticalDivider: {
         width: 1,
-        height: '90%',
-        backgroundColor: '#ccc',
+        height: '60%',
     },
-    disclaimerContainer: {
+    invoiceIconCircle: {
+        width: mS(20),
+        height: mS(20),
+        borderRadius: mS(10),
+        backgroundColor: '#2563EB',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+
+    // Footer Disclaimer
+    disclaimerBox: {
         flexDirection: 'row',
-        paddingBottom: vS(30),
+        alignItems: 'flex-start',
+        padding: mS(16),
+        borderRadius: mS(12),
+    },
+    infoIcon: {
+        marginTop: vS(2),
     },
     disclaimerText: {
-        fontSize: mS(11),
-        color: '#687487',
         flex: 1,
-        marginLeft: hS(10),
+        marginLeft: hS(12),
+        fontSize: mS(11),
+        lineHeight: vS(16),
+        fontWeight: '500',
     },
-    boldText: { fontWeight: 'bold', fontSize: mS(14) },
-    smallText: { fontSize: mS(12), color: '#555' },
-    smallLabel: { fontSize: mS(12), color: '#687487' },
-    fareBreakdown: { fontSize: mS(11), color: '#687487' },
+
+    // Modal
     modalBackground: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
         justifyContent: 'center',
         alignItems: 'center',
     },
     activityWrapper: {
-        backgroundColor: '#333',
-        padding: mS(20),
-        borderRadius: mS(10),
+        backgroundColor: '#1E293B',
+        padding: mS(24),
+        borderRadius: mS(16),
         alignItems: 'center',
     },
     loadingText: {
-        marginTop: vS(10),
+        marginTop: vS(12),
         fontSize: mS(14),
-        color: '#fff',
+        fontWeight: '600',
+        color: '#FFFFFF',
     },
 });
-
 
 export default RideDetails;

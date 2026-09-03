@@ -6,13 +6,15 @@ import {
     StyleSheet,
     ActivityIndicator,
     Alert,
+    Image,
+    Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { useRoute } from "@react-navigation/native";
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
-import { Car } from '../../assets/svg';
+import { Car, Logo } from '../../assets/svg';
 import { Styles } from '../../lib/styles';
 import colors from '../../constant/colors';
 import fonts from '../../constant/fonts';
@@ -183,48 +185,101 @@ const OTPScreen: React.FC<any> = ({ navigation }) => {
         <View style={[
             localStyles.container,
             {
-                paddingTop: insets.top + vS(20),
+                paddingTop: insets.top + vS(10),
                 paddingBottom: insets.bottom + vS(20),
-                backgroundColor: appColors.background
+                backgroundColor: isDark ? '#020813' : appColors.background,
             }
         ]}>
+            {isDark && (
+                <View style={{ position: 'absolute', bottom: 0, width: Dimensions.get('window').width, height: vS(160), zIndex: -1 }}>
+                    <Image
+                        source={require('../../assets/png/SignupBackground.png')}
+                        style={{ width: '100%', height: '100%', resizeMode: 'cover', position: 'absolute', transform: [{ scaleY: -1 }] }}
+                    />
+                </View>
+            )}
             <View style={Styles.flex}>
-                {/* PREMIUM HEADER SECTION */}
-                <View style={localStyles.headerSection}>
-                    <Text style={[localStyles.welcomeText, { color: appColors.primary }]}>Verification Code</Text>
-                    <Text style={[localStyles.titleText, { color: appColors.text }]}>
+                {/* HEADER ROW */}
+                <View style={[localStyles.headerRow, isDark && { zIndex: 10 }]}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={localStyles.backButton}>
+                        <MaterialCommunityIcons name="arrow-left" size={mS(24)} color={appColors.text} />
+                    </TouchableOpacity>
+                    <View style={localStyles.logoContainer}>
+                        {/* <Logo width={hS(90)} height={vS(24)} /> */}
+                        {
+                            isDark ?
+                                <Image
+                                    source={require('../../assets/png/T2DriveLogo.png')}
+                                    style={{ width: hS(100), height: vS(24), resizeMode: 'contain' }}
+                                />
+                                : <Image
+                                    source={require('../../assets/png/T2DriveDarkLogo.png')}
+                                    style={{ width: hS(100), height: vS(24), resizeMode: 'contain' }}
+                                />
+                        }
+
+                    </View>
+                    {/* Empty view for flex balancing */}
+                    <View style={localStyles.backButton} />
+                </View>
+
+                {/* ILLUSTRATION */}
+                {isDark ? (
+                    <View style={{ width: Dimensions.get('window').width, height: vS(260), marginLeft: hS(0), marginTop: -(insets.top + vS(64)), marginBottom: vS(20), pointerEvents: 'none', zIndex: 1, alignItems: 'center' }}>
+                        {/* <Image
+                            source={require('../../assets/png/LoginScreenImageBackground.png')}
+                            style={{ width: '100%', height: '100%', resizeMode: 'cover', position: 'absolute' }}
+                        /> */}
+                        <Image
+                            source={require('../../assets/png/OTPScreenShieldImage.png')}
+                            style={{ width: hS(220), height: vS(180), resizeMode: 'contain', position: 'absolute', bottom: vS(10), alignSelf: 'center' }}
+                        />
+                    </View>
+                ) : (
+                    <View style={localStyles.illustrationContainer}>
+                        <Image
+                            source={require('../../assets/png/OTPImage.png')}
+                            style={{ width: hS(280), height: vS(180), resizeMode: 'contain' }}
+                        />
+                    </View>
+                )}
+
+                {/* TEXT CONTENT */}
+                <View style={[localStyles.textContent, isDark && { zIndex: 10 }]}>
+                    <View style={[localStyles.badgeContainer, isDark && { backgroundColor: '#BBEBFA' }]}>
+                        <Text style={[localStyles.badgeText, isDark && { color: '#0369A1' }]}>VERIFICATION CODE</Text>
+                    </View>
+                    <Text style={[localStyles.titleText, { color: isDark ? '#FFFFFF' : appColors.text }]}>
                         {OTPdata?.exists ? "Welcome Back!" : "Almost There!"}
                     </Text>
-                    <Text style={[localStyles.descriptionText, { color: appColors.lightTextColor }]}>
+                    <Text style={[localStyles.descriptionText, { color: isDark ? '#9CA3AF' : appColors.lightTextColor }]}>
                         {OTPdata?.exists
                             ? `Enter the 4-digit code sent to`
-                            : `Let's verify your account for`}{' '}
-                        <Text style={[localStyles.phoneNumberText, { color: appColors.text }]}>
-                            {userData?.phone_number || user?.phone_number}
-                        </Text>
+                            : `Let's verify your account for`}
+                    </Text>
+                    <Text style={[localStyles.phoneNumberText, { color: isDark ? '#FFFFFF' : appColors.text }]}>
+                        {userData?.phone_number || user?.phone_number}
                     </Text>
                 </View>
 
-                {/* PREMIUM OTP INPUT CARD */}
-                <View style={[localStyles.otpCard, { backgroundColor: appColors.card, borderColor: appColors.border, shadowColor: isDark ? '#000' : '#64748B' }]}>
-                    {/* --- START TEMPORARY OTP DISPLAY (DETACHABLE) --- */}
-                    {/* TODO: Remove this block once SMS integration is complete */}
-                    {OTPdata?.otp && (
-                        <View style={{ marginBottom: vS(15), padding: mS(10), backgroundColor: isDark ? 'rgba(2, 132, 199, 0.2)' : '#E0F2FE', borderRadius: mS(8), width: '100%' }}>
-                            <Text style={{ fontSize: mS(14), color: isDark ? '#38BDF8' : '#0284C7', fontWeight: 'bold', textAlign: 'center' }}>
-                                Temporary Dev OTP: {OTPdata.otp}
-                            </Text>
-                        </View>
-                    )}
-                    {/* --- END TEMPORARY OTP DISPLAY --- */}
+                {/* OTP SECTION (Flat) */}
+                <View style={localStyles.otpSection}>
                     <OTPInput
                         numberOfDigits={4}
                         onChangeText={handleOtpChange}
                         value={otp}
                         editable={lockoutTime === 0}
-                    // placeholderCharacter="-"
-                    // style={localStyles.premiumOtpInput}
                     />
+
+                    {/* TEMPORARY OTP */}
+                    {OTPdata?.otp ? (
+                        <View style={[localStyles.devOtpBanner, isDark && { backgroundColor: '#FFFFFF' }]}>
+                            <MaterialCommunityIcons name="information-outline" size={mS(16)} color="#0284C7" />
+                            <Text style={localStyles.devOtpText}>
+                                Temporary Dev OTP: {OTPdata.otp}
+                            </Text>
+                        </View>
+                    ) : null}
 
                     {lockoutTime > 0 ? (
                         <View style={localStyles.errorContainer}>
@@ -236,29 +291,21 @@ const OTPScreen: React.FC<any> = ({ navigation }) => {
                             <MaterialCommunityIcons name="check-circle-outline" size={mS(16)} color="#10B981" />
                             <Text style={[localStyles.errorText, { color: '#10B981' }]}>You can try now</Text>
                         </View>
-                    ) : error && (
+                    ) : error ? (
                         <View style={localStyles.errorContainer}>
                             <MaterialCommunityIcons name="alert-circle-outline" size={mS(16)} color="#EF4444" />
                             <Text style={localStyles.errorText}>{error}</Text>
                         </View>
-                    )}
+                    ) : null}
 
                     <View style={localStyles.resendContainer}>
-                        <Text style={[localStyles.notReceivedText, { color: appColors.lightTextColor }]}>Didn't receive the code?</Text>
-                        <TouchableOpacity
-                            onPress={handleResendCode}
-                            disabled={!canResend || resending}
-                        >
+                        <Text style={[localStyles.notReceivedText, { color: isDark ? '#9CA3AF' : appColors.lightTextColor }]}>Didn't receive the code? </Text>
+                        <TouchableOpacity onPress={handleResendCode} disabled={!canResend || resending}>
                             <Text style={[
                                 localStyles.resendLink,
-                                { color: canResend ? appColors.button : (isDark ? '#475569' : '#94A3B8') }
+                                { color: canResend ? (isDark ? '#00C2FF' : '#0B3370') : (isDark ? '#00C2FF' : '#38BDF8') }
                             ]}>
-                                {resending
-                                    ? 'Resending...'
-                                    : canResend
-                                        ? 'Resend Now'
-                                        : `Resend in ${resendTimer}s`
-                                }
+                                {resending ? 'Resending...' : canResend ? 'Resend Now' : `Resend in ${resendTimer}s`}
                             </Text>
                         </TouchableOpacity>
                     </View>
@@ -266,43 +313,29 @@ const OTPScreen: React.FC<any> = ({ navigation }) => {
 
                 {/* Loader */}
                 {loading && (
-                    <ActivityIndicator
-                        size="large"
-                        color={appColors.primary}
-                        style={localStyles.loader}
-                    />
+                    <ActivityIndicator size="large" color="#0B3370" style={localStyles.loader} />
                 )}
 
-                {/* PREMIUM ACTION BUTTONS */}
-                <View style={localStyles.actionSection}>
+                {/* OR Divider & Action Button */}
+                <View style={[localStyles.actionSection, isDark && { zIndex: 10 }]}>
+                    <View style={localStyles.dividerContainer}>
+                        <View style={[localStyles.line, isDark && { backgroundColor: '#152B4D' }]} />
+                        <Text style={[localStyles.orText, isDark && { color: '#FFFFFF' }]}>OR</Text>
+                        <View style={[localStyles.line, isDark && { backgroundColor: '#152B4D' }]} />
+                    </View>
+
                     <TouchableOpacity
                         onPress={handleChangeMobileNumber}
-                        disabled={!OTPdata?.exists}
                         activeOpacity={0.8}
-                        style={[
-                            localStyles.premiumActionButton,
-                            { backgroundColor: OTPdata?.exists ? appColors.card : appColors.button, shadowColor: isDark ? '#000' : '#000' },
-                            !OTPdata?.exists && { opacity: 0.5 }
-                        ]}
+                        style={[localStyles.outlineActionButton, { backgroundColor: isDark ? '#041026' : appColors.card, borderColor: isDark ? '#152B4D' : appColors.border, borderRadius: isDark ? mS(12) : mS(8) }]}
                     >
-                        <Text style={[
-                            localStyles.actionButtonText,
-                            { color: OTPdata?.exists ? appColors.text : '#FFFFFF' }
-                        ]}>
-                            {OTPdata?.exists
-                                ? `Change Mobile Number`
-                                : `Sign Up to Continue`}
+                        <MaterialCommunityIcons name="phone-outline" size={mS(20)} color={isDark ? '#FFFFFF' : appColors.text} style={{ marginRight: hS(8) }} />
+                        <Text style={[localStyles.outlineActionText, { color: isDark ? '#FFFFFF' : appColors.text }]}>
+                            {OTPdata?.exists ? `Change Mobile Number` : `Change Number`}
                         </Text>
                     </TouchableOpacity>
                 </View>
             </View>
-
-            {/* Background Decoration */}
-            <Car
-                width={hS(220)}
-                height={vS(120)}
-                style={localStyles.backgroundCar}
-            />
         </View>
     );
 };
@@ -310,95 +343,135 @@ const OTPScreen: React.FC<any> = ({ navigation }) => {
 const localStyles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F8FAFC',
+        backgroundColor: '#FFFFFF',
     },
-    headerSection: {
-        marginTop: vS(40),
-        marginBottom: vS(32),
+    headerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
         paddingHorizontal: hS(24),
+        marginBottom: vS(20),
     },
-    welcomeText: {
-        fontSize: mS(14),
-        fontWeight: '700',
-        color: colors.button,
-        textTransform: 'uppercase',
-        letterSpacing: 1.5,
-        marginBottom: vS(10),
+    backButton: {
+        width: mS(40),
+        alignItems: 'flex-start',
     },
-    titleText: {
-        fontSize: mS(32),
-        fontWeight: '800',
-        color: '#1E293B',
-        lineHeight: mS(40),
+    logoContainer: {
+        flex: 1,
+        alignItems: 'center',
+    },
+    illustrationContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginVertical: vS(10),
+    },
+    textContent: {
+        alignItems: 'center',
+        paddingHorizontal: hS(24),
+        marginBottom: vS(20),
+    },
+    badgeContainer: {
+        backgroundColor: '#E0F2FE',
+        paddingHorizontal: hS(12),
+        paddingVertical: vS(4),
+        borderRadius: mS(12),
         marginBottom: vS(12),
     },
+    badgeText: {
+        color: '#0284C7',
+        fontSize: mS(10),
+        fontWeight: '800',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+    titleText: {
+        fontSize: mS(24),
+        fontWeight: '800',
+        marginBottom: vS(8),
+    },
     descriptionText: {
-        fontSize: mS(15),
-        color: '#64748B',
-        lineHeight: vS(22),
+        fontSize: mS(13),
         fontWeight: '500',
+        marginBottom: vS(4),
     },
     phoneNumberText: {
-        fontWeight: '700',
-        color: '#1E293B',
+        fontSize: mS(15),
+        fontWeight: '800',
     },
-    otpCard: {
-        backgroundColor: '#FFFFFF',
-        marginHorizontal: hS(24),
-        borderRadius: mS(24),
-        paddingVertical: vS(32),
-        paddingHorizontal: hS(20),
-        shadowColor: '#64748B',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.1,
-        shadowRadius: 20,
-        elevation: 5,
+    otpSection: {
+        paddingHorizontal: hS(24),
         alignItems: 'center',
+        marginTop: vS(10),
+    },
+    devOtpBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#E0F2FE',
+        borderRadius: mS(8),
+        paddingVertical: vS(10),
+        paddingHorizontal: hS(16),
+        width: '100%',
+        marginTop: vS(20),
+    },
+    devOtpText: {
+        color: '#0284C7',
+        fontSize: mS(12),
+        fontWeight: '700',
+        marginLeft: hS(6),
     },
     resendContainer: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
         marginTop: vS(24),
     },
     notReceivedText: {
-        fontSize: mS(14),
-        color: '#64748B',
+        fontSize: mS(12),
         fontWeight: '500',
-        marginRight: hS(6),
     },
     resendLink: {
-        fontSize: mS(14),
-        fontWeight: '800',
-        color: colors.button,
+        fontSize: mS(12),
+        fontWeight: '700',
     },
     loader: {
-        marginTop: vS(30),
+        marginTop: vS(20),
     },
     actionSection: {
-        marginTop: vS(40),
+        marginTop: 'auto',
         paddingHorizontal: hS(24),
+        paddingBottom: vS(20),
     },
-    premiumActionButton: {
-        height: vS(64),
-        borderRadius: mS(20),
+    dividerContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: vS(20),
+    },
+    line: {
+        flex: 1,
+        height: 1,
+        backgroundColor: '#F1F5F9',
+    },
+    orText: {
+        paddingHorizontal: hS(16),
+        fontSize: mS(11),
+        fontWeight: '700',
+        color: '#94A3B8',
+    },
+    outlineActionButton: {
+        flexDirection: 'row',
+        height: vS(48),
+        borderRadius: mS(8),
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 10,
-        elevation: 4,
     },
-    actionButtonText: {
-        fontSize: mS(17),
-        fontWeight: '800',
-        letterSpacing: 0.5,
-    },
-    backgroundCar: {
-        position: 'absolute',
-        bottom: vS(-40),
-        right: hS(-60),
-        opacity: 0.7,
+    outlineActionText: {
+        fontSize: mS(14),
+        fontWeight: '700',
+        color: '#0F172A',
     },
     errorContainer: {
         flexDirection: "row",
@@ -406,15 +479,15 @@ const localStyles = StyleSheet.create({
         backgroundColor: "#FEF2F2",
         paddingHorizontal: hS(12),
         paddingVertical: vS(8),
-        borderRadius: mS(10),
+        borderRadius: mS(8),
         marginTop: vS(16),
-        gap: hS(8),
         width: "100%",
     },
     errorText: {
         fontSize: mS(12),
         color: "#EF4444",
         fontWeight: "600",
+        marginLeft: hS(6),
         flex: 1,
     },
 });
